@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTheme } from '../hooks/useTheme';
 import { useScrollReveal } from '../hooks/useScrollReveal';
 import { Navbar } from '../components/common/Navbar';
 import { HeroSection } from '../components/landing/HeroSection';
@@ -10,10 +11,11 @@ import { Footer } from '../components/common/Footer';
 import { LoginModal } from '../components/common/LoginModal';
 
 export const LandingPage = () => {
+  const { theme, toggleTheme } = useTheme();
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [loginRole, setLoginRole] = useState('tenant');
 
-  // Trigger scroll-reveal animations for elements with .reveal-init class
+  // Trigger scroll-reveal animations
   useScrollReveal();
 
   const handleOpenLogin = (role = 'tenant') => {
@@ -27,13 +29,20 @@ export const LandingPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#08080C] text-[#F3F3F8] font-sans selection:bg-blue-600/30 selection:text-blue-300">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#08080C] text-slate-900 dark:text-[#F3F3F8] font-sans selection:bg-blue-600/30 selection:text-blue-300 transition-colors duration-300">
       
       {/* 1. Header Navigation */}
-      <Navbar onOpenLogin={handleOpenLogin} />
+      <Navbar
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onOpenLogin={handleOpenLogin}
+      />
 
       {/* 2. Hero Section with Interactive Aurora Shader Canvas */}
-      <HeroSection onOpenLogin={handleOpenLogin} />
+      <HeroSection
+        theme={theme}
+        onOpenLogin={handleOpenLogin}
+      />
 
       {/* 3. Integrated Shadcn Framer-Motion Bento Grid */}
       <BentoGrid01 />
@@ -41,7 +50,7 @@ export const LandingPage = () => {
       {/* 4. Role-Based Access Control Breakdown */}
       <RoleBreakdown onOpenLogin={handleOpenLogin} />
 
-      {/* 5. Testimonials Infinite Slider */}
+      {/* 5. Testimonials Section */}
       <Testimonials />
 
       {/* 6. Call-to-Action Section */}

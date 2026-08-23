@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-export const ShaderHeroCanvas = () => {
+export const ShaderHeroCanvas = ({ theme }) => {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -29,7 +29,6 @@ export const ShaderHeroCanvas = () => {
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('resize', handleResize);
 
-    // Particle seeds for floating sparks
     const particles = Array.from({ length: 45 }, () => ({
       x: Math.random() * width,
       y: Math.random() * height,
@@ -45,33 +44,32 @@ export const ShaderHeroCanvas = () => {
     const render = () => {
       time += 0.008;
 
-      // Smooth mouse interpolation
       mouse.x += (mouse.targetX - mouse.x) * 0.05;
       mouse.y += (mouse.targetY - mouse.y) * 0.05;
 
       ctx.clearRect(0, 0, width, height);
 
-      // Deep dark background base
-      ctx.fillStyle = '#08080C';
+      const isDark = document.documentElement.classList.contains('dark');
+      ctx.fillStyle = isDark ? '#08080C' : '#F8FAFC';
       ctx.fillRect(0, 0, width, height);
 
-      // Aurora Blob 1: Blue / Violet
+      // Aurora Blob 1
       const x1 = width * 0.3 + Math.sin(time * 0.8) * 120 + (mouse.x - width / 2) * 0.15;
       const y1 = height * 0.4 + Math.cos(time * 0.6) * 80 + (mouse.y - height / 2) * 0.15;
       const g1 = ctx.createRadialGradient(x1, y1, 10, x1, y1, width * 0.45);
-      g1.addColorStop(0, 'rgba(59, 130, 246, 0.22)');
-      g1.addColorStop(0.5, 'rgba(139, 92, 246, 0.12)');
-      g1.addColorStop(1, 'rgba(8, 8, 12, 0)');
+      g1.addColorStop(0, isDark ? 'rgba(59, 130, 246, 0.22)' : 'rgba(59, 130, 246, 0.15)');
+      g1.addColorStop(0.5, isDark ? 'rgba(139, 92, 246, 0.12)' : 'rgba(139, 92, 246, 0.08)');
+      g1.addColorStop(1, isDark ? 'rgba(8, 8, 12, 0)' : 'rgba(248, 250, 252, 0)');
       ctx.fillStyle = g1;
       ctx.fillRect(0, 0, width, height);
 
-      // Aurora Blob 2: Cyan / Pink
+      // Aurora Blob 2
       const x2 = width * 0.7 + Math.cos(time * 0.9) * 140 - (mouse.x - width / 2) * 0.1;
       const y2 = height * 0.5 + Math.sin(time * 0.7) * 90 - (mouse.y - height / 2) * 0.1;
       const g2 = ctx.createRadialGradient(x2, y2, 20, x2, y2, width * 0.4);
-      g2.addColorStop(0, 'rgba(236, 72, 153, 0.18)');
-      g2.addColorStop(0.6, 'rgba(6, 182, 212, 0.10)');
-      g2.addColorStop(1, 'rgba(8, 8, 12, 0)');
+      g2.addColorStop(0, isDark ? 'rgba(236, 72, 153, 0.18)' : 'rgba(236, 72, 153, 0.12)');
+      g2.addColorStop(0.6, isDark ? 'rgba(6, 182, 212, 0.10)' : 'rgba(6, 182, 212, 0.06)');
+      g2.addColorStop(1, isDark ? 'rgba(8, 8, 12, 0)' : 'rgba(248, 250, 252, 0)');
       ctx.fillStyle = g2;
       ctx.fillRect(0, 0, width, height);
 
@@ -106,7 +104,7 @@ export const ShaderHeroCanvas = () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('resize', handleResize);
     };
-  }, []);
+  }, [theme]);
 
   return (
     <canvas

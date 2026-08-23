@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   :root {
     --font-grotesk: 'Space Grotesk', system-ui, sans-serif;
@@ -39,6 +41,22 @@
 .gradient-shimmer {
   background: linear-gradient(
     110deg,
+    #0f172a 0%,
+    #2563eb 25%,
+    #7c3aed 50%,
+    #2563eb 75%,
+    #0f172a 100%
+  );
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: shimmerText 6s linear infinite;
+}
+
+.dark .gradient-shimmer {
+  background: linear-gradient(
+    110deg,
     #ffffff 0%,
     #93c5fd 25%,
     #c084fc 50%,
@@ -49,7 +67,6 @@
   color: transparent;
   -webkit-background-clip: text;
   background-clip: text;
-  animation: shimmerText 6s linear infinite;
 }
 
 @keyframes shimmerText {
@@ -87,9 +104,7 @@
 /* Spotlight Card Styles */
 .spotlight-card {
   position: relative;
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  transition: transform 200ms var(--ease-out), border-color 200ms var(--ease-out);
+  transition: transform 200ms var(--ease-out), border-color 200ms var(--ease-out), background-color 200ms var(--ease-out);
 }
 
 .spotlight-card::before {
@@ -113,7 +128,6 @@
 
 @media (hover: hover) and (pointer: fine) {
   .spotlight-card:hover {
-    border-color: var(--border-strong);
     transform: translateY(-2px);
   }
 }
@@ -145,6 +159,6 @@
 }
 
 /* Glass & Card Glow */
-.glow-card {
+.dark .glow-card {
   box-shadow: 0 0 40px -10px rgba(59, 130, 246, 0.15);
 }
