@@ -1,5 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 
+/**
+ * Animated mesh gradient background — organic color blobs that drift slowly.
+ * Mouse-reactive with spring-like interpolation (Emil: never tie directly to mouse).
+ * Renders brand-palette blobs on a clean base for light & dark modes.
+ */
 export const ShaderHeroCanvas = ({ theme }) => {
   const canvasRef = useRef(null);
 
@@ -8,108 +13,102 @@ export const ShaderHeroCanvas = ({ theme }) => {
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-    let animationFrameId;
-    let width = (canvas.width = canvas.offsetWidth);
-    let height = (canvas.height = canvas.offsetHeight);
+    let raf;
+    let W, H;
 
-    let mouse = { x: width / 2, y: height / 2, targetX: width / 2, targetY: height / 2 };
-
-    const handleMouseMove = (e) => {
-      const rect = canvas.getBoundingClientRect();
-      mouse.targetX = e.clientX - rect.left;
-      mouse.targetY = e.clientY - rect.top;
+    const resize = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = canvas.offsetWidth;
+      H = canvas.offsetHeight;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      ctx.scale(dpr, dpr);
     };
+    resize();
 
-    const handleResize = () => {
-      if (!canvas) return;
-      width = canvas.width = canvas.offsetWidth;
-      height = canvas.height = canvas.offsetHeight;
+    // Spring-lerped mouse (Emil: decorative parallax needs spring, not raw coords)
+    const mouse = { x: W / 2, y: H / 2, tx: W / 2, ty: H / 2 };
+    const onMove = (e) => {
+      const r = canvas.getBoundingClientRect();
+      mouse.tx = e.clientX - r.left;
+      mouse.ty = e.clientY - r.top;
     };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('resize', resize);
 
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('resize', handleResize);
+    // Blob definitions — each drifts on its own sine path
+    const blobs = [
+      { cx: 0.25, cy: 0.30, r: 0.45, sx: 0.7, sy: 0.5, dark: 'rgba(59,130,246,0.14)', light: 'rgba(59,130,246,0.10)' },
+      { cx: 0.70, cy: 0.55, r: 0.40, sx: 0.9, sy: 0.6, dark: 'rgba(139,92,246,0.12)', light: 'rgba(139,92,246,0.08)' },
+      { cx: 0.50, cy: 0.75, r: 0.35, sx: 0.6, sy: 0.8, dark: 'rgba(6,182,212,0.10)',  light: 'rgba(6,182,212,0.06)' },
+      { cx: 0.80, cy: 0.25, r: 0.30, sx: 1.1, sy: 0.4, dark: 'rgba(236,72,153,0.08)', light: 'rgba(236,72,153,0.05)' },
+    ];
 
-    const particles = Array.from({ length: 45 }, () => ({
-      x: Math.random() * width,
-      y: Math.random() * height,
-      radius: Math.random() * 2 + 0.5,
-      alpha: Math.random() * 0.5 + 0.2,
-      vx: (Math.random() - 0.5) * 0.4,
-      vy: (Math.random() - 0.5) * 0.4,
-      color: ['#3B82F6', '#8B5CF6', '#EC4899', '#06B6D4'][Math.floor(Math.random() * 4)],
-    }));
-
-    let time = 0;
+    let t = 0;
 
     const render = () => {
-      time += 0.008;
+      t += 0.003;
 
-      mouse.x += (mouse.targetX - mouse.x) * 0.05;
-      mouse.y += (mouse.targetY - mouse.y) * 0.05;
-
-      ctx.clearRect(0, 0, width, height);
+      // Spring interpolation for mouse
+      mouse.x += (mouse.tx - mouse.x) * 0.04;
+      mouse.y += (mouse.ty - mouse.y) * 0.04;
 
       const isDark = document.documentElement.classList.contains('dark');
+
+      // Fill base
       ctx.fillStyle = isDark ? '#08080C' : '#F8FAFC';
-      ctx.fillRect(0, 0, width, height);
+      ctx.fillRect(0, 0, W, H);
 
-      // Aurora Blob 1
-      const x1 = width * 0.3 + Math.sin(time * 0.8) * 120 + (mouse.x - width / 2) * 0.15;
-      const y1 = height * 0.4 + Math.cos(time * 0.6) * 80 + (mouse.y - height / 2) * 0.15;
-      const g1 = ctx.createRadialGradient(x1, y1, 10, x1, y1, width * 0.45);
-      g1.addColorStop(0, isDark ? 'rgba(59, 130, 246, 0.22)' : 'rgba(59, 130, 246, 0.15)');
-      g1.addColorStop(0.5, isDark ? 'rgba(139, 92, 246, 0.12)' : 'rgba(139, 92, 246, 0.08)');
-      g1.addColorStop(1, isDark ? 'rgba(8, 8, 12, 0)' : 'rgba(248, 250, 252, 0)');
-      ctx.fillStyle = g1;
-      ctx.fillRect(0, 0, width, height);
+      const mx = (mouse.x / W - 0.5) * 0.08;
+      const my = (mouse.y / H - 0.5) * 0.08;
 
-      // Aurora Blob 2
-      const x2 = width * 0.7 + Math.cos(time * 0.9) * 140 - (mouse.x - width / 2) * 0.1;
-      const y2 = height * 0.5 + Math.sin(time * 0.7) * 90 - (mouse.y - height / 2) * 0.1;
-      const g2 = ctx.createRadialGradient(x2, y2, 20, x2, y2, width * 0.4);
-      g2.addColorStop(0, isDark ? 'rgba(236, 72, 153, 0.18)' : 'rgba(236, 72, 153, 0.12)');
-      g2.addColorStop(0.6, isDark ? 'rgba(6, 182, 212, 0.10)' : 'rgba(6, 182, 212, 0.06)');
-      g2.addColorStop(1, isDark ? 'rgba(8, 8, 12, 0)' : 'rgba(248, 250, 252, 0)');
-      ctx.fillStyle = g2;
-      ctx.fillRect(0, 0, width, height);
+      // Draw each blob as a soft radial gradient
+      blobs.forEach((b) => {
+        const x = W * b.cx + Math.sin(t * b.sx) * W * 0.08 + mx * W * 0.5;
+        const y = H * b.cy + Math.cos(t * b.sy) * H * 0.06 + my * H * 0.5;
+        const radius = Math.max(W, H) * b.r;
 
-      // Render drifting particles
-      particles.forEach((p) => {
-        p.x += p.vx;
-        p.y += p.vy;
-
-        if (p.x < 0) p.x = width;
-        if (p.x > width) p.x = 0;
-        if (p.y < 0) p.y = height;
-        if (p.y > height) p.y = 0;
-
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fillStyle = p.color;
-        ctx.globalAlpha = p.alpha * (0.6 + 0.4 * Math.sin(time * 2 + p.x));
-        ctx.shadowColor = p.color;
-        ctx.shadowBlur = 8;
-        ctx.fill();
-        ctx.restore();
+        const g = ctx.createRadialGradient(x, y, 0, x, y, radius);
+        g.addColorStop(0, isDark ? b.dark : b.light);
+        g.addColorStop(1, 'transparent');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, H);
       });
 
-      animationFrameId = requestAnimationFrame(render);
+      // Subtle grain overlay for texture (single pass)
+      if (isDark) {
+        ctx.fillStyle = 'rgba(255,255,255,0.012)';
+        for (let i = 0; i < 80; i++) {
+          const gx = Math.random() * W;
+          const gy = Math.random() * H;
+          ctx.fillRect(gx, gy, 1, 1);
+        }
+      }
+
+      // Soft vignette at edges
+      const vig = ctx.createRadialGradient(W / 2, H * 0.45, W * 0.15, W / 2, H * 0.45, W * 0.9);
+      vig.addColorStop(0, 'transparent');
+      vig.addColorStop(1, isDark ? 'rgba(8,8,12,0.5)' : 'rgba(248,250,252,0.4)');
+      ctx.fillStyle = vig;
+      ctx.fillRect(0, 0, W, H);
+
+      raf = requestAnimationFrame(render);
     };
 
     render();
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('resize', handleResize);
+      cancelAnimationFrame(raf);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('resize', resize);
     };
   }, [theme]);
 
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 w-full h-full pointer-events-none z-0"
+      className="absolute inset-0 w-full h-full z-0"
+      style={{ pointerEvents: 'none' }}
     />
   );
 };

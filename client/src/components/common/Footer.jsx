@@ -136,8 +136,8 @@ export const Footer = () => {
 
         {/* Giant Watermark Background */}
         <div className="pt-12 pb-4 text-center overflow-hidden pointer-events-none select-none">
-          <div className="font-grotesk font-black text-[13vw] leading-none text-transparent stroke-text opacity-10 tracking-tighter uppercase"
-               style={{ WebkitTextStroke: '1.5px rgba(148, 163, 184, 0.4)' }}>
+          <div className="font-grotesk font-black text-[13vw] leading-none text-transparent opacity-[0.15] tracking-tighter uppercase"
+               style={{ WebkitTextStroke: '2px rgba(148, 163, 184, 0.5)' }}>
             JPTL LIVING
           </div>
         </div>

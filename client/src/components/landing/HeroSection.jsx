@@ -1,218 +1,181 @@
-import React, { useState } from 'react';
-import { ArrowRight, Sparkles, Building2, Wrench, CreditCard, Smartphone, CheckCircle2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { ArrowRight, Building2, Wrench, CreditCard, Shield, ChevronRight } from 'lucide-react';
 import { ShaderHeroCanvas } from './ShaderHeroCanvas';
 
 export const HeroSection = ({ onOpenLogin, theme }) => {
-  const [activeTab, setActiveTab] = useState('tenant');
-  const [ticketSubmitted, setTicketSubmitted] = useState(false);
-  const [paymentPaid, setPaymentPaid] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  // Emil stagger helper — each element gets its own delay
+  const stagger = (delay) => ({
+    opacity: mounted ? 1 : 0,
+    transform: mounted ? 'translateY(0)' : 'translateY(16px)',
+    transition: `opacity 650ms cubic-bezier(0.23,1,0.32,1), transform 650ms cubic-bezier(0.23,1,0.32,1)`,
+    transitionDelay: `${delay}ms`,
+  });
 
   return (
-    <section className="relative pt-16 pb-24 lg:pt-24 lg:pb-32 overflow-hidden bg-slate-50 dark:bg-[#08080C] min-h-[90vh] flex items-center transition-colors duration-300">
-      
-      {/* 1. Interactive Aurora Canvas Shader Background */}
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-slate-50 dark:bg-[#08080C] transition-colors duration-300">
+
+      {/* Background */}
       <ShaderHeroCanvas theme={theme} />
 
-      {/* Grid overlay texture */}
-      <div 
-        className="absolute inset-0 pointer-events-none opacity-20 z-0"
+      {/* Grid texture overlay */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-[0.035] dark:opacity-[0.06] z-[1]"
         style={{
-          backgroundImage: `radial-gradient(rgba(100, 116, 139, 0.2) 1px, transparent 1px)`,
-          backgroundSize: '32px 32px'
+          backgroundImage: `linear-gradient(rgba(100,116,139,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(100,116,139,0.4) 1px, transparent 1px)`,
+          backgroundSize: '64px 64px',
         }}
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
-        
-        {/* Animated Pill Badge */}
-        <div className="flex justify-center mb-6">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/80 dark:bg-[#12121D] border border-slate-200 dark:border-white/10 border-beam text-xs font-mono text-blue-600 dark:text-blue-400 backdrop-blur-xl shadow-md">
-            <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 animate-pulse" />
-            <span>21st.dev Component Architecture • Express REST + React</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-          </div>
-        </div>
+      <div className="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-20 lg:pt-32 lg:pb-28">
 
-        {/* Hero Title & Subtitle */}
-        <div className="text-center max-w-4xl mx-auto space-y-6">
-          <h1 className="font-grotesk text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.1]">
-            Next-Gen Property & <br />
-            <span className="gradient-shimmer">Maintenance System</span>
+        {/* Top section: Badge + Headline + Subtitle + CTAs */}
+        <div className="flex flex-col items-center text-center">
+
+          {/* Pill badge */}
+          <div style={stagger(80)}>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/70 dark:bg-white/[0.06] border border-slate-200/80 dark:border-white/10 backdrop-blur-lg shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="font-mono text-[11px] tracking-wide text-slate-600 dark:text-slate-400">
+                Property Operations Platform
+              </span>
+            </div>
+          </div>
+
+          {/* Headline */}
+          <h1
+            className="mt-8 font-grotesk font-extrabold tracking-[-0.035em] text-slate-900 dark:text-white leading-[1.05]"
+            style={{ fontSize: 'clamp(2.5rem, 7vw, 5.5rem)' }}
+          >
+            <span className="block" style={stagger(160)}>
+              Smart Property
+            </span>
+            <span className="block" style={stagger(230)}>
+              Management,{' '}
+              <span className="gradient-shimmer">Simplified</span>
+            </span>
           </h1>
 
-          <p className="font-sans text-base sm:text-lg lg:text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto font-normal leading-relaxed">
-            One React codebase serving Tenants and Landlords. Real-time maintenance workflows, synchronous event-driven payments, and automated audit logging.
+          {/* Subtitle */}
+          <p
+            className="mt-6 max-w-lg font-sans text-base sm:text-lg text-slate-500 dark:text-slate-400 leading-relaxed"
+            style={stagger(320)}
+          >
+            Tenant workflows, landlord dashboards, and maintenance pipelines — 
+            unified in one real-time platform.
           </p>
 
-          {/* Primary Action Button */}
-          <div className="pt-2 flex flex-wrap items-center justify-center gap-4">
+          {/* CTA row */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4" style={stagger(420)}>
+            <button
+              onClick={() => onOpenLogin && onOpenLogin('tenant')}
+              className="group relative px-7 py-3.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 font-grotesk font-bold text-sm shadow-lg hover:shadow-xl btn-press"
+              style={{ transition: 'box-shadow 200ms cubic-bezier(0.23,1,0.32,1)' }}
+            >
+              <span className="flex items-center gap-2">
+                Get Started Free
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5" style={{ transition: 'transform 200ms cubic-bezier(0.23,1,0.32,1)' }} />
+              </span>
+            </button>
+
             <button
               onClick={() => onOpenLogin && onOpenLogin('landlord')}
-              className="px-8 py-4 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 font-grotesk font-bold text-sm shadow-xl flex items-center gap-2.5 btn-press transition-all"
+              className="px-7 py-3.5 rounded-xl border border-slate-300 dark:border-white/15 text-slate-700 dark:text-slate-200 font-grotesk font-bold text-sm bg-white/50 dark:bg-white/[0.04] backdrop-blur-sm hover:bg-white/80 dark:hover:bg-white/[0.08] btn-press"
+              style={{ transition: 'background-color 200ms cubic-bezier(0.23,1,0.32,1)' }}
             >
-              <span>Get Started Free</span>
-              <ArrowRight className="w-4 h-4" />
+              View Demo
             </button>
           </div>
         </div>
 
-        {/* Interactive Hero Component Showcase */}
-        <div className="mt-14 max-w-4xl mx-auto">
-          <div className="spotlight-card glow-card rounded-3xl p-4 sm:p-6 border border-slate-200 dark:border-white/10 bg-white/90 dark:bg-[#0E0E16]/90 backdrop-blur-2xl shadow-2xl transition-colors duration-300">
-            
-            {/* Top Widget Nav Tabs */}
-            <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-white/10">
-              
-              <div className="flex items-center gap-2">
-                <div className="flex gap-1.5 pr-3 border-r border-slate-200 dark:border-white/10">
-                  <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-amber-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+        {/* Floating dashboard preview card */}
+        <div
+          className="mt-16 lg:mt-20 max-w-3xl mx-auto"
+          style={stagger(560)}
+        >
+          <div className="rounded-2xl border border-slate-200/80 dark:border-white/[0.08] bg-white/70 dark:bg-[#0E0E16]/80 backdrop-blur-2xl shadow-2xl dark:shadow-[0_0_80px_-20px_rgba(59,130,246,0.12)] overflow-hidden">
+
+            {/* Window chrome */}
+            <div className="flex items-center gap-2 px-5 py-3.5 border-b border-slate-200/60 dark:border-white/[0.06]">
+              <div className="flex gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-400/70" />
+                <div className="w-2.5 h-2.5 rounded-full bg-amber-400/70" />
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400/70" />
+              </div>
+              <div className="flex-1 flex justify-center">
+                <div className="px-4 py-1 rounded-md bg-slate-100 dark:bg-white/[0.05] text-[11px] font-mono text-slate-400 dark:text-slate-500 w-52 text-center truncate">
+                  app.jptl.io/dashboard
                 </div>
-                <span className="font-mono text-xs text-slate-500 dark:text-slate-400 font-semibold pl-1">
-                  jptl-platform-v1.0
-                </span>
+              </div>
+              <div className="w-12" /> {/* Spacer for symmetry */}
+            </div>
+
+            {/* Dashboard preview content */}
+            <div className="p-5 sm:p-6">
+              {/* Stats row */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                {[
+                  { label: 'Active Units', value: '248', icon: Building2, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10' },
+                  { label: 'Open Tickets', value: '12', icon: Wrench, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/10' },
+                  { label: 'This Month', value: '$184K', icon: CreditCard, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10' },
+                  { label: 'Compliance', value: '99.2%', icon: Shield, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-500/10' },
+                ].map((stat, i) => (
+                  <div
+                    key={stat.label}
+                    className="p-3 rounded-xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/50 dark:border-white/[0.05]"
+                    style={{
+                      ...stagger(650 + i * 60),
+                    }}
+                  >
+                    <div className={`inline-flex p-1.5 rounded-lg ${stat.bg} mb-2`}>
+                      <stat.icon className={`w-3.5 h-3.5 ${stat.color}`} />
+                    </div>
+                    <div className="font-grotesk font-bold text-lg text-slate-900 dark:text-white leading-none">
+                      {stat.value}
+                    </div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-sans">
+                      {stat.label}
+                    </div>
+                  </div>
+                ))}
               </div>
 
-              {/* Role Switcher Pills */}
-              <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-[#161624] p-1 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-grotesk">
-                <button
-                  onClick={() => setActiveTab('tenant')}
-                  className={`px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 btn-press transition-all ${
-                    activeTab === 'tenant' ? 'bg-blue-600 text-white font-bold shadow' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  <Smartphone className="w-3.5 h-3.5" /> Tenant View
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('landlord')}
-                  className={`px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 btn-press transition-all ${
-                    activeTab === 'landlord' ? 'bg-purple-600 text-white font-bold shadow' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  <Building2 className="w-3.5 h-3.5" /> Landlord Console
-                </button>
+              {/* Recent activity */}
+              <div className="space-y-2" style={stagger(920)}>
+                {[
+                  { id: '#409', title: 'Kitchen faucet leak — Unit 14B', status: 'In Progress', statusColor: 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20' },
+                  { id: '#408', title: 'HVAC inspection — Unit 4A', status: 'Resolved', statusColor: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
+                ].map((ticket) => (
+                  <div
+                    key={ticket.id}
+                    className="flex items-center justify-between p-3 rounded-xl bg-slate-50/60 dark:bg-white/[0.02] border border-slate-200/40 dark:border-white/[0.04] group cursor-default"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="font-mono text-[11px] text-slate-400 dark:text-slate-500 shrink-0">{ticket.id}</span>
+                      <span className="font-sans text-sm text-slate-700 dark:text-slate-300 truncate">{ticket.title}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold border ${ticket.statusColor}`}>
+                        {ticket.status}
+                      </span>
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100" style={{ transition: 'opacity 150ms ease' }} />
+                    </div>
+                  </div>
+                ))}
               </div>
-
             </div>
-
-            {/* Widget Content Body */}
-            <div className="pt-5">
-              {activeTab === 'tenant' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in duration-200">
-                  
-                  {/* Ticket Filing Simulator */}
-                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#141420] border border-slate-200 dark:border-white/10 space-y-3 text-xs">
-                    <div className="flex items-center justify-between text-blue-600 dark:text-blue-400 font-grotesk font-semibold">
-                      <span className="flex items-center gap-1.5"><Wrench className="w-3.5 h-3.5" /> File Ticket (FR-005)</span>
-                      <span className="font-mono text-[10px] text-slate-500">Tenant View</span>
-                    </div>
-
-                    {!ticketSubmitted ? (
-                      <div className="space-y-2">
-                        <div className="p-2.5 rounded-xl bg-white dark:bg-[#0B0B12] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-300 font-sans">
-                          Issue: Leaking Kitchen Faucet
-                        </div>
-                        <button
-                          onClick={() => setTicketSubmitted(true)}
-                          className="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-grotesk font-semibold text-xs btn-press"
-                        >
-                          Submit Maintenance Ticket
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl text-center space-y-1.5">
-                        <CheckCircle2 className="w-5 h-5 text-blue-600 dark:text-blue-400 mx-auto" />
-                        <div className="font-grotesk font-bold text-slate-900 dark:text-white">Ticket #409 Submitted</div>
-                        <p className="text-[10px] text-slate-600 dark:text-slate-300">Synchronous Status Cascade Dispatched</p>
-                        <button onClick={() => setTicketSubmitted(false)} className="text-[10px] text-blue-600 dark:text-blue-400 underline font-semibold">
-                          Reset Demo
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Rent Payment Simulator */}
-                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#141420] border border-slate-200 dark:border-white/10 space-y-3 text-xs">
-                    <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 font-grotesk font-semibold">
-                      <span className="flex items-center gap-1.5"><CreditCard className="w-3.5 h-3.5" /> Rent Pay (FR-009)</span>
-                      <span className="font-mono text-[10px] text-slate-500">Unit 14B</span>
-                    </div>
-
-                    {!paymentPaid ? (
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center text-slate-800 dark:text-slate-300 font-grotesk">
-                          <span>September Rent Due</span>
-                          <span className="font-bold text-slate-950 dark:text-white">$2,400.00</span>
-                        </div>
-                        <button
-                          onClick={() => setPaymentPaid(true)}
-                          className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-grotesk font-semibold text-xs btn-press"
-                        >
-                          Simulate 1-Click Pay
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-center space-y-1">
-                        <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 mx-auto" />
-                        <div className="font-grotesk font-bold text-emerald-600 dark:text-emerald-400">EventEmitter Fired & Paid!</div>
-                        <div className="font-mono text-[10px] text-slate-600 dark:text-slate-300">Txn: TXN_SIM_20268841</div>
-                        <button onClick={() => setPaymentPaid(false)} className="text-[10px] text-emerald-600 dark:text-emerald-400 underline font-semibold">
-                          Reset Payment
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                </div>
-              ) : (
-                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#141420] border border-slate-200 dark:border-white/10 space-y-3 text-xs animate-in fade-in duration-200">
-                  <div className="flex justify-between items-center font-grotesk text-purple-600 dark:text-purple-400 font-semibold">
-                    <span>Landlord Console • Active Tickets Queue</span>
-                    <span className="font-mono text-[10px] text-slate-500">3 Pending Tickets</span>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="p-3 rounded-xl bg-white dark:bg-[#0B0B12] border border-slate-200 dark:border-white/10 flex items-center justify-between">
-                      <div>
-                        <div className="font-grotesk font-bold text-slate-900 dark:text-white">#401 Plumbing Leaks</div>
-                        <div className="text-[10px] text-slate-500 dark:text-slate-400">Unit 2B • Aura Towers</div>
-                      </div>
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                        IN_PROGRESS
-                      </span>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-white dark:bg-[#0B0B12] border border-slate-200 dark:border-white/10 flex items-center justify-between">
-                      <div>
-                        <div className="font-grotesk font-bold text-slate-900 dark:text-white">#402 HVAC Inspection</div>
-                        <div className="text-[10px] text-slate-500 dark:text-slate-400">Unit 4A • Zenith Lofts</div>
-                      </div>
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                        RESOLVED
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Widget Footer */}
-            <div className="mt-4 pt-3 border-t border-slate-200 dark:border-white/10 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-sans">
-              <span>RBAC Scoped MongoDB Queries</span>
-              <button
-                onClick={() => onOpenLogin && onOpenLogin(activeTab)}
-                className="text-blue-600 dark:text-blue-400 hover:underline font-grotesk font-medium flex items-center gap-1"
-              >
-                Launch {activeTab.toUpperCase()} Portal <ArrowRight className="w-3 h-3" />
-              </button>
-            </div>
-
           </div>
         </div>
-
       </div>
+
+      {/* Bottom gradient fade */}
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-50 dark:from-[#08080C] to-transparent z-[5] pointer-events-none" />
     </section>
   );
 };

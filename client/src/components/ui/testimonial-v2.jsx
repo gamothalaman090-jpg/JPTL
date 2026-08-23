@@ -46,10 +46,10 @@ const testimonials = [
     role: "Resident at Aura Towers",
   },
   {
-    text: "Superadmin oversight gives us unscoped read-only visibility into all properties, logs, and account statuses across the region.",
+    text: "The dashboard gives us full visibility into every property's maintenance pipeline. Resolving tickets has never been this organized.",
     image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=150&h=150",
     name: "Sana Sheikh",
-    role: "Platform Administrator",
+    role: "Landlord & Property Owner",
   },
   {
     text: "Using JPTL's property portfolio console, our unit occupancy and maintenance response times significantly improved.",
