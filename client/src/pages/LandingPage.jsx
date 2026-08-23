@@ -4,7 +4,6 @@ import { Navbar } from '../components/common/Navbar';
 import { HeroSection } from '../components/landing/HeroSection';
 import { BentoGrid01 } from '../components/ui/bento-grid-01';
 import { RoleBreakdown } from '../components/landing/RoleBreakdown';
-import { InteractiveWorkflow } from '../components/landing/InteractiveWorkflow';
 import { Testimonials } from '../components/landing/Testimonials';
 import { CTASection } from '../components/landing/CTASection';
 import { Footer } from '../components/common/Footer';
@@ -42,16 +41,13 @@ export const LandingPage = () => {
       {/* 4. Role-Based Access Control Breakdown */}
       <RoleBreakdown onOpenLogin={handleOpenLogin} />
 
-      {/* 5. Synchronous Integration Engine & Live Code Preview */}
-      <InteractiveWorkflow />
-
-      {/* 6. Operational Benchmarks */}
+      {/* 5. Testimonials Infinite Slider */}
       <Testimonials />
 
-      {/* 7. Call-to-Action Section */}
+      {/* 6. Call-to-Action Section */}
       <CTASection onOpenLogin={handleOpenLogin} />
 
-      {/* 8. Footer */}
+      {/* 7. Footer */}
       <Footer />
 
       {/* Demo Portal Login Modal Overlay */}

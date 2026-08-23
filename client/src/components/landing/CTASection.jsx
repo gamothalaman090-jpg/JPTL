@@ -4,7 +4,7 @@ import { ArrowRight, ShieldCheck } from 'lucide-react';
 export const CTASection = ({ onOpenLogin }) => {
   return (
     <section className="py-24 bg-[#08080C] relative border-t border-white/10 z-10">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center reveal-init">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         
         <div className="spotlight-card rounded-3xl p-8 sm:p-14 border border-white/10 bg-[#0E0E18] glow-card relative overflow-hidden">
           

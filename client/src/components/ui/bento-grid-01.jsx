@@ -15,7 +15,7 @@ function TypeTester() {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-2">
       <motion.span
-        className="font-serif text-5xl md:text-7xl text-white font-medium tracking-tight"
+        className="font-grotesk text-5xl md:text-7xl text-white font-medium tracking-tight"
         animate={{ scale }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
       >
@@ -27,35 +27,37 @@ function TypeTester() {
 }
 
 function LayoutAnimation() {
-  const [layout, setLayout] = useState(0);
+  const [activeRole, setActiveRole] = useState(0);
+  const roles = ["Tenant", "Landlord", "Admin"];
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setLayout((prev) => (prev + 1) % 3);
-    }, 2500);
+      setActiveRole((prev) => (prev + 1) % 3);
+    }, 2000);
     return () => clearInterval(interval);
   }, []);
 
-  const layouts = ["grid-cols-2", "grid-cols-3", "grid-cols-1"];
-
   return (
-    <div className="h-full flex items-center justify-center">
-      <motion.div
-        className={`grid ${layouts[layout]} gap-1.5 w-full max-w-[140px] h-full`}
-        layout
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      >
-        {[1, 2, 3].map((i) => (
-          <motion.div
-            key={i}
-            className="bg-blue-500/30 border border-blue-400/30 rounded-md h-6 w-full flex items-center justify-center text-[10px] font-mono text-white"
-            layout
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+    <div className="h-20 flex items-center justify-center">
+      <div className="flex gap-2 w-full max-w-[220px] bg-slate-950/80 p-1.5 rounded-xl border border-white/10 relative">
+        {roles.map((role, i) => (
+          <div
+            key={role}
+            className={`flex-1 py-1.5 rounded-lg text-center font-mono text-[11px] font-semibold transition-all relative z-10 ${
+              activeRole === i ? "text-white font-bold" : "text-slate-500"
+            }`}
           >
-            Role {i}
-          </motion.div>
+            {activeRole === i && (
+              <motion.div
+                layoutId="activeRoleGlow"
+                className="absolute inset-0 bg-purple-600 rounded-lg -z-10 shadow-md shadow-purple-600/30"
+                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              />
+            )}
+            {role}
+          </div>
         ))}
-      </motion.div>
+      </div>
     </div>
   );
 }
@@ -218,22 +220,22 @@ export function BentoGrid01() {
 
           {/* 2. Multi-Role RBAC - Standard (2x1) */}
           <motion.div
-            className="md:col-span-2 bg-zinc-900/90 border border-zinc-800 rounded-2xl p-8 flex flex-col hover:border-purple-500/50 transition-all cursor-pointer overflow-hidden backdrop-blur-md"
+            className="md:col-span-2 bg-zinc-900/90 border border-zinc-800 rounded-2xl p-6 flex flex-col justify-between hover:border-purple-500/50 transition-all cursor-pointer overflow-hidden backdrop-blur-md"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
             whileHover={{ scale: 0.98 }}
           >
-            <div className="flex-1">
+            <div>
               <LayoutAnimation />
             </div>
-            <div className="mt-4">
-              <h3 className="font-grotesk text-xl text-white font-bold flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-purple-400" />
+            <div className="mt-1">
+              <h3 className="font-grotesk text-lg sm:text-xl text-white font-bold flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-purple-400 shrink-0" />
                 Multi-Role Scoped Access
               </h3>
-              <p className="text-gray-400 text-sm mt-1">Server-side MongoDB query scoping per tenant, landlord, & admin.</p>
+              <p className="text-gray-400 text-xs sm:text-sm mt-0.5 leading-snug">Server-side MongoDB query scoping per tenant, landlord, & admin.</p>
             </div>
           </motion.div>
 
