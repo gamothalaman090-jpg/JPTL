@@ -8,7 +8,7 @@ export const RoleBreakdown = ({ onOpenLogin }) => {
   const steps = [
     {
       id: 'tenant',
-      stepNum: 'STEP 01',
+      stepNum: 'ROLE 01',
       title: 'TENANT VIEW.',
       subtitle: 'Maintenance & Rent Checkout',
       description: 'Tenants submit repair tickets with Cloudinary photos, receive VAPID push alerts, and simulate 1-click rent checkout.',
@@ -19,7 +19,7 @@ export const RoleBreakdown = ({ onOpenLogin }) => {
     },
     {
       id: 'landlord',
-      stepNum: 'STEP 02',
+      stepNum: 'ROLE 02',
       title: 'LANDLORD CONSOLE.',
       subtitle: 'Property & Ticket Cascades',
       description: 'Landlords manage multi-unit properties, assign tenant leases, and resolve ticket pipelines with status cascades.',
@@ -51,12 +51,12 @@ export const RoleBreakdown = ({ onOpenLogin }) => {
               <span className="font-mono text-xs text-blue-600 dark:text-blue-400 font-semibold tracking-widest uppercase mb-2 block">
                 Role-Based Access Control (RBAC)
               </span>
-              <h2 className="font-grotesk text-4xl sm:text-6xl font-black text-slate-900 dark:text-white tracking-tight uppercase leading-none">
-                CONTROL EVERY <br />
-                <span className="gradient-shimmer">PERSONA.</span>
+              <h2 className="font-grotesk text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight uppercase leading-none">
+                ROLE-BASED <br />
+                <span className="gradient-shimmer">SYSTEM.</span>
               </h2>
               <p className="font-sans text-sm sm:text-base text-slate-600 dark:text-slate-400 mt-4 font-normal leading-relaxed">
-                The platform behaves like an integrated stage. Tenants and Landlords each take the lead when you need them.
+                Strict MongoDB query scoping ensures users only access resources authorized for their role.
               </p>
             </div>
 
@@ -81,7 +81,7 @@ export const RoleBreakdown = ({ onOpenLogin }) => {
                     {isActive && (
                       <motion.div
                         layoutId="activeBar"
-                        className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 via-purple-500 to-pink-500"
+                        className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 via-purple-500 to-indigo-500"
                         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                       />
                     )}
@@ -167,7 +167,7 @@ export const RoleBreakdown = ({ onOpenLogin }) => {
                         </div>
 
                         <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono text-xs font-bold">
-                          ● RBAC Active
+                          ● Scoped View
                         </span>
                       </div>
                     </div>
@@ -175,22 +175,19 @@ export const RoleBreakdown = ({ onOpenLogin }) => {
                     {/* Step Specific Dynamic Mock Widgets */}
                     {activeStep === 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        
-                        {/* Tenant Widget 1 */}
                         <div className="p-4 rounded-xl bg-white dark:bg-[#0E0E18] border border-slate-200 dark:border-white/10 space-y-2">
                           <div className="flex items-center justify-between text-xs font-grotesk text-blue-600 dark:text-blue-400 font-bold">
                             <span className="flex items-center gap-1.5"><Wrench className="w-4 h-4" /> Ticket #402 Submitted</span>
                             <span className="text-[10px] font-mono text-slate-500">Just Now</span>
                           </div>
                           <p className="text-xs text-slate-700 dark:text-slate-300 font-sans">
-                            Leaking Kitchen Sink Faucet attached with Cloudinary photo.
+                            Leaking Kitchen Sink Faucet with Cloudinary attachment.
                           </p>
                           <div className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
                             Status: SUBMITTED → LANDLORD NOTIFIED
                           </div>
                         </div>
 
-                        {/* Tenant Widget 2 */}
                         <div className="p-4 rounded-xl bg-white dark:bg-[#0E0E18] border border-slate-200 dark:border-white/10 space-y-2">
                           <div className="flex items-center justify-between text-xs font-grotesk text-emerald-600 dark:text-emerald-400 font-bold">
                             <span className="flex items-center gap-1.5"><CreditCard className="w-4 h-4" /> Rent Charge Paid</span>
@@ -203,14 +200,13 @@ export const RoleBreakdown = ({ onOpenLogin }) => {
                             Txn ID: TXN_SIM_20268841 (EventEmitter)
                           </div>
                         </div>
-
                       </div>
                     ) : (
                       <div className="space-y-3">
                         <div className="p-4 rounded-xl bg-white dark:bg-[#0E0E18] border border-slate-200 dark:border-white/10 flex items-center justify-between text-xs">
                           <div>
                             <div className="font-grotesk font-bold text-slate-950 dark:text-white">Aura Sky Towers • Unit 2B</div>
-                            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-sans">Sophia Lin (Tenant) • Rent $2,400/mo</div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-sans">Sophia Lin (Tenant) • Lease Assigned</div>
                           </div>
                           <span className="px-3 py-1 rounded-full font-mono text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                             IN_PROGRESS
@@ -220,7 +216,7 @@ export const RoleBreakdown = ({ onOpenLogin }) => {
                         <div className="p-4 rounded-xl bg-white dark:bg-[#0E0E18] border border-slate-200 dark:border-white/10 flex items-center justify-between text-xs">
                           <div>
                             <div className="font-grotesk font-bold text-slate-950 dark:text-white">Zenith Lofts • Unit 4A</div>
-                            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-sans">Alexander Vance (Landlord) • Rent $3,100/mo</div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-sans">Alexander Vance (Landlord) • Active Unit</div>
                           </div>
                           <span className="px-3 py-1 rounded-full font-mono text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                             RESOLVED
@@ -233,11 +229,11 @@ export const RoleBreakdown = ({ onOpenLogin }) => {
                     <div className="pt-2 grid grid-cols-2 gap-2 text-xs font-sans text-slate-600 dark:text-slate-300">
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                        <span>Server-Scoped Query Security</span>
+                        <span>MongoDB Query Scoping</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                        <span>Instant Status Transition</span>
+                        <span>Express JWT Middleware</span>
                       </div>
                     </div>
 

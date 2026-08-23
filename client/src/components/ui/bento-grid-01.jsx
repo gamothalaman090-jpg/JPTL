@@ -50,7 +50,7 @@ function LayoutAnimation() {
             {activeRole === i && (
               <motion.div
                 layoutId="activeRoleGlow"
-                className="absolute inset-0 bg-purple-600 rounded-lg -z-10 shadow-md shadow-purple-600/30"
+                className="absolute inset-0 bg-indigo-600 rounded-lg -z-10 shadow-md shadow-indigo-600/30"
                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
               />
             )}
@@ -297,10 +297,10 @@ export function BentoGrid01() {
             </div>
             <div className="mt-4">
               <h3 className="font-grotesk text-xl text-slate-900 dark:text-white flex items-center gap-2 font-bold">
-                <Lock className="w-5 h-5 text-pink-600 dark:text-pink-400" />
-                Immutable Audit Trail
+                <Lock className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                Persistent Audit Trail
               </h3>
-              <p className="text-slate-600 dark:text-gray-400 text-sm mt-1">Cryptographic audit log snapshots on every administrative & payment action.</p>
+              <p className="text-slate-600 dark:text-gray-400 text-sm mt-1">Centralized MongoDB audit logging middleware tracks every administrative, ticket, and payment action.</p>
             </div>
           </motion.div>
 

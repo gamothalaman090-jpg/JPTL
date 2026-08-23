@@ -7,7 +7,6 @@ import { BentoGrid01 } from '../components/ui/bento-grid-01';
 import { RoleBreakdown } from '../components/landing/RoleBreakdown';
 import { Testimonials } from '../components/landing/Testimonials';
 import { PricingSection } from '../components/landing/PricingSection';
-import { CTASection } from '../components/landing/CTASection';
 import { Footer } from '../components/common/Footer';
 import { LoginModal } from '../components/common/LoginModal';
 
@@ -39,13 +38,13 @@ export const LandingPage = () => {
         onOpenLogin={handleOpenLogin}
       />
 
-      {/* 2. Hero Section with Interactive Aurora Shader Canvas */}
+      {/* 2. Hero Section with Interactive Canvas */}
       <HeroSection
         theme={theme}
         onOpenLogin={handleOpenLogin}
       />
 
-      {/* 3. Integrated Shadcn Framer-Motion Bento Grid */}
+      {/* 3. System Capabilities Bento Grid */}
       <BentoGrid01 />
 
       {/* 4. Role-Based Access Control Breakdown */}
@@ -57,13 +56,10 @@ export const LandingPage = () => {
       {/* 6. Pricing Section */}
       <PricingSection />
 
-      {/* 7. Call-to-Action Section */}
-      <CTASection onOpenLogin={handleOpenLogin} />
-
-      {/* 7. Footer */}
+      {/* 7. System Footer */}
       <Footer />
 
-      {/* Demo Portal Login Modal Overlay */}
+      {/* Demo Portal Login & Registration Modal Overlay */}
       <LoginModal
         isOpen={loginModalOpen}
         initialRole={loginRole}

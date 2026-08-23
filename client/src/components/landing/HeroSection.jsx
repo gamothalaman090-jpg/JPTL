@@ -43,7 +43,7 @@ export const HeroSection = ({ onOpenLogin, theme }) => {
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/70 dark:bg-white/[0.06] border border-slate-200/80 dark:border-white/10 backdrop-blur-lg shadow-sm">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span className="font-mono text-[11px] tracking-wide text-slate-600 dark:text-slate-400">
-                Property Operations Platform
+                Course Prototype • Systems Integration
               </span>
             </div>
           </div>
@@ -54,11 +54,10 @@ export const HeroSection = ({ onOpenLogin, theme }) => {
             style={{ fontSize: 'clamp(2.5rem, 7vw, 5.5rem)' }}
           >
             <span className="block" style={stagger(160)}>
-              Smart Property
+              Property Operations
             </span>
             <span className="block" style={stagger(230)}>
-              Management,{' '}
-              <span className="gradient-shimmer">Simplified</span>
+              Integration <span className="gradient-shimmer">Engine</span>
             </span>
           </h1>
 
@@ -67,19 +66,18 @@ export const HeroSection = ({ onOpenLogin, theme }) => {
             className="mt-6 max-w-lg font-sans text-base sm:text-lg text-slate-500 dark:text-slate-400 leading-relaxed"
             style={stagger(320)}
           >
-            Tenant workflows, landlord dashboards, and maintenance pipelines — 
-            unified in one real-time platform.
+            3-tier RBAC access, maintenance status cascades, MongoDB audit logs, and VAPID push notifications — pre-loaded for course demonstration.
           </p>
 
           {/* CTA row */}
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4" style={stagger(420)}>
             <button
               onClick={() => onOpenLogin && onOpenLogin('tenant')}
-              className="group relative px-7 py-3.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 font-grotesk font-bold text-sm shadow-lg hover:shadow-xl btn-press"
-              style={{ transition: 'box-shadow 200ms cubic-bezier(0.23,1,0.32,1)' }}
+              className="group relative px-7 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-grotesk font-bold text-sm shadow-lg shadow-indigo-600/30 btn-press"
+              style={{ transition: 'all 200ms cubic-bezier(0.23,1,0.32,1)' }}
             >
               <span className="flex items-center gap-2">
-                Get Started Free
+                Launch Portal Demo
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5" style={{ transition: 'transform 200ms cubic-bezier(0.23,1,0.32,1)' }} />
               </span>
             </button>
@@ -89,7 +87,7 @@ export const HeroSection = ({ onOpenLogin, theme }) => {
               className="px-7 py-3.5 rounded-xl border border-slate-300 dark:border-white/15 text-slate-700 dark:text-slate-200 font-grotesk font-bold text-sm bg-white/50 dark:bg-white/[0.04] backdrop-blur-sm hover:bg-white/80 dark:hover:bg-white/[0.08] btn-press"
               style={{ transition: 'background-color 200ms cubic-bezier(0.23,1,0.32,1)' }}
             >
-              View Demo
+              Landlord Console
             </button>
           </div>
         </div>
@@ -99,7 +97,7 @@ export const HeroSection = ({ onOpenLogin, theme }) => {
           className="mt-16 lg:mt-20 max-w-3xl mx-auto"
           style={stagger(560)}
         >
-          <div className="rounded-2xl border border-slate-200/80 dark:border-white/[0.08] bg-white/70 dark:bg-[#0E0E16]/80 backdrop-blur-2xl shadow-2xl dark:shadow-[0_0_80px_-20px_rgba(59,130,246,0.12)] overflow-hidden">
+          <div className="rounded-2xl border border-slate-200/80 dark:border-white/[0.08] bg-white/70 dark:bg-[#0E0E16]/80 backdrop-blur-2xl shadow-2xl dark:shadow-[0_0_80px_-20px_rgba(99,102,241,0.12)] overflow-hidden">
 
             {/* Window chrome */}
             <div className="flex items-center gap-2 px-5 py-3.5 border-b border-slate-200/60 dark:border-white/[0.06]">
@@ -109,8 +107,8 @@ export const HeroSection = ({ onOpenLogin, theme }) => {
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-400/70" />
               </div>
               <div className="flex-1 flex justify-center">
-                <div className="px-4 py-1 rounded-md bg-slate-100 dark:bg-white/[0.05] text-[11px] font-mono text-slate-400 dark:text-slate-500 w-52 text-center truncate">
-                  app.jptl.io/dashboard
+                <div className="px-4 py-1 rounded-md bg-slate-100 dark:bg-white/[0.05] text-[11px] font-mono text-slate-400 dark:text-slate-500 w-56 text-center truncate">
+                  app.jptl.io/system-dashboard
                 </div>
               </div>
               <div className="w-12" /> {/* Spacer for symmetry */}
@@ -121,10 +119,10 @@ export const HeroSection = ({ onOpenLogin, theme }) => {
               {/* Stats row */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
                 {[
-                  { label: 'Active Units', value: '248', icon: Building2, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10' },
-                  { label: 'Open Tickets', value: '12', icon: Wrench, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/10' },
-                  { label: 'This Month', value: '$184K', icon: CreditCard, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10' },
-                  { label: 'Compliance', value: '99.2%', icon: Shield, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-500/10' },
+                  { label: 'Active Units', value: '24 Units', icon: Building2, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10' },
+                  { label: 'Open Tickets', value: '12 Active', icon: Wrench, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/10' },
+                  { label: 'Audit Log', value: 'MongoDB', icon: CreditCard, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10' },
+                  { label: 'RBAC Model', value: '3 Roles', icon: Shield, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-500/10' },
                 ].map((stat, i) => (
                   <div
                     key={stat.label}
@@ -136,7 +134,7 @@ export const HeroSection = ({ onOpenLogin, theme }) => {
                     <div className={`inline-flex p-1.5 rounded-lg ${stat.bg} mb-2`}>
                       <stat.icon className={`w-3.5 h-3.5 ${stat.color}`} />
                     </div>
-                    <div className="font-grotesk font-bold text-lg text-slate-900 dark:text-white leading-none">
+                    <div className="font-grotesk font-bold text-base text-slate-900 dark:text-white leading-none">
                       {stat.value}
                     </div>
                     <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-sans">

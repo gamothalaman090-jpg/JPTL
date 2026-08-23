@@ -7,7 +7,7 @@ export const Navbar = ({ theme, onToggleTheme, onOpenLogin }) => {
   return (
     <header className="sticky top-0 z-50 bg-white/85 dark:bg-[#08080C]/85 backdrop-blur-xl border-b border-slate-200 dark:border-white/10 font-sans transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        
+
         {/* Brand Logo */}
         <a href="#" className="flex items-center gap-2.5 group active:scale-[0.98] transition-transform">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform duration-200">
@@ -35,7 +35,7 @@ export const Navbar = ({ theme, onToggleTheme, onOpenLogin }) => {
 
         {/* Right CTA Actions & Theme Toggle */}
         <div className="hidden md:flex items-center gap-3">
-          
+
           {/* Light / Dark Mode Toggle */}
           <button
             onClick={onToggleTheme}
@@ -79,7 +79,7 @@ export const Navbar = ({ theme, onToggleTheme, onOpenLogin }) => {
           <a href="#features" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-slate-950 dark:hover:text-white">Capabilities</a>
           <a href="#roles" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-slate-950 dark:hover:text-white">Role Dashboards</a>
           <a href="#testimonials" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-slate-950 dark:hover:text-white">Testimonials</a>
-          
+
           <div className="pt-3 border-t border-slate-200 dark:border-white/10">
             <button
               onClick={() => { onOpenLogin && onOpenLogin('landlord'); setMobileMenuOpen(false); }}

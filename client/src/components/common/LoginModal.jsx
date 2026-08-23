@@ -90,7 +90,7 @@ export const LoginModal = ({ isOpen, initialRole = 'tenant', onClose, onLoginSuc
               mass: 0.8,
             }}
           >
-        
+
             {/* Close Button */}
             <button
               onClick={onClose}
@@ -104,9 +104,8 @@ export const LoginModal = ({ isOpen, initialRole = 'tenant', onClose, onLoginSuc
               <button
                 type="button"
                 onClick={() => handleModeSwitch('login')}
-                className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-colors relative z-10 ${
-                  mode === 'login' ? 'text-white' : 'text-slate-400 hover:text-slate-200'
-                }`}
+                className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-colors relative z-10 ${mode === 'login' ? 'text-white' : 'text-slate-400 hover:text-slate-200'
+                  }`}
               >
                 Sign In
                 {mode === 'login' && (
@@ -120,9 +119,8 @@ export const LoginModal = ({ isOpen, initialRole = 'tenant', onClose, onLoginSuc
               <button
                 type="button"
                 onClick={() => handleModeSwitch('register')}
-                className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-colors relative z-10 ${
-                  mode === 'register' ? 'text-white' : 'text-slate-400 hover:text-slate-200'
-                }`}
+                className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-colors relative z-10 ${mode === 'register' ? 'text-white' : 'text-slate-400 hover:text-slate-200'
+                  }`}
               >
                 Create Account
                 {mode === 'register' && (
@@ -150,8 +148,8 @@ export const LoginModal = ({ isOpen, initialRole = 'tenant', onClose, onLoginSuc
                 {mode === 'login' ? 'Portal Authentication' : 'Create Portal Account'}
               </h3>
               <p className="text-xs text-slate-400 mt-1 font-sans">
-                {mode === 'login' 
-                  ? 'Select demo role profile or enter credentials' 
+                {mode === 'login'
+                  ? 'Select demo role profile or enter credentials'
                   : 'Register a new profile to access the platform'}
               </p>
             </div>
@@ -161,11 +159,10 @@ export const LoginModal = ({ isOpen, initialRole = 'tenant', onClose, onLoginSuc
               <button
                 type="button"
                 onClick={() => handleSelectRole('tenant')}
-                className={`p-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 active:scale-[0.96] transition-all ${
-                  selectedRole === 'tenant'
+                className={`p-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 active:scale-[0.96] transition-all ${selectedRole === 'tenant'
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25 ring-2 ring-blue-400/50'
                     : 'bg-slate-900/90 text-slate-400 hover:text-white border border-slate-800'
-                }`}
+                  }`}
               >
                 <Smartphone className="w-4 h-4" />
                 <span>Tenant View</span>
@@ -174,11 +171,10 @@ export const LoginModal = ({ isOpen, initialRole = 'tenant', onClose, onLoginSuc
               <button
                 type="button"
                 onClick={() => handleSelectRole('landlord')}
-                className={`p-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 active:scale-[0.96] transition-all ${
-                  selectedRole === 'landlord'
+                className={`p-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 active:scale-[0.96] transition-all ${selectedRole === 'landlord'
                     ? 'bg-purple-600 text-white shadow-md shadow-purple-600/25 ring-2 ring-purple-400/50'
                     : 'bg-slate-900/90 text-slate-400 hover:text-white border border-slate-800'
-                }`}
+                  }`}
               >
                 <Building2 className="w-4 h-4" />
                 <span>Landlord Console</span>
@@ -253,18 +249,17 @@ export const LoginModal = ({ isOpen, initialRole = 'tenant', onClose, onLoginSuc
                   <button
                     type="submit"
                     disabled={loading}
-                    className={`w-full py-3 text-xs font-semibold rounded-xl text-white transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.97] ${
-                      selectedRole === 'tenant'
+                    className={`w-full py-3 text-xs font-semibold rounded-xl text-white transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.97] ${selectedRole === 'tenant'
                         ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/30'
                         : 'bg-purple-600 hover:bg-purple-500 shadow-purple-600/30'
-                    }`}
+                      }`}
                   >
                     {loading ? (
                       <span>{mode === 'login' ? 'Authenticating JWT...' : 'Creating Account...'}</span>
                     ) : (
                       <>
                         <span>
-                          {mode === 'login' 
+                          {mode === 'login'
                             ? `Sign In as ${demoAccounts[selectedRole]?.name}`
                             : `Register as ${selectedRole === 'tenant' ? 'Tenant' : 'Landlord'}`}
                         </span>
@@ -279,7 +274,7 @@ export const LoginModal = ({ isOpen, initialRole = 'tenant', onClose, onLoginSuc
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ type: 'spring', stiffness: 500, damping: 25 }}
                   >
-                    <CheckCircle2 className="w-4 h-4" /> 
+                    <CheckCircle2 className="w-4 h-4" />
                     {mode === 'login' ? 'JWT Authenticated! Launching Session...' : 'Account Created! Signing In...'}
                   </motion.div>
                 )}

@@ -131,10 +131,10 @@ app.post('/api/payments/:id/pay', authenticateJWT, async (req, res) => {
             <div className="p-5 rounded-2xl bg-[#101018] border border-white/10 space-y-2">
               <div className="flex items-center gap-2 text-emerald-400 font-grotesk font-bold text-sm">
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>3. VAPID Push & Audit Logging</span>
+                <span>3. VAPID Push & Audit Logging Middleware</span>
               </div>
               <p className="font-sans text-xs text-slate-400 leading-relaxed font-normal pl-6">
-                Web-push notifications and immutable audit log snapshots execute inline to fulfill strict course defense requirements.
+                Web-push notifications and MongoDB audit log middleware execute inline to fulfill course defense requirements.
               </p>
             </div>
 

@@ -23,46 +23,26 @@ export const Footer = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
-        {/* Top Newsletter & System Status Banner */}
-        <div className="p-8 sm:p-12 rounded-3xl bg-white dark:bg-[#0B0B14] border border-slate-200 dark:border-white/10 shadow-xl mb-16 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center spotlight-card">
+        {/* Top System Summary Banner */}
+        <div className="p-8 sm:p-10 rounded-3xl bg-white dark:bg-[#0B0B14] border border-slate-200 dark:border-white/10 shadow-xl mb-16 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center spotlight-card">
           
-          <div className="lg:col-span-6 space-y-2">
+          <div className="lg:col-span-8 space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 font-mono text-xs font-semibold">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Platform Updates</span>
+              <span>Systems Integration Project</span>
             </div>
             <h3 className="font-grotesk text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              Stay in the Loop with JPTL Specs
+              JPTL Home Rental & Property Management System
             </h3>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-normal">
-              Receive live release notes, integration benchmarks, and feature additions.
+              Built to fulfill 3-tier RBAC requirements, maintenance ticket state machine, MongoDB activity logging, and VAPID push notifications.
             </p>
           </div>
 
-          <div className="lg:col-span-6">
-            {!subscribed ? (
-              <form onSubmit={handleSubscribe} className="relative flex items-center">
-                <input
-                  type="email"
-                  required
-                  placeholder="Enter your work email address..."
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-[#121220] border border-slate-300 dark:border-white/15 rounded-2xl px-4 py-3.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all font-sans"
-                />
-                <button
-                  type="submit"
-                  className="absolute right-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 font-grotesk font-bold text-xs flex items-center gap-1.5 btn-press shadow-md"
-                >
-                  <span>Subscribe</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </form>
-            ) : (
-              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-grotesk text-xs font-bold flex items-center justify-center gap-2 animate-in fade-in">
-                <CheckCircle2 className="w-4 h-4" /> Subscribed to JPTL Platform Updates!
-              </div>
-            )}
+          <div className="lg:col-span-4 flex justify-start lg:justify-end">
+            <div className="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400 font-grotesk text-xs font-bold flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4" /> Ready for Technical Defense
+            </div>
           </div>
 
         </div>
@@ -88,7 +68,7 @@ export const Footer = () => {
             {/* Live Operational Status Indicator */}
             <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-mono font-medium">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>All Systems Operational • 99.98% Uptime</span>
+              <span>Course Prototype Active • Local & Vercel Ready</span>
             </div>
           </div>
 
@@ -100,7 +80,7 @@ export const Footer = () => {
                 Platform Roles
               </h4>
               <ul className="space-y-3 font-sans text-slate-600 dark:text-slate-400 text-xs">
-                <li><a href="#roles" className="hover:text-slate-900 dark:hover:text-white transition-colors">Tenant Mobile View</a></li>
+                <li><a href="#roles" className="hover:text-slate-900 dark:hover:text-white transition-colors">Tenant View</a></li>
                 <li><a href="#roles" className="hover:text-slate-900 dark:hover:text-white transition-colors">Landlord Console</a></li>
                 <li><a href="#roles" className="hover:text-slate-900 dark:hover:text-white transition-colors">Scoped RBAC Rules</a></li>
               </ul>
@@ -113,7 +93,7 @@ export const Footer = () => {
               <ul className="space-y-3 font-sans text-slate-600 dark:text-slate-400 text-xs">
                 <li><a href="#features" className="hover:text-slate-900 dark:hover:text-white transition-colors">Workflow Cascades</a></li>
                 <li><a href="#features" className="hover:text-slate-900 dark:hover:text-white transition-colors">EventEmitter Payments</a></li>
-                <li><a href="#features" className="hover:text-slate-900 dark:hover:text-white transition-colors">Immutable Audit Logs</a></li>
+                <li><a href="#features" className="hover:text-slate-900 dark:hover:text-white transition-colors">MongoDB Audit Logging</a></li>
                 <li><a href="#features" className="hover:text-slate-900 dark:hover:text-white transition-colors">VAPID Push Engine</a></li>
               </ul>
             </div>
@@ -124,7 +104,7 @@ export const Footer = () => {
               </h4>
               <ul className="space-y-3 font-sans text-slate-600 dark:text-slate-400 text-xs">
                 <li><span className="text-slate-500">Course: Systems Integration</span></li>
-                <li><span className="text-slate-500">Theme: #2 Property System</span></li>
+                <li><span className="text-slate-500">Theme: Property System</span></li>
                 <li><span className="text-slate-500">Stack: React + Express</span></li>
                 <li><span className="text-slate-500">Database: MongoDB</span></li>
               </ul>
@@ -146,18 +126,12 @@ export const Footer = () => {
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 font-sans gap-4 border-t border-slate-200 dark:border-white/5">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            <span>© 2026 JPTL Systems. Built for Systems Integration.</span>
+            <span>© 2026 JPTL Systems. Systems Integration Course Project.</span>
           </div>
 
           <div className="flex items-center gap-6 font-grotesk">
-            <a href="#" className="hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-1">
-              <Code className="w-3.5 h-3.5" /> Repository
-            </a>
-            <a href="#" className="hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-1">
-              <Terminal className="w-3.5 h-3.5" /> API Specs
-            </a>
-            <a href="#" className="hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-1">
-              <Globe className="w-3.5 h-3.5" /> Global Network
+            <a href="#features" className="hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-1">
+              <Terminal className="w-3.5 h-3.5" /> System Capabilities
             </a>
           </div>
         </div>
