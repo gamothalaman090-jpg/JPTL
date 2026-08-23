@@ -6,6 +6,7 @@ import { HeroSection } from '../components/landing/HeroSection';
 import { BentoGrid01 } from '../components/ui/bento-grid-01';
 import { RoleBreakdown } from '../components/landing/RoleBreakdown';
 import { Testimonials } from '../components/landing/Testimonials';
+import { PricingSection } from '../components/landing/PricingSection';
 import { CTASection } from '../components/landing/CTASection';
 import { Footer } from '../components/common/Footer';
 import { LoginModal } from '../components/common/LoginModal';
@@ -53,7 +54,10 @@ export const LandingPage = () => {
       {/* 5. Testimonials Section */}
       <Testimonials />
 
-      {/* 6. Call-to-Action Section */}
+      {/* 6. Pricing Section */}
+      <PricingSection />
+
+      {/* 7. Call-to-Action Section */}
       <CTASection onOpenLogin={handleOpenLogin} />
 
       {/* 7. Footer */}
