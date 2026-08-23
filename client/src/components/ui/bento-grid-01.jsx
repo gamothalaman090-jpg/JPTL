@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lock, Globe, Wrench, Building2, Zap, ShieldCheck } from "lucide-react";
+import { Lock, Globe, Wrench, Building2, Zap, ShieldCheck, Home } from "lucide-react";
 
 function TypeTester() {
   const [scale, setScale] = useState(1);
@@ -28,18 +28,18 @@ function TypeTester() {
 
 function LayoutAnimation() {
   const [activeRole, setActiveRole] = useState(0);
-  const roles = ["Tenant", "Landlord", "Admin"];
+  const roles = ["Tenant View", "Landlord Console"];
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setActiveRole((prev) => (prev + 1) % 3);
+      setActiveRole((prev) => (prev + 1) % 2);
     }, 2000);
     return () => clearInterval(interval);
   }, []);
 
   return (
     <div className="h-20 flex items-center justify-center">
-      <div className="flex gap-2 w-full max-w-[220px] bg-slate-100 dark:bg-slate-950/80 p-1.5 rounded-xl border border-slate-200 dark:border-white/10 relative">
+      <div className="flex gap-2 w-full max-w-[240px] bg-slate-100 dark:bg-slate-950/80 p-1.5 rounded-xl border border-slate-200 dark:border-white/10 relative">
         {roles.map((role, i) => (
           <div
             key={role}
@@ -235,7 +235,7 @@ export function BentoGrid01() {
                 <Building2 className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0" />
                 Multi-Role Scoped Access
               </h3>
-              <p className="text-slate-600 dark:text-gray-400 text-xs sm:text-sm mt-0.5 leading-snug">Server-side MongoDB query scoping per tenant, landlord, & admin.</p>
+              <p className="text-slate-600 dark:text-gray-400 text-xs sm:text-sm mt-0.5 leading-snug">Server-side MongoDB query scoping per tenant & landlord.</p>
             </div>
           </motion.div>
 
@@ -304,7 +304,7 @@ export function BentoGrid01() {
             </div>
           </motion.div>
 
-          {/* 6. Multi-Device PWA Access - Wide (3x1) */}
+          {/* 6. Multi-Unit Property Management - Wide (3x1) */}
           <motion.div
             className="md:col-span-3 bg-white dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 rounded-2xl p-8 flex flex-col hover:border-amber-500/50 transition-all cursor-pointer overflow-hidden backdrop-blur-md shadow-md"
             initial={{ opacity: 0, y: 30 }}
@@ -314,14 +314,14 @@ export function BentoGrid01() {
             whileHover={{ scale: 0.98 }}
           >
             <div className="flex-1 flex items-center justify-center">
-              <ShieldCheck className="w-16 h-16 text-amber-500 dark:text-amber-400" />
+              <Home className="w-16 h-16 text-amber-500 dark:text-amber-400" />
             </div>
             <div className="mt-4">
               <h3 className="font-grotesk text-xl text-slate-900 dark:text-white font-bold flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-amber-500 dark:text-amber-400" />
-                Superadmin Platform Control
+                <Home className="w-5 h-5 text-amber-500 dark:text-amber-400" />
+                Multi-Unit Property Management
               </h3>
-              <p className="text-slate-600 dark:text-gray-400 text-sm mt-1">Full system health monitoring, error logs, and user account management.</p>
+              <p className="text-slate-600 dark:text-gray-400 text-sm mt-1">Portfolio management, lease agreements, and automated tenant maintenance tracking.</p>
             </div>
           </motion.div>
 

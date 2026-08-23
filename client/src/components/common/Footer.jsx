@@ -102,7 +102,6 @@ export const Footer = () => {
               <ul className="space-y-3 font-sans text-slate-600 dark:text-slate-400 text-xs">
                 <li><a href="#roles" className="hover:text-slate-900 dark:hover:text-white transition-colors">Tenant Mobile View</a></li>
                 <li><a href="#roles" className="hover:text-slate-900 dark:hover:text-white transition-colors">Landlord Console</a></li>
-                <li><a href="#roles" className="hover:text-slate-900 dark:hover:text-white transition-colors">Superadmin Oversight</a></li>
                 <li><a href="#roles" className="hover:text-slate-900 dark:hover:text-white transition-colors">Scoped RBAC Rules</a></li>
               </ul>
             </div>

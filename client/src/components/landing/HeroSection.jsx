@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowRight, Sparkles, Building2, ShieldCheck, CheckCircle2, Wrench, CreditCard, Smartphone } from 'lucide-react';
+import { ArrowRight, Sparkles, Building2, Wrench, CreditCard, Smartphone, CheckCircle2 } from 'lucide-react';
 import { ShaderHeroCanvas } from './ShaderHeroCanvas';
 
 export const HeroSection = ({ onOpenLogin, theme }) => {
@@ -41,7 +41,7 @@ export const HeroSection = ({ onOpenLogin, theme }) => {
           </h1>
 
           <p className="font-sans text-base sm:text-lg lg:text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto font-normal leading-relaxed">
-            One React codebase serving Tenants, Landlords, and Superadmins. Real-time maintenance workflows, synchronous event-driven payments, and automated audit logging.
+            One React codebase serving Tenants and Landlords. Real-time maintenance workflows, synchronous event-driven payments, and automated audit logging.
           </p>
 
           {/* Primary Action Button */}
@@ -78,7 +78,7 @@ export const HeroSection = ({ onOpenLogin, theme }) => {
               <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-[#161624] p-1 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-grotesk">
                 <button
                   onClick={() => setActiveTab('tenant')}
-                  className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 btn-press transition-all ${
+                  className={`px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 btn-press transition-all ${
                     activeTab === 'tenant' ? 'bg-blue-600 text-white font-bold shadow' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
@@ -87,20 +87,11 @@ export const HeroSection = ({ onOpenLogin, theme }) => {
 
                 <button
                   onClick={() => setActiveTab('landlord')}
-                  className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 btn-press transition-all ${
+                  className={`px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 btn-press transition-all ${
                     activeTab === 'landlord' ? 'bg-purple-600 text-white font-bold shadow' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
-                  <Building2 className="w-3.5 h-3.5" /> Landlord
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('superadmin')}
-                  className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 btn-press transition-all ${
-                    activeTab === 'superadmin' ? 'bg-pink-600 text-white font-bold shadow' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  <ShieldCheck className="w-3.5 h-3.5" /> Admin
+                  <Building2 className="w-3.5 h-3.5" /> Landlord Console
                 </button>
               </div>
 
@@ -108,7 +99,7 @@ export const HeroSection = ({ onOpenLogin, theme }) => {
 
             {/* Widget Content Body */}
             <div className="pt-5">
-              {activeTab === 'tenant' && (
+              {activeTab === 'tenant' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in duration-200">
                   
                   {/* Ticket Filing Simulator */}
@@ -175,9 +166,7 @@ export const HeroSection = ({ onOpenLogin, theme }) => {
                   </div>
 
                 </div>
-              )}
-
-              {activeTab === 'landlord' && (
+              ) : (
                 <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#141420] border border-slate-200 dark:border-white/10 space-y-3 text-xs animate-in fade-in duration-200">
                   <div className="flex justify-between items-center font-grotesk text-purple-600 dark:text-purple-400 font-semibold">
                     <span>Landlord Console • Active Tickets Queue</span>
@@ -204,31 +193,6 @@ export const HeroSection = ({ onOpenLogin, theme }) => {
                         RESOLVED
                       </span>
                     </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'superadmin' && (
-                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#141420] border border-slate-200 dark:border-white/10 space-y-2 font-mono text-[11px] text-slate-700 dark:text-slate-300 animate-in fade-in duration-200">
-                  <div className="flex justify-between text-slate-500 text-[10px] pb-1 border-b border-slate-200 dark:border-white/10">
-                    <span>TIMESTAMP</span>
-                    <span>ACTOR</span>
-                    <span>ACTION</span>
-                  </div>
-                  <div className="flex justify-between text-blue-600 dark:text-blue-300">
-                    <span>15:32:04</span>
-                    <span>landlord_vance</span>
-                    <span className="text-emerald-600 dark:text-emerald-400">TICKET_STATUS_UPDATED</span>
-                  </div>
-                  <div className="flex justify-between text-purple-600 dark:text-purple-300">
-                    <span>15:31:12</span>
-                    <span>tenant_sophia</span>
-                    <span className="text-blue-600 dark:text-blue-400">PAYMENT_CONFIRMED</span>
-                  </div>
-                  <div className="flex justify-between text-pink-600 dark:text-pink-300">
-                    <span>15:28:44</span>
-                    <span>superadmin</span>
-                    <span className="text-amber-600 dark:text-amber-400">USER_ACCOUNT_SUSPENDED</span>
                   </div>
                 </div>
               )}

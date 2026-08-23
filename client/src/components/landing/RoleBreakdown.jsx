@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Smartphone, Building2, ShieldCheck, Wrench, CreditCard, ArrowRight, CheckCircle2, Lock } from 'lucide-react';
+import { Smartphone, Building2, Wrench, CreditCard, ArrowRight, CheckCircle2, Lock } from 'lucide-react';
 
 export const RoleBreakdown = ({ onOpenLogin }) => {
   const [activeStep, setActiveStep] = useState(0);
@@ -27,17 +27,6 @@ export const RoleBreakdown = ({ onOpenLogin }) => {
       accentColor: 'from-purple-500 to-indigo-600',
       badgeColor: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
       icon: Building2,
-    },
-    {
-      id: 'superadmin',
-      stepNum: 'STEP 03',
-      title: 'SUPERADMIN OVERSIGHT.',
-      subtitle: 'Audit Logs & Account Controls',
-      description: 'Superadmins monitor platform-wide health, inspect immutable audit trails, and suspend/reactivate user accounts.',
-      addressUrl: 'jptl.app/admin-audit-logs',
-      accentColor: 'from-pink-500 to-purple-600',
-      badgeColor: 'bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20',
-      icon: ShieldCheck,
     },
   ];
 
@@ -67,12 +56,12 @@ export const RoleBreakdown = ({ onOpenLogin }) => {
                 <span className="gradient-shimmer">PERSONA.</span>
               </h2>
               <p className="font-sans text-sm sm:text-base text-slate-600 dark:text-slate-400 mt-4 font-normal leading-relaxed">
-                The platform behaves like an integrated stage. Tenants, Landlords, and Superadmins each take the lead when you need them.
+                The platform behaves like an integrated stage. Tenants and Landlords each take the lead when you need them.
               </p>
             </div>
 
             {/* Vertical Interactive Step Cards List */}
-            <div className="space-y-3 pt-2">
+            <div className="space-y-4 pt-2">
               {steps.map((step, idx) => {
                 const isActive = activeStep === idx;
                 return (
@@ -80,7 +69,7 @@ export const RoleBreakdown = ({ onOpenLogin }) => {
                     key={step.id}
                     onMouseEnter={() => setActiveStep(idx)}
                     onClick={() => setActiveStep(idx)}
-                    className={`p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
+                    className={`p-6 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
                       isActive
                         ? 'bg-white dark:bg-[#141422] border-slate-300 dark:border-white/30 shadow-xl'
                         : 'bg-slate-100/80 dark:bg-[#0E0E16]/80 border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 opacity-80 hover:opacity-100'
@@ -97,20 +86,20 @@ export const RoleBreakdown = ({ onOpenLogin }) => {
                       />
                     )}
 
-                    <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center justify-between mb-2">
                       <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                         {step.stepNum}
                       </span>
-                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${step.badgeColor}`}>
+                      <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full border ${step.badgeColor}`}>
                         {step.subtitle}
                       </span>
                     </div>
 
-                    <h3 className="font-grotesk font-black text-lg sm:text-xl text-slate-900 dark:text-white tracking-tight">
+                    <h3 className="font-grotesk font-black text-xl sm:text-2xl text-slate-900 dark:text-white tracking-tight">
                       {step.title}
                     </h3>
 
-                    <p className="font-sans text-xs text-slate-600 dark:text-slate-400 mt-1.5 leading-relaxed">
+                    <p className="font-sans text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-2 leading-relaxed">
                       {step.description}
                     </p>
                   </motion.div>
@@ -184,7 +173,7 @@ export const RoleBreakdown = ({ onOpenLogin }) => {
                     </div>
 
                     {/* Step Specific Dynamic Mock Widgets */}
-                    {activeStep === 0 && (
+                    {activeStep === 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         
                         {/* Tenant Widget 1 */}
@@ -216,9 +205,7 @@ export const RoleBreakdown = ({ onOpenLogin }) => {
                         </div>
 
                       </div>
-                    )}
-
-                    {activeStep === 1 && (
+                    ) : (
                       <div className="space-y-3">
                         <div className="p-4 rounded-xl bg-white dark:bg-[#0E0E18] border border-slate-200 dark:border-white/10 flex items-center justify-between text-xs">
                           <div>
@@ -238,33 +225,6 @@ export const RoleBreakdown = ({ onOpenLogin }) => {
                           <span className="px-3 py-1 rounded-full font-mono text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                             RESOLVED
                           </span>
-                        </div>
-                      </div>
-                    )}
-
-                    {activeStep === 2 && (
-                      <div className="p-4 rounded-xl bg-white dark:bg-[#0E0E18] border border-slate-200 dark:border-white/10 space-y-2.5 font-mono text-xs">
-                        <div className="text-[10px] text-slate-500 uppercase tracking-wider pb-1 border-b border-slate-200 dark:border-white/10 flex justify-between">
-                          <span>SYSTEM AUDIT STREAM</span>
-                          <span>UNSCOPED SUPERADMIN VIEW</span>
-                        </div>
-
-                        <div className="flex justify-between items-center text-blue-600 dark:text-blue-300 text-[11px]">
-                          <span>16:04:12</span>
-                          <span>actor: landlord_vance</span>
-                          <span className="text-emerald-600 dark:text-emerald-400">TICKET_STATUS_UPDATED</span>
-                        </div>
-
-                        <div className="flex justify-between items-center text-purple-600 dark:text-purple-300 text-[11px]">
-                          <span>16:02:44</span>
-                          <span>actor: tenant_sophia</span>
-                          <span className="text-blue-600 dark:text-blue-400">PAYMENT_CONFIRMED</span>
-                        </div>
-
-                        <div className="flex justify-between items-center text-pink-600 dark:text-pink-300 text-[11px]">
-                          <span>15:58:20</span>
-                          <span>actor: superadmin</span>
-                          <span className="text-amber-600 dark:text-amber-400">USER_ACCOUNT_SUSPENDED</span>
                         </div>
                       </div>
                     )}

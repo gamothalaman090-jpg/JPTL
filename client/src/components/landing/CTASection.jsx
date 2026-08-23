@@ -13,7 +13,7 @@ export const CTASection = ({ onOpenLogin }) => {
           </h2>
 
           <p className="font-sans text-base sm:text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto font-normal leading-relaxed mb-8">
-            Test the live Tenant View, Landlord Console, or Superadmin Oversight portals with instant demo role authentication.
+            Test the live Tenant View or Landlord Console portals with instant demo role authentication.
           </p>
 
           <div className="flex justify-center">
