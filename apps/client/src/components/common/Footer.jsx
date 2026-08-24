@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, ArrowRight, CheckCircle2, ShieldCheck, Globe, Code, Terminal, Sparkles } from 'lucide-react';
+import { Building2, ArrowRight, CheckCircle2, Mail } from 'lucide-react';
 
 export const Footer = () => {
   const [email, setEmail] = useState('');
@@ -8,11 +8,23 @@ export const Footer = () => {
   const handleSubscribe = (e) => {
     e.preventDefault();
     if (!email) return;
+
+    // Trigger Mailto client email prompt
+    const subject = encodeURIComponent('Platform & Enterprise Solution Inquiry');
+    const body = encodeURIComponent(
+      `Hello JPTL Engineering & Operations Team,\n\n` +
+      `I am reaching out regarding a platform inquiry or custom landlord deployment.\n\n` +
+      `Contact Email: ${email}\n\n` +
+      `Best regards,`
+    );
+
+    window.location.href = `mailto:inquiry@jptl.system?subject=${subject}&body=${body}`;
+
     setSubscribed(true);
     setTimeout(() => {
       setSubscribed(false);
       setEmail('');
-    }, 3000);
+    }, 4000);
   };
 
   return (
@@ -23,26 +35,50 @@ export const Footer = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
-        {/* Top System Summary Banner */}
+        {/* Email Inquiry Banner (Replaced Systems Integration Project Banner) */}
         <div className="p-8 sm:p-10 rounded-3xl bg-white dark:bg-[#0B0B14] border border-slate-200 dark:border-white/10 shadow-xl mb-16 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center spotlight-card">
 
-          <div className="lg:col-span-8 space-y-2">
+          <div className="lg:col-span-7 space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 font-mono text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Systems Integration Project</span>
+              <Mail className="w-3.5 h-3.5" />
+              <span>Email Inquiry & Support</span>
             </div>
             <h3 className="font-grotesk text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              JPTL Home Rental & Property Management System
+              Have questions or need a custom solution?
             </h3>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-normal">
-              Built to fulfill 3-tier RBAC requirements, maintenance ticket state machine, MongoDB activity logging, and VAPID push notifications.
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-normal max-w-lg">
+              Send an inquiry directly to our systems & engineering team for custom landlord onboarding, firm deployment, or technical specifications.
             </p>
           </div>
 
-          <div className="lg:col-span-4 flex justify-start lg:justify-end">
-            <div className="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400 font-grotesk text-xs font-bold flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4" /> Ready for Technical Defense
-            </div>
+          <div className="lg:col-span-5">
+            {subscribed ? (
+              <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center gap-2.5 animate-in fade-in">
+                <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                <span>Inquiry email prepared! Our team will get back to you within 24 hours.</span>
+              </div>
+            ) : (
+              <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-2.5">
+                <div className="relative flex-1">
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5 pointer-events-none" />
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your work email address..."
+                    className="w-full bg-slate-50 dark:bg-[#141420] border border-slate-300 dark:border-slate-800 rounded-xl pl-10 pr-4 py-3 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.97] text-white text-xs font-grotesk font-bold shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 transition-all shrink-0"
+                >
+                  <span>Send Inquiry</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </form>
+            )}
           </div>
 
         </div>
@@ -86,27 +122,37 @@ export const Footer = () => {
                 Architecture Specs
               </h4>
               <ul className="space-y-3 font-sans text-slate-600 dark:text-slate-400 text-xs">
-                <li><a href="#features" className="hover:text-slate-900 dark:hover:text-white transition-colors">Workflow Cascades</a></li>
-                <li><a href="#features" className="hover:text-slate-900 dark:hover:text-white transition-colors">EventEmitter Payments</a></li>
-                <li><a href="#features" className="hover:text-slate-900 dark:hover:text-white transition-colors">MongoDB Audit Logging</a></li>
+                <li><a href="#features" className="hover:text-slate-900 dark:hover:text-white transition-colors">REST API Core</a></li>
                 <li><a href="#features" className="hover:text-slate-900 dark:hover:text-white transition-colors">VAPID Push Engine</a></li>
+                <li><a href="#features" className="hover:text-slate-900 dark:hover:text-white transition-colors">Ticket State Machine</a></li>
               </ul>
             </div>
 
             <div>
               <h4 className="font-bold text-slate-900 dark:text-white uppercase tracking-widest text-[11px] mb-4">
-                System Meta
+                Quick Navigation
               </h4>
               <ul className="space-y-3 font-sans text-slate-600 dark:text-slate-400 text-xs">
-                <li><span className="text-slate-500">Course: Systems Integration</span></li>
-                <li><span className="text-slate-500">Theme: Property System</span></li>
-                <li><span className="text-slate-500">Stack: React + Express</span></li>
-                <li><span className="text-slate-500">Database: MongoDB</span></li>
+                <li><a href="#features" className="hover:text-slate-900 dark:hover:text-white transition-colors">System Capabilities</a></li>
+                <li><a href="#pricing" className="hover:text-slate-900 dark:hover:text-white transition-colors">Tiered Pricing</a></li>
+                <li><a href="#testimonials" className="hover:text-slate-900 dark:hover:text-white transition-colors">Testimonials</a></li>
               </ul>
             </div>
 
           </div>
 
+        </div>
+
+        {/* Bottom Legal & Copyright Bar */}
+        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-slate-500 dark:text-slate-400">
+          <div>
+            &copy; {new Date().getFullYear()} JPTL Living System &bull; All Rights Reserved
+          </div>
+          <div className="flex items-center gap-6 text-[11px]">
+            <span>Privacy Policy</span>
+            <span>Terms of Service</span>
+            <span>Security Architecture</span>
+          </div>
         </div>
 
         {/* Giant Watermark Background */}
@@ -114,20 +160,6 @@ export const Footer = () => {
           <div className="font-grotesk font-black text-[13vw] leading-none text-transparent opacity-[0.15] tracking-tighter uppercase"
             style={{ WebkitTextStroke: '2px rgba(148, 163, 184, 0.5)' }}>
             JPTL LIVING
-          </div>
-        </div>
-
-        {/* Bottom Bar */}
-        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 font-sans gap-4 border-t border-slate-200 dark:border-white/5">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            <span>© 2026 JPTL Systems. Systems Integration Course Project.</span>
-          </div>
-
-          <div className="flex items-center gap-6 font-grotesk">
-            <a href="#features" className="hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-1">
-              <Terminal className="w-3.5 h-3.5" /> System Capabilities
-            </a>
           </div>
         </div>
 

@@ -1,8 +1,8 @@
 import React from 'react';
-import { Check, ArrowRight, Sparkles } from 'lucide-react';
 
 const tiers = [
   {
+    id: 'starter',
     label: 'STARTER',
     name: 'Free',
     subtitle: 'For independent landlords',
@@ -22,6 +22,7 @@ const tiers = [
     dotColor: 'bg-slate-400 dark:bg-slate-500',
   },
   {
+    id: 'pro',
     label: 'RECOMMENDED',
     name: 'Professional',
     subtitle: 'For growing portfolios',
@@ -43,6 +44,7 @@ const tiers = [
     dotColor: 'bg-orange-500',
   },
   {
+    id: 'enterprise',
     label: 'COMING SOON',
     name: 'Enterprise',
     subtitle: 'For property management firms',
@@ -64,9 +66,9 @@ const tiers = [
   },
 ];
 
-export const PricingSection = () => {
+export const PricingSection = ({ onNavigate = () => {} }) => {
   return (
-    <section id="pricing" className="py-24 lg:py-32 bg-slate-50 dark:bg-[#08080C] transition-colors duration-300 overflow-hidden">
+    <section id="pricing" className="py-24 lg:py-32 bg-slate-50 dark:bg-[#08080C] transition-colors duration-300 overflow-hidden relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Header — editorial split layout */}
@@ -108,9 +110,11 @@ export const PricingSection = () => {
           {tiers.map((tier) => (
             <div
               key={tier.name}
-              className={`reveal-init relative flex flex-col rounded-2xl border p-6 sm:p-8 transition-colors duration-300 ${
+              className={`reveal-init relative flex flex-col rounded-2xl border p-6 sm:p-8 transition-all duration-300 ${
                 tier.recommended
                   ? 'bg-white dark:bg-[#0E0E16] border-slate-300 dark:border-white/15 shadow-xl dark:shadow-[0_0_60px_-15px_rgba(59,130,246,0.1)] z-10 md:-my-3'
+                  : tier.comingSoon
+                  ? 'bg-slate-100/40 dark:bg-[#080912] border-slate-200 dark:border-white/[0.05] opacity-80'
                   : 'bg-slate-100/70 dark:bg-[#0A0A12] border-slate-200 dark:border-white/[0.07]'
               }`}
             >
@@ -185,19 +189,28 @@ export const PricingSection = () => {
                 {tier.tagline}
               </p>
 
-              {/* CTA button */}
-              <button
-                disabled={tier.comingSoon}
-                className={`w-full py-3 rounded-xl font-grotesk font-bold text-sm btn-press transition-colors duration-200 ${
-                  tier.recommended
-                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-slate-100 shadow-lg'
-                    : tier.comingSoon
-                    ? 'bg-slate-200 dark:bg-white/[0.06] text-slate-400 dark:text-slate-500 cursor-not-allowed'
-                    : 'bg-white dark:bg-white/[0.06] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/[0.1]'
-                }`}
-              >
-                {tier.cta}
-              </button>
+              {/* CTA button: Free/Pro route to signup; Enterprise is disabled (Coming Soon) */}
+              {tier.comingSoon ? (
+                <button
+                  type="button"
+                  disabled
+                  className="w-full py-3.5 px-4 rounded-xl font-grotesk font-bold text-xs sm:text-sm bg-slate-200 dark:bg-white/[0.06] text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-300/40 dark:border-white/5"
+                >
+                  {tier.cta}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onNavigate('/register')}
+                  className={`w-full py-3.5 px-4 rounded-xl font-grotesk font-bold text-xs sm:text-sm active:scale-[0.97] transition-all flex items-center justify-center gap-2 ${
+                    tier.recommended
+                      ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30'
+                      : 'bg-white dark:bg-white/[0.06] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/[0.1]'
+                  }`}
+                >
+                  <span>{tier.cta}</span>
+                </button>
+              )}
             </div>
           ))}
         </div>

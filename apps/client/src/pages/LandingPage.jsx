@@ -45,7 +45,7 @@ export const LandingPage = ({ onNavigate = () => {} }) => {
       <Testimonials />
 
       {/* 6. Pricing Section */}
-      <PricingSection />
+      <PricingSection onNavigate={onNavigate} />
 
       {/* 7. System Footer */}
       <Footer />
