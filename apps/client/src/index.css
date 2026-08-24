@@ -1,0 +1,164 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --font-grotesk: 'Space Grotesk', system-ui, sans-serif;
+    --font-sans: 'DM Sans', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    /* 21st.dev Palette */
+    --bg-dark: #08080C;
+    --bg-card: #101018;
+    --bg-card-hover: #161622;
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --accent-blue: #3B82F6;
+    --accent-purple: #8B5CF6;
+    --accent-pink: #EC4899;
+    --accent-cyan: #06B6D4;
+
+    /* Easings from animate skill */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  }
+}
+
+.font-grotesk {
+  font-family: var(--font-grotesk);
+}
+
+.font-sans {
+  font-family: var(--font-sans);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Shimmer Text Effect */
+.gradient-shimmer {
+  background: linear-gradient(
+    110deg,
+    #0f172a 0%,
+    #2563eb 25%,
+    #7c3aed 50%,
+    #2563eb 75%,
+    #0f172a 100%
+  );
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: shimmerText 6s linear infinite;
+}
+
+.dark .gradient-shimmer {
+  background: linear-gradient(
+    110deg,
+    #ffffff 0%,
+    #93c5fd 25%,
+    #c084fc 50%,
+    #60a5fa 75%,
+    #ffffff 100%
+  );
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+@keyframes shimmerText {
+  to {
+    background-position: 200% center;
+  }
+}
+
+/* 21st.dev Border Beam Animation */
+.border-beam {
+  position: relative;
+}
+.border-beam::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899, #3b82f6);
+  background-size: 300% 300%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: borderBeam 4s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes borderBeam {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Spotlight Card Styles */
+.spotlight-card {
+  position: relative;
+  transition: transform 200ms var(--ease-out), border-color 200ms var(--ease-out), background-color 200ms var(--ease-out);
+}
+
+.spotlight-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(59, 130, 246, 0.12),
+    transparent 40%
+  );
+  opacity: 0;
+  transition: opacity 300ms ease;
+  pointer-events: none;
+}
+
+.spotlight-card:hover::before {
+  opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .spotlight-card:hover {
+    transform: translateY(-2px);
+  }
+}
+
+/* Tactile Button Press Effect */
+.btn-press {
+  transition: transform 160ms var(--ease-out), opacity 160ms var(--ease-out);
+}
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+/* Scroll Reveal Utilities */
+.reveal-init {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 600ms var(--ease-out), transform 600ms var(--ease-out);
+}
+.reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-init {
+    transform: none !important;
+    transition: opacity 300ms ease !important;
+  }
+}
+
+/* Glass & Card Glow */
+.dark .glow-card {
+  box-shadow: 0 0 40px -10px rgba(59, 130, 246, 0.15);
+}

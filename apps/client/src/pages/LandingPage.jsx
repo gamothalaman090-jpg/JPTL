@@ -1,0 +1,72 @@
+import React, { useState } from 'react';
+import { useTheme } from '../hooks/useTheme';
+import { useScrollReveal } from '../hooks/useScrollReveal';
+import { Navbar } from '../components/common/Navbar';
+import { HeroSection } from '../components/landing/HeroSection';
+import { BentoGrid01 } from '../components/ui/bento-grid-01';
+import { RoleBreakdown } from '../components/landing/RoleBreakdown';
+import { Testimonials } from '../components/landing/Testimonials';
+import { PricingSection } from '../components/landing/PricingSection';
+import { Footer } from '../components/common/Footer';
+import { LoginModal } from '../components/common/LoginModal';
+
+export const LandingPage = () => {
+  const { theme, toggleTheme } = useTheme();
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [loginRole, setLoginRole] = useState('tenant');
+
+  // Trigger scroll-reveal animations
+  useScrollReveal();
+
+  const handleOpenLogin = (role = 'tenant') => {
+    setLoginRole(role);
+    setLoginModalOpen(true);
+  };
+
+  const handleLoginSuccess = (user) => {
+    console.log('Authenticated demo user:', user);
+    setLoginModalOpen(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-[#08080C] text-slate-900 dark:text-[#F3F3F8] font-sans selection:bg-blue-600/30 selection:text-blue-300 transition-colors duration-300">
+      
+      {/* 1. Header Navigation */}
+      <Navbar
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onOpenLogin={handleOpenLogin}
+      />
+
+      {/* 2. Hero Section with Interactive Canvas */}
+      <HeroSection
+        theme={theme}
+        onOpenLogin={handleOpenLogin}
+      />
+
+      {/* 3. System Capabilities Bento Grid */}
+      <BentoGrid01 />
+
+      {/* 4. Role-Based Access Control Breakdown */}
+      <RoleBreakdown onOpenLogin={handleOpenLogin} />
+
+      {/* 5. Testimonials Section */}
+      <Testimonials />
+
+      {/* 6. Pricing Section */}
+      <PricingSection />
+
+      {/* 7. System Footer */}
+      <Footer />
+
+      {/* Demo Portal Login & Registration Modal Overlay */}
+      <LoginModal
+        isOpen={loginModalOpen}
+        initialRole={loginRole}
+        onClose={() => setLoginModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
+
+    </div>
+  );
+};
