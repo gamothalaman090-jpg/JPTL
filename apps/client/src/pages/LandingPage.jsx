@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useTheme } from '../hooks/useTheme';
 import { useScrollReveal } from '../hooks/useScrollReveal';
 import { Navbar } from '../components/common/Navbar';
@@ -8,24 +8,15 @@ import { RoleBreakdown } from '../components/landing/RoleBreakdown';
 import { Testimonials } from '../components/landing/Testimonials';
 import { PricingSection } from '../components/landing/PricingSection';
 import { Footer } from '../components/common/Footer';
-import { LoginModal } from '../components/common/LoginModal';
 
-export const LandingPage = () => {
+export const LandingPage = ({ onNavigate = () => {} }) => {
   const { theme, toggleTheme } = useTheme();
-  const [loginModalOpen, setLoginModalOpen] = useState(false);
-  const [loginRole, setLoginRole] = useState('tenant');
 
   // Trigger scroll-reveal animations
   useScrollReveal();
 
-  const handleOpenLogin = (role = 'tenant') => {
-    setLoginRole(role);
-    setLoginModalOpen(true);
-  };
-
-  const handleLoginSuccess = (user) => {
-    console.log('Authenticated demo user:', user);
-    setLoginModalOpen(false);
+  const handleOpenLogin = () => {
+    onNavigate('/register');
   };
 
   return (
@@ -35,7 +26,7 @@ export const LandingPage = () => {
       <Navbar
         theme={theme}
         onToggleTheme={toggleTheme}
-        onOpenLogin={handleOpenLogin}
+        onNavigate={onNavigate}
       />
 
       {/* 2. Hero Section with Interactive Canvas */}
@@ -58,14 +49,6 @@ export const LandingPage = () => {
 
       {/* 7. System Footer */}
       <Footer />
-
-      {/* Demo Portal Login & Registration Modal Overlay */}
-      <LoginModal
-        isOpen={loginModalOpen}
-        initialRole={loginRole}
-        onClose={() => setLoginModalOpen(false)}
-        onLoginSuccess={handleLoginSuccess}
-      />
 
     </div>
   );

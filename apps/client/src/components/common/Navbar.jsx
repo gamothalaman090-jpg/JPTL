@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Building2, Menu, X, ArrowRight, Sun, Moon } from 'lucide-react';
 
-export const Navbar = ({ theme, onToggleTheme, onOpenLogin }) => {
+export const Navbar = ({ theme, onToggleTheme, onNavigate = () => {} }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -9,7 +9,14 @@ export const Navbar = ({ theme, onToggleTheme, onOpenLogin }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
 
         {/* Brand Logo */}
-        <a href="#" className="flex items-center gap-2.5 group active:scale-[0.98] transition-transform">
+        <a
+          href="/"
+          onClick={(e) => {
+            e.preventDefault();
+            onNavigate('/');
+          }}
+          className="flex items-center gap-2.5 group active:scale-[0.98] transition-transform"
+        >
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform duration-200">
             <Building2 className="w-5 h-5 text-white" />
           </div>
@@ -31,6 +38,9 @@ export const Navbar = ({ theme, onToggleTheme, onOpenLogin }) => {
           <a href="#testimonials" className="hover:text-slate-900 dark:hover:text-white transition-colors">
             Testimonials
           </a>
+          <a href="#pricing" className="hover:text-slate-900 dark:hover:text-white transition-colors">
+            Pricing
+          </a>
         </nav>
 
         {/* Right CTA Actions & Theme Toggle */}
@@ -46,10 +56,17 @@ export const Navbar = ({ theme, onToggleTheme, onOpenLogin }) => {
           </button>
 
           <button
-            onClick={() => onOpenLogin && onOpenLogin('landlord')}
-            className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 text-xs font-grotesk font-bold shadow-lg flex items-center gap-1.5 btn-press transition-all"
+            onClick={() => onNavigate('/login')}
+            className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-700 text-white text-xs font-grotesk font-bold shadow-sm transition-all"
           >
-            <span>Portal Sign In</span>
+            Log In
+          </button>
+
+          <button
+            onClick={() => onNavigate('/register')}
+            className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-grotesk font-bold shadow-lg shadow-blue-600/30 flex items-center gap-1.5 btn-press transition-all"
+          >
+            <span>Landlord Signup</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -79,13 +96,20 @@ export const Navbar = ({ theme, onToggleTheme, onOpenLogin }) => {
           <a href="#features" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-slate-950 dark:hover:text-white">Capabilities</a>
           <a href="#roles" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-slate-950 dark:hover:text-white">Role Dashboards</a>
           <a href="#testimonials" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-slate-950 dark:hover:text-white">Testimonials</a>
+          <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-slate-950 dark:hover:text-white">Pricing</a>
 
-          <div className="pt-3 border-t border-slate-200 dark:border-white/10">
+          <div className="pt-3 border-t border-slate-200 dark:border-white/10 space-y-2">
             <button
-              onClick={() => { onOpenLogin && onOpenLogin('landlord'); setMobileMenuOpen(false); }}
-              className="w-full py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 font-bold text-center flex items-center justify-center gap-1.5"
+              onClick={() => { onNavigate('/register'); setMobileMenuOpen(false); }}
+              className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-bold text-center flex items-center justify-center gap-1.5"
             >
-              Portal Sign In <ArrowRight className="w-3.5 h-3.5" />
+              Landlord Signup <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => { onNavigate('/login'); setMobileMenuOpen(false); }}
+              className="w-full py-2.5 rounded-xl bg-slate-900 text-white font-semibold text-center"
+            >
+              Log In
             </button>
           </div>
         </div>
