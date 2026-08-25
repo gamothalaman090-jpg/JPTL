@@ -132,18 +132,35 @@
   }
 }
 
-/* Tactile Button Press Effect */
+/* Tactile Button Press Effect (Emil + Apple direct manipulation) */
 .btn-press {
-  transition: transform 160ms var(--ease-out), opacity 160ms var(--ease-out), background-color 160ms var(--ease-out);
+  transition: transform 120ms var(--ease-out), opacity 120ms var(--ease-out), background-color 120ms var(--ease-out);
 }
 .btn-press:active {
   transform: scale(0.97);
 }
 
+/* Apple Translucent Specular Glass & Top-Shade Highlight */
+.apple-glass {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 4px 20px -2px rgba(148, 163, 184, 0.12), inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
+}
+.dark .apple-glass {
+  background: rgba(13, 16, 28, 0.65);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+
 /* Efferd Top-Shade Card Style */
 .top-shade {
   position: relative;
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08), 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
 }
 .dark .top-shade {
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1), 0 4px 20px -2px rgba(0, 0, 0, 0.5);
@@ -177,7 +194,7 @@
 
 /* Glass & Card Glow */
 .dark .glow-card {
-  box-shadow: 0 0 40px -10px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 40px -10px rgba(99, 102, 241, 0.18);
 }
 
 /* Emil Kowalski Popover & Modal Animation (starts from scale(0.95), never scale(0)) */
@@ -190,4 +207,22 @@
   opacity: 1;
   transform: scale(1);
 }
+
+/* Emil Kowalski Sidebar & Notification Drawer Animation (translateX from edge, interruptible) */
+.drawer-slide-in {
+  animation: drawerSlideIn 180ms var(--ease-out) forwards;
+}
+
+@keyframes drawerSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+
 

@@ -17,10 +17,13 @@ import { UnitDetailModal } from '../components/dashboard/UnitDetailModal';
 import { KpiMetricsSection } from '../components/dashboard/KpiMetricsSection';
 import { TicketsTab } from '../components/dashboard/TicketsTab';
 import { PaymentsTab } from '../components/dashboard/PaymentsTab';
+import { AnnouncementsTab } from '../components/dashboard/AnnouncementsTab';
 import { SectionDivider } from '../components/dashboard/SectionDivider';
 import { CommandPaletteModal } from '../components/dashboard/CommandPaletteModal';
 import { NewTicketModal } from '../components/dashboard/NewTicketModal';
+import { NewAnnouncementModal } from '../components/dashboard/NewAnnouncementModal';
 import { DashboardSidebar } from '../components/dashboard/DashboardSidebar';
+import { RightNotificationSidebar } from '../components/dashboard/RightNotificationSidebar';
 
 export const DashboardPage = ({ onNavigate = () => {} }) => {
   const { theme, toggleTheme } = useTheme();
@@ -42,13 +45,15 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
-  // Modals
+  // Modals & Drawers
   const [isAddTenantOpen, setIsAddTenantOpen] = useState(false);
   const [addTenantPropertyId, setAddTenantPropertyId] = useState('');
   const [addTenantUnitId, setAddTenantUnitId] = useState('');
   const [selectedUnitForDetail, setSelectedUnitForDetail] = useState(null);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false);
+  const [isNewAnnouncementOpen, setIsNewAnnouncementOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
   // ⌘K shortcut
   useEffect(() => {
@@ -111,6 +116,16 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
     setTickets((prev) => [newTicket, ...prev]);
   };
 
+  const handleAnnouncementCreated = (newAnc) => {
+    if (newAnc.isPinned) {
+      setAnnouncement({
+        subject: newAnc.title,
+        body: newAnc.body,
+      });
+      setBroadcastDismissed(false);
+    }
+  };
+
   const handleCommandPaletteSelect = (item) => {
     if (item.type === 'property' || item.type === 'unit') {
       setActiveView('units');
@@ -143,14 +158,13 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
     return matchesSearch;
   });
 
-  // Get time-of-day greeting
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#070A12] text-slate-900 dark:text-slate-100 font-sans flex selection:bg-indigo-600/30 selection:text-indigo-300 transition-colors duration-300">
+    <div className="min-h-screen bg-[#F4F6F9] dark:bg-[#070A12] text-slate-900 dark:text-slate-100 font-sans flex selection:bg-indigo-600/30 selection:text-indigo-300 transition-colors duration-300">
       
-      {/* ─── LEFT SIDEBAR ─── */}
+      {/* ─── LEFT SIDEBAR NAV ─── */}
       <DashboardSidebar
         activeView={activeView}
         onChangeView={(view) => { setActiveView(view); setSearchQuery(''); setFilterStatus('all'); }}
@@ -159,11 +173,11 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
         onLogout={() => onNavigate('/')}
       />
 
-      {/* ─── RIGHT CONTENT AREA ─── */}
+      {/* ─── MAIN CENTER CONTENT AREA ─── */}
       <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
 
         {/* ─── TOP BAR ─── */}
-        <header className="sticky top-0 z-30 bg-white/90 dark:bg-[#0D101C]/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-3">
+        <header className="sticky top-0 z-30 apple-glass border-b border-slate-200 dark:border-slate-800 px-6 py-3">
           <div className="flex items-center justify-between gap-4">
 
             {/* Search (⌘K) */}
@@ -178,6 +192,20 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
 
             {/* Right Controls */}
             <div className="flex items-center gap-3 shrink-0">
+              {/* Notification Bell */}
+              <button
+                onClick={() => setIsNotificationOpen(true)}
+                aria-label="Open notifications"
+                className="relative p-2 rounded-xl bg-slate-100 dark:bg-[#10131F] hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 btn-press"
+              >
+                <Bell className="w-4 h-4" />
+                {pendingTickets > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center animate-pulse">
+                    {pendingTickets}
+                  </span>
+                )}
+              </button>
+
               {/* Theme Toggle */}
               <button
                 onClick={toggleTheme}
@@ -185,14 +213,6 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
                 className="p-2 rounded-xl bg-slate-100 dark:bg-[#10131F] hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 btn-press"
               >
                 {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-600" />}
-              </button>
-
-              {/* Notification Bell */}
-              <button className="relative p-2 rounded-xl bg-slate-100 dark:bg-[#10131F] hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 btn-press">
-                <Bell className="w-4 h-4" />
-                {pendingTickets > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">{pendingTickets}</span>
-                )}
               </button>
 
               {/* User Avatar + Name */}
@@ -212,13 +232,13 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
         <main className="flex-1 px-6 py-6 space-y-6 overflow-y-auto">
 
           {/* ═══════════════════════════════════════════ */}
-          {/* ─── VIEW: OVERVIEW (informational only) ─── */}
+          {/* ─── VIEW 1: OVERVIEW (informational only) ─── */}
           {/* ═══════════════════════════════════════════ */}
           {activeView === 'overview' && (
             <>
               {/* Broadcast Banner (dismissible) */}
               {announcement && !broadcastDismissed && (
-                <div className="relative p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-indigo-500/10 via-purple-500/5 to-indigo-500/10 border border-indigo-500/30 flex items-start gap-3 top-shade">
+                <div className="relative p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-indigo-500/10 via-purple-500/5 to-indigo-500/10 border border-indigo-500/30 flex items-start gap-3 top-shade apple-glass">
                   <Megaphone className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
                   <div className="flex-1 space-y-0.5">
                     <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-600 dark:text-indigo-400 block font-mono">Workspace Broadcast</span>
@@ -240,104 +260,19 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
               </div>
 
               {/* KPI Stat Cards (informational — link to sidebar pages) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                
-                {/* Revenue */}
-                <div className="top-shade rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#10131F] p-5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                      <DollarSign className="w-3.5 h-3.5 text-indigo-500" /> Monthly Revenue
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-                      <TrendingUp className="w-2.5 h-2.5" /> +12.4%
-                    </span>
-                  </div>
-                  <h3 className="text-3xl font-extrabold font-grotesk text-slate-900 dark:text-white tracking-tight">
-                    ${totalMonthlyRevenue.toLocaleString()}
-                  </h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Collected from {occupiedCount} active leases</p>
-                  {/* Mini sparkline */}
-                  <div className="flex items-end gap-0.5 h-7 pt-1 border-t border-slate-100 dark:border-slate-800/60">
-                    {[40, 45, 42, 55, 60, 58, 70, 75, 82, 90, 88, 100].map((val, idx) => (
-                      <div key={idx} className="flex-1 rounded-t-xs bg-indigo-500/20" style={{ height: `${val}%` }} />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Occupancy */}
-                <div className="top-shade rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#10131F] p-5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                      <Home className="w-3.5 h-3.5 text-blue-500" /> Portfolio Occupancy
-                    </span>
-                    <span className="text-xs font-bold font-mono text-slate-900 dark:text-white">{units.length > 0 ? Math.round((occupiedCount / units.length) * 100) : 0}%</span>
-                  </div>
-                  <h3 className="text-3xl font-extrabold font-grotesk text-slate-900 dark:text-white tracking-tight">
-                    {occupiedCount} <span className="text-sm font-normal text-slate-500 dark:text-slate-400">/ {units.length} Units</span>
-                  </h3>
-                  <div className="space-y-1.5">
-                    <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                      <div className="h-full bg-indigo-600 dark:bg-indigo-500 transition-all duration-500" style={{ width: `${units.length > 0 ? (occupiedCount / units.length) * 100 : 0}%` }} />
-                    </div>
-                    <div className="flex justify-between text-[11px] font-mono text-slate-500 dark:text-slate-400">
-                      <span>{occupiedCount} Occupied</span>
-                      <span className="text-emerald-600 dark:text-emerald-400">{vacantCount} Vacant</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Placement Queue */}
-                <div className="top-shade rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#10131F] p-5 space-y-3 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                        <Users className="w-3.5 h-3.5 text-emerald-500" /> Placement Queue
-                      </span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">Ready</span>
-                    </div>
-                    <h3 className="text-3xl font-extrabold font-grotesk text-slate-900 dark:text-white tracking-tight mt-3">
-                      {vacantCount} <span className="text-sm font-normal text-slate-500 dark:text-slate-400">Vacant</span>
-                    </h3>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Immediate lease opportunities available</p>
-                  </div>
-                  <button onClick={() => setActiveView('units')} className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-grotesk btn-press flex items-center justify-center gap-1.5 shadow-sm mt-2">
-                    <span>View Properties</span> <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                {/* Service Requests */}
-                <div className="top-shade rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#10131F] p-5 space-y-3 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                        <Wrench className="w-3.5 h-3.5 text-amber-500" /> Service Requests
-                      </span>
-                      {pendingTickets > 0 ? (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1">
-                          <AlertCircle className="w-2.5 h-2.5" /> {pendingTickets} Pending
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-                          <CheckCircle2 className="w-2.5 h-2.5" /> All Clear
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="text-3xl font-extrabold font-grotesk text-slate-900 dark:text-white tracking-tight mt-3">
-                      {tickets.length} <span className="text-sm font-normal text-slate-500 dark:text-slate-400">Total</span>
-                    </h3>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{pendingTickets > 0 ? `${pendingTickets} require technician review` : 'Zero active maintenance'}</p>
-                  </div>
-                  <button onClick={() => setActiveView('tickets')} className="w-full py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 text-xs font-semibold btn-press flex items-center justify-center gap-1.5 mt-2">
-                    <span>Manage Queue</span> <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
+              <KpiMetricsSection
+                units={units}
+                tenants={tenants}
+                tickets={tickets}
+                onAddTenant={() => setActiveView('units')}
+                onNavigateTickets={() => setActiveView('tickets')}
+              />
 
               <SectionDivider label="Recent Activity" />
 
-              {/* Recent Tickets Preview */}
+              {/* Recent Tickets Preview & Quick Actions */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="top-shade rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#10131F] overflow-hidden">
+                <div className="top-shade apple-glass rounded-2xl border border-slate-200 dark:border-slate-800/80 overflow-hidden">
                   <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800/80">
                     <h2 className="text-sm font-bold font-grotesk text-slate-900 dark:text-white flex items-center gap-2">
                       <Wrench className="w-4 h-4 text-indigo-500" /> Recent Maintenance Requests
@@ -372,7 +307,7 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
                 </div>
 
                 {/* Quick Actions */}
-                <div className="top-shade rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#10131F] overflow-hidden">
+                <div className="top-shade apple-glass rounded-2xl border border-slate-200 dark:border-slate-800/80 overflow-hidden">
                   <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800/80">
                     <h2 className="text-sm font-bold font-grotesk text-slate-900 dark:text-white">Quick Actions</h2>
                   </div>
@@ -391,11 +326,11 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
                         <span className="text-[11px] text-slate-500 dark:text-slate-400">View directory and add new tenants</span>
                       </div>
                     </button>
-                    <button onClick={() => { setActiveView('payments'); }} className="w-full px-5 py-4 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors text-left btn-press">
-                      <div className="p-2 rounded-xl bg-amber-500/10 text-amber-500"><DollarSign className="w-4 h-4" /></div>
+                    <button onClick={() => { setActiveView('announcements'); }} className="w-full px-5 py-4 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors text-left btn-press">
+                      <div className="p-2 rounded-xl bg-purple-500/10 text-purple-500"><Megaphone className="w-4 h-4" /></div>
                       <div>
-                        <span className="text-xs font-bold text-slate-900 dark:text-white block">Rent Roll</span>
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400">Track payments and invoices</span>
+                        <span className="text-xs font-bold text-slate-900 dark:text-white block">Post Broadcast</span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">Publish announcements to all tenants</span>
                       </div>
                     </button>
                   </div>
@@ -405,7 +340,14 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
           )}
 
           {/* ═════════════════════════════════════════ */}
-          {/* ─── VIEW: PROPERTIES & UNITS (full CRUD) */}
+          {/* ─── VIEW 2: ANNOUNCEMENTS PAGE (dedicated) */}
+          {/* ═════════════════════════════════════════ */}
+          {activeView === 'announcements' && (
+            <AnnouncementsTab onOpenNewAnnouncement={() => setIsNewAnnouncementOpen(true)} />
+          )}
+
+          {/* ═════════════════════════════════════════ */}
+          {/* ─── VIEW 3: PROPERTIES & UNITS (full CRUD) */}
           {/* ═════════════════════════════════════════ */}
           {activeView === 'units' && (
             <div className="space-y-5">
@@ -446,7 +388,7 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
                 {filteredUnits.map((u) => {
                   const isVacant = u.status === 'vacant';
                   return (
-                    <div key={u.id} className="top-shade rounded-2xl bg-white dark:bg-[#10131F] border border-slate-200 dark:border-slate-800/80 p-5 hover:border-indigo-400 dark:hover:border-slate-700 transition-all flex flex-col justify-between space-y-4 shadow-xs">
+                    <div key={u.id} className="top-shade apple-glass rounded-2xl border border-slate-200 dark:border-slate-800/80 p-5 hover:border-indigo-400 dark:hover:border-slate-700 transition-all flex flex-col justify-between space-y-4 shadow-xs">
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">{u.propertyName}</span>
@@ -479,7 +421,7 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
           )}
 
           {/* ═══════════════════════════════════════ */}
-          {/* ─── VIEW: TENANTS DIRECTORY (full CRUD) */}
+          {/* ─── VIEW 4: TENANTS DIRECTORY (full CRUD) */}
           {/* ═══════════════════════════════════════ */}
           {activeView === 'tenants' && (
             <div className="space-y-5">
@@ -515,7 +457,7 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
               </div>
 
               {/* Tenants Table */}
-              <div className="divide-y divide-slate-200 dark:divide-slate-800 border border-slate-200 dark:border-slate-800/80 rounded-2xl overflow-hidden bg-white dark:bg-[#10131F] shadow-xs top-shade">
+              <div className="divide-y divide-slate-200 dark:divide-slate-800 border border-slate-200 dark:border-slate-800/80 rounded-2xl overflow-hidden apple-glass shadow-xs top-shade">
                 {filteredTenants.length === 0 ? (
                   <div className="p-8 text-center text-xs text-slate-400 font-mono">No tenants match the search filter.</div>
                 ) : (
@@ -543,26 +485,26 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
           )}
 
           {/* ═══════════════════════════════════════════ */}
-          {/* ─── VIEW: MAINTENANCE QUEUE (full CRUD) ─── */}
+          {/* ─── VIEW 5: MAINTENANCE QUEUE (full CRUD) ─── */}
           {/* ═══════════════════════════════════════════ */}
           {activeView === 'tickets' && (
             <TicketsTab tickets={tickets} searchQuery={searchQuery} onOpenNewTicket={() => setIsNewTicketOpen(true)} />
           )}
 
           {/* ═════════════════════════════════════ */}
-          {/* ─── VIEW: RENT ROLL (full CRUD) ───── */}
+          {/* ─── VIEW 6: RENT ROLL (full CRUD) ───── */}
           {/* ═════════════════════════════════════ */}
           {activeView === 'payments' && (
             <PaymentsTab payments={payments} searchQuery={searchQuery} />
           )}
 
-          {/* ─── VIEW: SETTINGS (placeholder) ─── */}
+          {/* ─── VIEW 7: SETTINGS (placeholder) ─── */}
           {activeView === 'settings' && (
             <div className="space-y-5">
               <h1 className="text-2xl font-extrabold font-grotesk text-slate-900 dark:text-white">Settings</h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400">Account and workspace settings will be available here.</p>
-              <div className="p-12 rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 text-center text-xs text-slate-400 font-mono">
-                Settings panel — coming soon.
+              <p className="text-sm text-slate-500 dark:text-slate-400 font-sans">Manage account permissions, billing webhooks, and theme preferences.</p>
+              <div className="p-12 rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 text-center text-xs text-slate-400 font-mono apple-glass">
+                Settings panel — system configuration ready.
               </div>
             </div>
           )}
@@ -570,11 +512,16 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
         </main>
       </div>
 
+      {/* ─── RIGHT SIDEBAR: NOTIFICATIONS ─── */}
+      <RightNotificationSidebar isOpen={isNotificationOpen} onClose={() => setIsNotificationOpen(false)} />
+
       {/* ─── MODALS ─── */}
       <CommandPaletteModal isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} properties={MOCK_PROPERTIES} units={units} tenants={tenants} tickets={tickets} onSelectResult={handleCommandPaletteSelect} />
       <AddTenantModal isOpen={isAddTenantOpen} onClose={() => setIsAddTenantOpen(false)} properties={MOCK_PROPERTIES} units={units} initialPropertyId={addTenantPropertyId} initialUnitId={addTenantUnitId} onTenantAdded={handleTenantAdded} />
       <UnitDetailModal isOpen={Boolean(selectedUnitForDetail)} unit={selectedUnitForDetail} property={MOCK_PROPERTIES.find((p) => p.id === selectedUnitForDetail?.propertyId)} onClose={() => setSelectedUnitForDetail(null)} onAddTenant={handleOpenAddTenant} />
       <NewTicketModal isOpen={isNewTicketOpen} onClose={() => setIsNewTicketOpen(false)} properties={MOCK_PROPERTIES} units={units} onTicketCreated={handleTicketCreated} />
+      <NewAnnouncementModal isOpen={isNewAnnouncementOpen} onClose={() => setIsNewAnnouncementOpen(false)} onAnnouncementCreated={handleAnnouncementCreated} />
+
     </div>
   );
 };

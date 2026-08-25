@@ -6,6 +6,7 @@ import {
 
 const NAV_ITEMS = [
   { key: 'overview', label: 'Dashboard', icon: LayoutDashboard },
+  { key: 'announcements', label: 'Announcements', icon: Megaphone },
   { key: 'units', label: 'Properties & Units', icon: Building2 },
   { key: 'tenants', label: 'Tenants Directory', icon: Users },
   { key: 'tickets', label: 'Maintenance', icon: Wrench },
@@ -27,32 +28,32 @@ export const DashboardSidebar = ({
     <aside
       className={`
         sticky top-0 z-30 h-screen flex flex-col
-        bg-white dark:bg-[#0D101C]
+        apple-glass
         border-r border-slate-200 dark:border-slate-800/80
         transition-all duration-200
         ${collapsed ? 'w-[68px]' : 'w-[240px]'}
       `}
-      style={{ transitionTimingFunction: 'cubic-bezier(0.23, 1, 0.32, 1)' }}
+      style={{ transitionTimingFunction: 'var(--ease-out)' }}
     >
       {/* ─── LOGO + COLLAPSE TOGGLE ─── */}
-      <div className="flex items-center justify-between px-4 py-4 border-b border-slate-200 dark:border-slate-800/80">
-        <div className="flex items-center gap-2.5 overflow-hidden">
-          <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-600/30 shrink-0">
-            <Building2 className="w-4.5 h-4.5" />
-          </div>
-          {!collapsed && (
+      <div className={`flex items-center justify-between px-3.5 py-4 border-b border-slate-200 dark:border-slate-800/80 ${collapsed ? 'justify-center' : ''}`}>
+        {!collapsed && (
+          <div className="flex items-center gap-2.5 overflow-hidden">
+            <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-600/30 shrink-0">
+              <Building2 className="w-4 h-4" />
+            </div>
             <span className="font-grotesk font-extrabold text-base tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
               JPTL<span className="text-indigo-600 dark:text-indigo-400">.SYS</span>
             </span>
-          )}
-        </div>
+          </div>
+        )}
 
         <button
           onClick={onToggleCollapse}
-          className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 btn-press shrink-0"
+          className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 btn-press shrink-0"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
       </div>
 
@@ -68,16 +69,17 @@ export const DashboardSidebar = ({
               onClick={() => onChangeView(item.key)}
               title={collapsed ? item.label : undefined}
               className={`
-                group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold btn-press transition-all relative
+                group w-full flex items-center gap-3 py-2.5 rounded-xl text-xs font-semibold btn-press transition-all relative
+                ${collapsed ? 'justify-center px-0' : 'px-3'}
                 ${isActive
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-white'
                 }
               `}
             >
-              {/* Active left accent bar */}
-              {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1.5 w-1 h-5 rounded-full bg-indigo-400" />
+              {/* Active left accent bar (flush inside button) */}
+              {isActive && !collapsed && (
+                <div className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-4 rounded-full bg-white/80" />
               )}
 
               <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-500 dark:text-slate-500 group-hover:text-indigo-500'}`} />
