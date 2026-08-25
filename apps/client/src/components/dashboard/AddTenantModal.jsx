@@ -225,17 +225,17 @@ export const AddTenantModal = ({
       
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl transition-opacity animate-in fade-in duration-200"
+        className="fixed inset-0 bg-slate-950/80 backdrop-blur-md transition-opacity animate-in fade-in duration-200"
         onClick={onClose}
       />
 
-      {/* Modal Window */}
-      <div className="relative w-full max-w-lg bg-[#0F0F1A] border border-slate-700/80 rounded-3xl p-6 sm:p-8 shadow-2xl z-10 my-8">
+      {/* Modal Window with Emil's scale(0.95) entry */}
+      <div className="relative w-full max-w-lg bg-white dark:bg-[#10131F] border border-slate-200 dark:border-slate-800/90 rounded-3xl p-6 sm:p-8 shadow-2xl z-10 my-8 top-shade modal-enter modal-enter-active">
         
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-900 text-slate-400 hover:text-white flex items-center justify-center border border-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-900 text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center border border-slate-200 dark:border-slate-800 btn-press focus:outline-none focus:ring-2 focus:ring-indigo-500"
           aria-label="Close add tenant dialog"
         >
           <X className="w-4 h-4" />

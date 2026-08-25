@@ -1,30 +1,68 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, UserPlus, Users, Search, Home, LogOut, ShieldCheck, ArrowUpRight, Sun, Moon, Sparkles, Megaphone } from 'lucide-react';
+import { 
+  Building2, UserPlus, Users, Search, Home, LogOut, ShieldCheck, ArrowUpRight, 
+  Sun, Moon, Sparkles, Megaphone, Wrench, DollarSign, X, Bell, ArrowRight,
+  TrendingUp, CheckCircle2, Clock, AlertCircle
+} from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
-import { MOCK_PROPERTIES, MOCK_UNITS as INITIAL_UNITS, MOCK_TENANTS as INITIAL_TENANTS } from '../data/mockData';
+import { 
+  MOCK_PROPERTIES, 
+  MOCK_UNITS as INITIAL_UNITS, 
+  MOCK_TENANTS as INITIAL_TENANTS,
+  MOCK_TICKETS as INITIAL_TICKETS,
+  MOCK_PAYMENTS as INITIAL_PAYMENTS
+} from '../data/mockData';
 import { AddTenantModal } from '../components/dashboard/AddTenantModal';
 import { UnitDetailModal } from '../components/dashboard/UnitDetailModal';
+import { KpiMetricsSection } from '../components/dashboard/KpiMetricsSection';
+import { TicketsTab } from '../components/dashboard/TicketsTab';
+import { PaymentsTab } from '../components/dashboard/PaymentsTab';
+import { SectionDivider } from '../components/dashboard/SectionDivider';
+import { CommandPaletteModal } from '../components/dashboard/CommandPaletteModal';
+import { NewTicketModal } from '../components/dashboard/NewTicketModal';
+import { DashboardSidebar } from '../components/dashboard/DashboardSidebar';
 
 export const DashboardPage = ({ onNavigate = () => {} }) => {
   const { theme, toggleTheme } = useTheme();
 
-  const [activeTab, setActiveTab] = useState('units'); // 'units' | 'tenants'
+  const [activeView, setActiveView] = useState('overview');
   const [units, setUnits] = useState(INITIAL_UNITS);
   const [tenants, setTenants] = useState(INITIAL_TENANTS);
+  const [tickets, setTickets] = useState(INITIAL_TICKETS);
+  const [payments, setPayments] = useState(INITIAL_PAYMENTS);
 
-  const [announcement, setAnnouncement] = useState(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  const [announcement, setAnnouncement] = useState({
+    subject: 'Welcome to our new Property Portal! 🚀',
+    body: 'We have upgraded the landlord workspace with a redesigned dashboard, real-time maintenance queue, and automated rent roll tracking.',
+  });
+  const [broadcastDismissed, setBroadcastDismissed] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
-  // Modals state
+  // Modals
   const [isAddTenantOpen, setIsAddTenantOpen] = useState(false);
   const [addTenantPropertyId, setAddTenantPropertyId] = useState('');
   const [addTenantUnitId, setAddTenantUnitId] = useState('');
-
   const [selectedUnitForDetail, setSelectedUnitForDetail] = useState(null);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isNewTicketOpen, setIsNewTicketOpen] = useState(false);
 
-  // Load onboarding tenants or announcements from sessionStorage on mount
+  // ⌘K shortcut
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Load session data
   useEffect(() => {
     try {
       const savedTenants = sessionStorage.getItem('jptl_onboarding_tenants');
@@ -32,444 +70,511 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
         const parsed = JSON.parse(savedTenants);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setTenants((prev) => [...parsed, ...prev]);
-
-          // Update assigned units in local state
           parsed.forEach((t) => {
             if (t.unitId) {
               setUnits((prevUnits) =>
                 prevUnits.map((u) =>
-                  u.id === t.unitId
-                    ? {
-                        ...u,
-                        status: 'occupied',
-                        tenantId: t.id,
-                        tenantName: t.name,
-                        tenantEmail: t.email,
-                      }
-                    : u
+                  u.id === t.unitId ? { ...u, status: 'occupied', tenantId: t.id, tenantName: t.name, tenantEmail: t.email } : u
                 )
               );
             }
           });
         }
       }
-
       const savedAnnouncement = sessionStorage.getItem('jptl_announcement');
-      if (savedAnnouncement) {
-        setAnnouncement(JSON.parse(savedAnnouncement));
-      }
+      if (savedAnnouncement) setAnnouncement(JSON.parse(savedAnnouncement));
     } catch (e) {
       console.error('Failed to load session data', e);
     }
   }, []);
 
-  // Handle opening Add Tenant modal with optional pre-filled unit
   const handleOpenAddTenant = (propertyId = '', unitId = '') => {
     setAddTenantPropertyId(propertyId);
     setAddTenantUnitId(unitId);
     setIsAddTenantOpen(true);
   };
 
-  // Callback when a new tenant is added via modal
   const handleTenantAdded = (newTenant) => {
     setTenants((prev) => [newTenant, ...prev]);
-
     if (newTenant.unitId) {
       setUnits((prev) =>
         prev.map((u) =>
           u.id === newTenant.unitId
-            ? {
-                ...u,
-                status: 'occupied',
-                tenantId: newTenant.id,
-                tenantName: newTenant.name,
-                tenantEmail: newTenant.email,
-                leaseStart: newTenant.leaseStart,
-                leaseEnd: newTenant.leaseEnd,
-              }
+            ? { ...u, status: 'occupied', tenantId: newTenant.id, tenantName: newTenant.name, tenantEmail: newTenant.email, leaseStart: newTenant.leaseStart, leaseEnd: newTenant.leaseEnd }
             : u
         )
       );
     }
   };
 
+  const handleTicketCreated = (newTicket) => {
+    setTickets((prev) => [newTicket, ...prev]);
+  };
+
+  const handleCommandPaletteSelect = (item) => {
+    if (item.type === 'property' || item.type === 'unit') {
+      setActiveView('units');
+      if (item.type === 'unit') setSelectedUnitForDetail(item.raw);
+    } else if (item.type === 'tenant') {
+      setActiveView('tenants');
+    } else if (item.type === 'ticket') {
+      setActiveView('tickets');
+    }
+  };
+
+  const vacantCount = units.filter((u) => u.status === 'vacant').length;
+  const occupiedCount = units.filter((u) => u.status === 'occupied').length;
+  const totalMonthlyRevenue = units.filter((u) => u.status === 'occupied').reduce((sum, u) => sum + (u.monthlyRent || 0), 0);
+  const pendingTickets = tickets.filter((t) => t.status !== 'resolved').length;
+
   const filteredUnits = units.filter((u) => {
-    const matchesSearch =
-      u.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.propertyName.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = searchQuery.toLowerCase();
+    const matchesSearch = u.label.toLowerCase().includes(q) || u.propertyName.toLowerCase().includes(q);
     if (filterStatus === 'vacant') return matchesSearch && u.status === 'vacant';
     if (filterStatus === 'occupied') return matchesSearch && u.status === 'occupied';
     return matchesSearch;
   });
 
   const filteredTenants = tenants.filter((t) => {
-    const matchesSearch =
-      t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.propertyName?.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = searchQuery.toLowerCase();
+    const matchesSearch = t.name.toLowerCase().includes(q) || t.email.toLowerCase().includes(q) || (t.propertyName && t.propertyName.toLowerCase().includes(q));
     if (filterStatus === 'pre_added') return matchesSearch && t.status === 'pre_added';
     if (filterStatus === 'occupied') return matchesSearch && t.status === 'active';
     return matchesSearch;
   });
 
-  const vacantCount = units.filter((u) => u.status === 'vacant').length;
+  // Get time-of-day greeting
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#070A12] text-slate-900 dark:text-slate-100 font-sans flex flex-col selection:bg-indigo-600/30 selection:text-indigo-300 transition-colors duration-300">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#070A12] text-slate-900 dark:text-slate-100 font-sans flex selection:bg-indigo-600/30 selection:text-indigo-300 transition-colors duration-300">
       
-      {/* Dashboard Top Header Navigation */}
-      <header className="sticky top-0 z-40 bg-white/90 dark:bg-[#070A12]/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-8 py-3.5">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          
-          {/* Logo & Console Badge */}
-          <div className="flex items-center gap-3">
-            <a
-              href="/"
-              onClick={(e) => {
-                e.preventDefault();
-                onNavigate('/');
-              }}
-              className="flex items-center gap-2 group focus:outline-none"
+      {/* ─── LEFT SIDEBAR ─── */}
+      <DashboardSidebar
+        activeView={activeView}
+        onChangeView={(view) => { setActiveView(view); setSearchQuery(''); setFilterStatus('all'); }}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed((p) => !p)}
+        onLogout={() => onNavigate('/')}
+      />
+
+      {/* ─── RIGHT CONTENT AREA ─── */}
+      <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
+
+        {/* ─── TOP BAR ─── */}
+        <header className="sticky top-0 z-30 bg-white/90 dark:bg-[#0D101C]/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-3">
+          <div className="flex items-center justify-between gap-4">
+
+            {/* Search (⌘K) */}
+            <button
+              onClick={() => setIsCommandPaletteOpen(true)}
+              className="flex items-center w-full max-w-md bg-slate-100 dark:bg-[#10131F] border border-slate-200 dark:border-slate-800 rounded-xl pl-3 pr-2 py-2 text-xs text-slate-400 hover:border-indigo-500/50 transition-colors cursor-pointer btn-press"
             >
-              <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-600/30">
-                <Building2 className="w-4 h-4" />
+              <Search className="w-3.5 h-3.5 mr-2 shrink-0" />
+              <span className="flex-1 text-left">Search…</span>
+              <span className="font-mono text-[10px] bg-slate-200 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded">Ctrl K</span>
+            </button>
+
+            {/* Right Controls */}
+            <div className="flex items-center gap-3 shrink-0">
+              {/* Theme Toggle */}
+              <button
+                onClick={toggleTheme}
+                aria-label="Toggle theme"
+                className="p-2 rounded-xl bg-slate-100 dark:bg-[#10131F] hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 btn-press"
+              >
+                {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-600" />}
+              </button>
+
+              {/* Notification Bell */}
+              <button className="relative p-2 rounded-xl bg-slate-100 dark:bg-[#10131F] hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 btn-press">
+                <Bell className="w-4 h-4" />
+                {pendingTickets > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">{pendingTickets}</span>
+                )}
+              </button>
+
+              {/* User Avatar + Name */}
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold font-grotesk">AV</div>
+                <div className="text-right hidden md:block">
+                  <span className="text-xs font-bold text-slate-900 dark:text-white block leading-tight">Alexander Vance</span>
+                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">Landlord</span>
+                </div>
               </div>
-              <span className="font-grotesk font-extrabold text-lg text-slate-900 dark:text-white hidden sm:inline">
-                JPTL<span className="text-indigo-600 dark:text-indigo-400">.SYSTEM</span>
-              </span>
-            </a>
-            <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">/</span>
-            <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300">
-              <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" />
-              <span>Landlord Console</span>
-            </div>
-          </div>
-
-          {/* Controls: Light/Dark Mode & User Profile */}
-          <div className="flex items-center gap-3">
-            
-            {/* Light / Dark Mode Toggle */}
-            <button
-              onClick={toggleTheme}
-              aria-label="Toggle Light/Dark Theme"
-              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            >
-              {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-600" />}
-            </button>
-
-            <div className="text-right hidden md:block">
-              <span className="text-xs font-bold text-slate-900 dark:text-white block">Alexander Vance</span>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400">Landlord Account</span>
             </div>
 
-            <button
-              onClick={() => onNavigate('/')}
-              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              title="Log out to home"
-              aria-label="Log out"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-
           </div>
+        </header>
 
-        </div>
-      </header>
+        {/* ─── SCROLLABLE MAIN CONTENT ─── */}
+        <main className="flex-1 px-6 py-6 space-y-6 overflow-y-auto">
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
-        
-        {/* Pinned Broadcast Announcement (if set during onboarding) */}
-        {announcement && (
-          <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-900 dark:text-indigo-200 text-xs flex items-start gap-3 animate-in fade-in">
-            <Megaphone className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
-            <div className="space-y-0.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block">
-                Pinned Workspace Broadcast
-              </span>
-              <h4 className="font-bold text-sm text-slate-900 dark:text-white">{announcement.subject}</h4>
-              <p className="text-slate-600 dark:text-slate-300">{announcement.body}</p>
+          {/* ═══════════════════════════════════════════ */}
+          {/* ─── VIEW: OVERVIEW (informational only) ─── */}
+          {/* ═══════════════════════════════════════════ */}
+          {activeView === 'overview' && (
+            <>
+              {/* Broadcast Banner (dismissible) */}
+              {announcement && !broadcastDismissed && (
+                <div className="relative p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-indigo-500/10 via-purple-500/5 to-indigo-500/10 border border-indigo-500/30 flex items-start gap-3 top-shade">
+                  <Megaphone className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
+                  <div className="flex-1 space-y-0.5">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-600 dark:text-indigo-400 block font-mono">Workspace Broadcast</span>
+                    <h4 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">{announcement.subject}</h4>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{announcement.body}</p>
+                  </div>
+                  <button onClick={() => setBroadcastDismissed(true)} className="p-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-500 btn-press shrink-0" aria-label="Dismiss">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
+              {/* Hero Greeting */}
+              <div>
+                <h1 className="text-3xl sm:text-4xl font-extrabold font-grotesk tracking-tight text-slate-900 dark:text-white leading-tight">
+                  {greeting}, <span className="bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">Alexander</span> 👋
+                </h1>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Here's what's happening with your properties today.</p>
+              </div>
+
+              {/* KPI Stat Cards (informational — link to sidebar pages) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                {/* Revenue */}
+                <div className="top-shade rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#10131F] p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                      <DollarSign className="w-3.5 h-3.5 text-indigo-500" /> Monthly Revenue
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                      <TrendingUp className="w-2.5 h-2.5" /> +12.4%
+                    </span>
+                  </div>
+                  <h3 className="text-3xl font-extrabold font-grotesk text-slate-900 dark:text-white tracking-tight">
+                    ${totalMonthlyRevenue.toLocaleString()}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Collected from {occupiedCount} active leases</p>
+                  {/* Mini sparkline */}
+                  <div className="flex items-end gap-0.5 h-7 pt-1 border-t border-slate-100 dark:border-slate-800/60">
+                    {[40, 45, 42, 55, 60, 58, 70, 75, 82, 90, 88, 100].map((val, idx) => (
+                      <div key={idx} className="flex-1 rounded-t-xs bg-indigo-500/20" style={{ height: `${val}%` }} />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Occupancy */}
+                <div className="top-shade rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#10131F] p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                      <Home className="w-3.5 h-3.5 text-blue-500" /> Portfolio Occupancy
+                    </span>
+                    <span className="text-xs font-bold font-mono text-slate-900 dark:text-white">{units.length > 0 ? Math.round((occupiedCount / units.length) * 100) : 0}%</span>
+                  </div>
+                  <h3 className="text-3xl font-extrabold font-grotesk text-slate-900 dark:text-white tracking-tight">
+                    {occupiedCount} <span className="text-sm font-normal text-slate-500 dark:text-slate-400">/ {units.length} Units</span>
+                  </h3>
+                  <div className="space-y-1.5">
+                    <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                      <div className="h-full bg-indigo-600 dark:bg-indigo-500 transition-all duration-500" style={{ width: `${units.length > 0 ? (occupiedCount / units.length) * 100 : 0}%` }} />
+                    </div>
+                    <div className="flex justify-between text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                      <span>{occupiedCount} Occupied</span>
+                      <span className="text-emerald-600 dark:text-emerald-400">{vacantCount} Vacant</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Placement Queue */}
+                <div className="top-shade rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#10131F] p-5 space-y-3 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-emerald-500" /> Placement Queue
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">Ready</span>
+                    </div>
+                    <h3 className="text-3xl font-extrabold font-grotesk text-slate-900 dark:text-white tracking-tight mt-3">
+                      {vacantCount} <span className="text-sm font-normal text-slate-500 dark:text-slate-400">Vacant</span>
+                    </h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Immediate lease opportunities available</p>
+                  </div>
+                  <button onClick={() => setActiveView('units')} className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-grotesk btn-press flex items-center justify-center gap-1.5 shadow-sm mt-2">
+                    <span>View Properties</span> <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Service Requests */}
+                <div className="top-shade rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#10131F] p-5 space-y-3 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                        <Wrench className="w-3.5 h-3.5 text-amber-500" /> Service Requests
+                      </span>
+                      {pendingTickets > 0 ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1">
+                          <AlertCircle className="w-2.5 h-2.5" /> {pendingTickets} Pending
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                          <CheckCircle2 className="w-2.5 h-2.5" /> All Clear
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-3xl font-extrabold font-grotesk text-slate-900 dark:text-white tracking-tight mt-3">
+                      {tickets.length} <span className="text-sm font-normal text-slate-500 dark:text-slate-400">Total</span>
+                    </h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{pendingTickets > 0 ? `${pendingTickets} require technician review` : 'Zero active maintenance'}</p>
+                  </div>
+                  <button onClick={() => setActiveView('tickets')} className="w-full py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 text-xs font-semibold btn-press flex items-center justify-center gap-1.5 mt-2">
+                    <span>Manage Queue</span> <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              <SectionDivider label="Recent Activity" />
+
+              {/* Recent Tickets Preview */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="top-shade rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#10131F] overflow-hidden">
+                  <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800/80">
+                    <h2 className="text-sm font-bold font-grotesk text-slate-900 dark:text-white flex items-center gap-2">
+                      <Wrench className="w-4 h-4 text-indigo-500" /> Recent Maintenance Requests
+                    </h2>
+                    <button onClick={() => setActiveView('tickets')} className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 btn-press">
+                      View All <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div className="divide-y divide-slate-200 dark:divide-slate-800/60">
+                    {tickets.slice(0, 3).map((t) => (
+                      <div key={t.id} className="px-5 py-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">{t.id}</span>
+                            <span className="text-xs font-semibold text-slate-900 dark:text-white">{t.title}</span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400">{t.propertyName} &bull; {t.unitLabel}</p>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono border ${
+                          t.status === 'resolved' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                          : t.status === 'in_progress' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20'
+                          : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                        }`}>
+                          {t.status.replace('_', ' ')}
+                        </span>
+                      </div>
+                    ))}
+                    {tickets.length === 0 && (
+                      <div className="px-5 py-8 text-center text-xs text-slate-400 font-mono">No recent requests found.</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="top-shade rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#10131F] overflow-hidden">
+                  <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800/80">
+                    <h2 className="text-sm font-bold font-grotesk text-slate-900 dark:text-white">Quick Actions</h2>
+                  </div>
+                  <div className="divide-y divide-slate-200 dark:divide-slate-800/60">
+                    <button onClick={() => { setActiveView('units'); }} className="w-full px-5 py-4 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors text-left btn-press">
+                      <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-500"><Building2 className="w-4 h-4" /></div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-white block">Browse Properties</span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">View all units and assign tenants</span>
+                      </div>
+                    </button>
+                    <button onClick={() => { setActiveView('tenants'); }} className="w-full px-5 py-4 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors text-left btn-press">
+                      <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500"><Users className="w-4 h-4" /></div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-white block">Manage Tenants</span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">View directory and add new tenants</span>
+                      </div>
+                    </button>
+                    <button onClick={() => { setActiveView('payments'); }} className="w-full px-5 py-4 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors text-left btn-press">
+                      <div className="p-2 rounded-xl bg-amber-500/10 text-amber-500"><DollarSign className="w-4 h-4" /></div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-white block">Rent Roll</span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">Track payments and invoices</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ═════════════════════════════════════════ */}
+          {/* ─── VIEW: PROPERTIES & UNITS (full CRUD) */}
+          {/* ═════════════════════════════════════════ */}
+          {activeView === 'units' && (
+            <div className="space-y-5">
+              {/* Page Header with Actions */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-extrabold font-grotesk text-slate-900 dark:text-white">Properties & Units</h1>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Manage your real estate portfolio — {units.length} total units across {MOCK_PROPERTIES.length} properties.</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => onNavigate('/onboarding?step=2')} className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 text-xs font-semibold btn-press flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Onboarding Wizard
+                  </button>
+                  <button onClick={() => handleOpenAddTenant()} className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold font-grotesk btn-press flex items-center gap-2 shadow-md shadow-indigo-600/20">
+                    <UserPlus className="w-4 h-4" /> + Add Tenant
+                  </button>
+                </div>
+              </div>
+
+              {/* Search & Filter Bar */}
+              <div className="flex items-center gap-3">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+                  <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search units…"
+                    className="w-full bg-white dark:bg-[#10131F] border border-slate-300 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
+                  className="bg-white dark:bg-[#10131F] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  <option value="all">All status</option>
+                  <option value="vacant">Vacant ({vacantCount})</option>
+                  <option value="occupied">Occupied ({occupiedCount})</option>
+                </select>
+              </div>
+
+              {/* Units Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {filteredUnits.map((u) => {
+                  const isVacant = u.status === 'vacant';
+                  return (
+                    <div key={u.id} className="top-shade rounded-2xl bg-white dark:bg-[#10131F] border border-slate-200 dark:border-slate-800/80 p-5 hover:border-indigo-400 dark:hover:border-slate-700 transition-all flex flex-col justify-between space-y-4 shadow-xs">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">{u.propertyName}</span>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider font-mono ${isVacant ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20'}`}>
+                            {u.status}
+                          </span>
+                        </div>
+                        <h3 className="text-lg font-bold font-grotesk text-slate-900 dark:text-white mb-1">{u.label}</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">{u.bedrooms} Bed &bull; {u.bathrooms} Bath &bull; {u.sqft} sqft</p>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#080B14] border border-slate-200/80 dark:border-slate-800/60 text-xs font-mono">
+                        <div className="flex justify-between mb-1"><span className="text-slate-500">Rent:</span><span className="font-bold text-slate-900 dark:text-white">${u.monthlyRent}/mo</span></div>
+                        <div className="flex justify-between"><span className="text-slate-500">Occupant:</span><span className={isVacant ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-900 dark:text-slate-200 font-semibold'}>{isVacant ? 'None (Vacant)' : u.tenantName}</span></div>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                        <button onClick={() => setSelectedUnitForDetail(u)} className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 btn-press flex items-center gap-1">
+                          Details <ArrowUpRight className="w-3.5 h-3.5" />
+                        </button>
+                        {isVacant && (
+                          <button onClick={() => handleOpenAddTenant(u.propertyId, u.id)} className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-grotesk btn-press flex items-center gap-1.5 shadow-sm">
+                            <UserPlus className="w-3.5 h-3.5" /> Add tenant
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Hero Welcome Banner */}
-        <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-indigo-900/90 via-slate-900 to-indigo-950 text-white border border-slate-800 relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold font-grotesk">
-              Welcome back, Alexander
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl">
-              You have <strong className="text-emerald-400">{vacantCount} vacant units</strong> available for placement. Add tenants directly or launch the onboarding wizard.
-            </p>
-          </div>
+          {/* ═══════════════════════════════════════ */}
+          {/* ─── VIEW: TENANTS DIRECTORY (full CRUD) */}
+          {/* ═══════════════════════════════════════ */}
+          {activeView === 'tenants' && (
+            <div className="space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-extrabold font-grotesk text-slate-900 dark:text-white">Tenants Directory</h1>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Manage tenant profiles, active leases, and pre-added occupants.</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => onNavigate('/onboarding?step=2')} className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 text-xs font-semibold btn-press flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-500" /> Onboarding Wizard
+                  </button>
+                  <button onClick={() => handleOpenAddTenant()} className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold font-grotesk btn-press flex items-center gap-2 shadow-md shadow-indigo-600/20">
+                    <UserPlus className="w-4 h-4" /> + Add Tenant
+                  </button>
+                </div>
+              </div>
 
-          <div className="flex items-center gap-3 shrink-0">
-            {/* Shortcut to full split-screen Onboarding Flow */}
-            <button
-              type="button"
-              onClick={() => onNavigate('/onboarding?step=2')}
-              className="px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-grotesk font-semibold text-xs border border-white/20 flex items-center gap-2 transition-all"
-            >
-              <Sparkles className="w-4 h-4 text-amber-300" />
-              <span>Onboarding Wizard</span>
-            </button>
-
-            {/* Quick Add Tenant Modal CTA */}
-            <button
-              type="button"
-              onClick={() => handleOpenAddTenant()}
-              className="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-grotesk font-bold text-xs shadow-lg shadow-indigo-600/30 flex items-center gap-2 active:scale-95 transition-all"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>+ Add Tenant</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Navigation Tabs & Search Controls */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
-          
-          {/* Tabs */}
-          <div className="flex bg-slate-200 dark:bg-slate-900 p-1 rounded-2xl border border-slate-300 dark:border-slate-800 w-full sm:w-auto">
-            <button
-              onClick={() => {
-                setActiveTab('units');
-                setFilterStatus('all');
-              }}
-              className={`flex-1 sm:flex-initial px-5 py-2 rounded-xl text-xs font-semibold font-grotesk flex items-center justify-center gap-2 transition-all ${
-                activeTab === 'units'
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
-            >
-              <Home className="w-3.5 h-3.5" />
-              <span>Properties & Units ({units.length})</span>
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab('tenants');
-                setFilterStatus('all');
-              }}
-              className={`flex-1 sm:flex-initial px-5 py-2 rounded-xl text-xs font-semibold font-grotesk flex items-center justify-center gap-2 transition-all ${
-                activeTab === 'tenants'
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
-            >
-              <Users className="w-3.5 h-3.5" />
-              <span>Tenants Directory ({tenants.length})</span>
-            </button>
-          </div>
-
-          {/* Search & Filter */}
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <div className="relative flex-1 sm:w-64">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={activeTab === 'units' ? 'Search units...' : 'Search tenants...'}
-                className="w-full bg-white dark:bg-[#111625] border border-slate-300 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="bg-white dark:bg-[#111625] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="all">All statuses</option>
-              {activeTab === 'units' ? (
-                <>
-                  <option value="vacant">Vacant only ({vacantCount})</option>
-                  <option value="occupied">Occupied only</option>
-                </>
-              ) : (
-                <>
+              {/* Search & Filter */}
+              <div className="flex items-center gap-3">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+                  <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search tenants…"
+                    className="w-full bg-white dark:bg-[#10131F] border border-slate-300 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
+                  className="bg-white dark:bg-[#10131F] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  <option value="all">All tenants</option>
                   <option value="occupied">Active Leases</option>
                   <option value="pre_added">Pre-added / Unassigned</option>
-                </>
-              )}
-            </select>
-          </div>
-
-        </div>
-
-        {/* TAB 1: Units Grid View */}
-        {activeTab === 'units' && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredUnits.map((u) => {
-                const isVacant = u.status === 'vacant';
-                return (
-                  <div
-                    key={u.id}
-                    className="p-5 rounded-2xl bg-white dark:bg-[#111625] border border-slate-200 dark:border-slate-800/80 hover:border-indigo-400 dark:hover:border-slate-700 transition-all flex flex-col justify-between space-y-4 shadow-sm"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">{u.propertyName}</span>
-                        <span
-                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                            isVacant
-                              ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                              : 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30'
-                          }`}
-                        >
-                          {u.status}
-                        </span>
-                      </div>
-
-                      <h3 className="text-lg font-bold font-grotesk text-slate-900 dark:text-white mb-1">{u.label}</h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-3">
-                        <span>{u.bedrooms} Bed &bull; {u.bathrooms} Bath</span>
-                        <span>&bull;</span>
-                        <span>{u.sqft} sqft</span>
-                      </p>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#090C16] border border-slate-200 dark:border-slate-800/80 text-xs">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-slate-500 dark:text-slate-400">Monthly Rent:</span>
-                        <span className="font-bold text-slate-900 dark:text-white">${u.monthlyRent}/mo</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-500 dark:text-slate-400">Current Occupant:</span>
-                        <span className={`font-semibold ${isVacant ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-slate-200'}`}>
-                          {isVacant ? 'None (Vacant)' : u.tenantName}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedUnitForDetail(u)}
-                        className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-800 flex items-center gap-1"
-                      >
-                        <span>Details</span>
-                        <ArrowUpRight className="w-3.5 h-3.5" />
-                      </button>
-
-                      {isVacant && (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenAddTenant(u.propertyId, u.id)}
-                          className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-grotesk shadow-md shadow-emerald-600/20 flex items-center gap-1.5 active:scale-95 transition-all"
-                        >
-                          <UserPlus className="w-3.5 h-3.5" />
-                          <span>Add tenant</span>
-                        </button>
-                      )}
-                    </div>
-
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: Tenants Directory View */}
-        {activeTab === 'tenants' && (
-          <div className="space-y-4">
-            
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#111625] border border-slate-200 dark:border-slate-800 shadow-sm">
-              <div>
-                <h2 className="text-base font-bold font-grotesk text-slate-900 dark:text-white">Tenant Directory</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Manage tenant profiles, active leases, and pre-added occupants.</p>
+                </select>
               </div>
 
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => onNavigate('/onboarding?step=2')}
-                  className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-800 text-xs font-semibold flex items-center gap-2 transition-all"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-                  <span>Onboarding Wizard</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleOpenAddTenant()}
-                  className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold font-grotesk shadow-md shadow-indigo-600/30 flex items-center gap-2 active:scale-95 transition-all"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  <span>+ Add Tenant</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Tenants List Table */}
-            <div className="divide-y divide-slate-200 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-white dark:bg-[#111625] shadow-sm">
-              {filteredTenants.length === 0 ? (
-                <div className="p-8 text-center text-slate-500 dark:text-slate-400 text-xs">
-                  No tenants match the search filter.
-                </div>
-              ) : (
-                filteredTenants.map((t) => (
-                  <div key={t.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-white font-grotesk">{t.name}</h3>
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                            t.status === 'active'
-                              ? 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30'
-                              : 'bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30'
-                          }`}
-                        >
-                          {t.status === 'active' ? 'Active Lease' : 'Pre-added'}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{t.email}</p>
-                    </div>
-
-                    <div className="flex items-center gap-6 text-xs">
-                      <div>
-                        <span className="text-slate-400 dark:text-slate-500 block text-[11px]">Assigned Unit</span>
-                        <strong className="text-slate-900 dark:text-white">{t.unitLabel || 'Unassigned'}</strong>
-                      </div>
-                      {t.monthlyRent > 0 && (
-                        <div>
-                          <span className="text-slate-400 dark:text-slate-500 block text-[11px]">Rent</span>
-                          <strong className="text-emerald-600 dark:text-emerald-400">${t.monthlyRent}/mo</strong>
+              {/* Tenants Table */}
+              <div className="divide-y divide-slate-200 dark:divide-slate-800 border border-slate-200 dark:border-slate-800/80 rounded-2xl overflow-hidden bg-white dark:bg-[#10131F] shadow-xs top-shade">
+                {filteredTenants.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-slate-400 font-mono">No tenants match the search filter.</div>
+                ) : (
+                  filteredTenants.map((t) => (
+                    <div key={t.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-bold text-slate-900 dark:text-white font-grotesk">{t.name}</h3>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase font-mono ${t.status === 'active' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' : 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'}`}>
+                            {t.status === 'active' ? 'Active Lease' : 'Pre-added'}
+                          </span>
                         </div>
-                      )}
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">{t.email}</p>
+                      </div>
+                      <div className="flex items-center gap-6 text-xs font-mono">
+                        <div><span className="text-slate-400 block text-[10px] uppercase tracking-wider">Unit</span><strong className="text-slate-900 dark:text-white">{t.unitLabel || 'Unassigned'}</strong></div>
+                        {t.monthlyRent > 0 && <div><span className="text-slate-400 block text-[10px] uppercase tracking-wider">Rent</span><strong className="text-emerald-600 dark:text-emerald-400">${t.monthlyRent}/mo</strong></div>}
+                        {t.leaseStart && <div className="hidden md:block"><span className="text-slate-400 block text-[10px] uppercase tracking-wider">Lease</span><strong className="text-slate-700 dark:text-slate-300">{t.leaseStart} → {t.leaseEnd || '—'}</strong></div>}
+                      </div>
                     </div>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
             </div>
+          )}
 
-          </div>
-        )}
+          {/* ═══════════════════════════════════════════ */}
+          {/* ─── VIEW: MAINTENANCE QUEUE (full CRUD) ─── */}
+          {/* ═══════════════════════════════════════════ */}
+          {activeView === 'tickets' && (
+            <TicketsTab tickets={tickets} searchQuery={searchQuery} onOpenNewTicket={() => setIsNewTicketOpen(true)} />
+          )}
 
-      </main>
+          {/* ═════════════════════════════════════ */}
+          {/* ─── VIEW: RENT ROLL (full CRUD) ───── */}
+          {/* ═════════════════════════════════════ */}
+          {activeView === 'payments' && (
+            <PaymentsTab payments={payments} searchQuery={searchQuery} />
+          )}
 
-      {/* MODAL 1: Add Tenant Modal */}
-      <AddTenantModal
-        isOpen={isAddTenantOpen}
-        onClose={() => setIsAddTenantOpen(false)}
-        properties={MOCK_PROPERTIES}
-        units={units}
-        initialPropertyId={addTenantPropertyId}
-        initialUnitId={addTenantUnitId}
-        onTenantAdded={handleTenantAdded}
-      />
+          {/* ─── VIEW: SETTINGS (placeholder) ─── */}
+          {activeView === 'settings' && (
+            <div className="space-y-5">
+              <h1 className="text-2xl font-extrabold font-grotesk text-slate-900 dark:text-white">Settings</h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Account and workspace settings will be available here.</p>
+              <div className="p-12 rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 text-center text-xs text-slate-400 font-mono">
+                Settings panel — coming soon.
+              </div>
+            </div>
+          )}
 
-      {/* MODAL 2: Unit Detail Modal */}
-      <UnitDetailModal
-        isOpen={Boolean(selectedUnitForDetail)}
-        unit={selectedUnitForDetail}
-        property={MOCK_PROPERTIES.find((p) => p.id === selectedUnitForDetail?.propertyId)}
-        onClose={() => setSelectedUnitForDetail(null)}
-        onAddTenant={handleOpenAddTenant}
-      />
+        </main>
+      </div>
 
+      {/* ─── MODALS ─── */}
+      <CommandPaletteModal isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} properties={MOCK_PROPERTIES} units={units} tenants={tenants} tickets={tickets} onSelectResult={handleCommandPaletteSelect} />
+      <AddTenantModal isOpen={isAddTenantOpen} onClose={() => setIsAddTenantOpen(false)} properties={MOCK_PROPERTIES} units={units} initialPropertyId={addTenantPropertyId} initialUnitId={addTenantUnitId} onTenantAdded={handleTenantAdded} />
+      <UnitDetailModal isOpen={Boolean(selectedUnitForDetail)} unit={selectedUnitForDetail} property={MOCK_PROPERTIES.find((p) => p.id === selectedUnitForDetail?.propertyId)} onClose={() => setSelectedUnitForDetail(null)} onAddTenant={handleOpenAddTenant} />
+      <NewTicketModal isOpen={isNewTicketOpen} onClose={() => setIsNewTicketOpen(false)} properties={MOCK_PROPERTIES} units={units} onTicketCreated={handleTicketCreated} />
     </div>
   );
 };

@@ -9,7 +9,7 @@ import { Testimonials } from '../components/landing/Testimonials';
 import { PricingSection } from '../components/landing/PricingSection';
 import { Footer } from '../components/common/Footer';
 
-export const LandingPage = ({ onNavigate = () => {} }) => {
+export const LandingPage = ({ onNavigate = () => { } }) => {
   const { theme, toggleTheme } = useTheme();
 
   // Trigger scroll-reveal animations
@@ -21,7 +21,7 @@ export const LandingPage = ({ onNavigate = () => {} }) => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#08080C] text-slate-900 dark:text-[#F3F3F8] font-sans selection:bg-blue-600/30 selection:text-blue-300 transition-colors duration-300">
-      
+
       {/* 1. Header Navigation */}
       <Navbar
         theme={theme}
