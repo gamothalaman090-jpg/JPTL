@@ -87,7 +87,7 @@ export const TicketsTab = ({ tickets: initialTickets = [], searchQuery = '', onO
   return (
     <div className="space-y-4">
       {/* Header Banner & Status Filter Pills */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#10131F] border border-slate-200 dark:border-slate-800/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="p-4 sm:p-5 rounded-2xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-bold font-grotesk text-slate-900 dark:text-white flex items-center gap-2">
             <Wrench className="w-4 h-4 text-indigo-500" />
@@ -131,14 +131,14 @@ export const TicketsTab = ({ tickets: initialTickets = [], searchQuery = '', onO
       {/* Tickets List */}
       <div className="space-y-3">
         {filteredTickets.length === 0 ? (
-          <div className="p-12 text-center rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#10131F] text-slate-500 dark:text-slate-400 text-xs">
+          <div className="p-12 text-center rounded-2xl border border-slate-200 dark:border-slate-800 apple-glass text-slate-500 dark:text-slate-400 text-xs">
             No maintenance tickets match the active search or filter state.
           </div>
         ) : (
           filteredTickets.map((t) => (
             <div
               key={t.id}
-              className="p-5 rounded-2xl bg-white dark:bg-[#10131F] border border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 transition-all top-shade shadow-xs space-y-4"
+              className="p-5 rounded-2xl apple-glass border border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 transition-all top-shade shadow-xs space-y-4"
             >
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                 <div className="space-y-1">

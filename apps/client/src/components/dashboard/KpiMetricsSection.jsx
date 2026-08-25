@@ -16,8 +16,8 @@ export const KpiMetricsSection = ({ units = [], tenants = [], tickets = [], onAd
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 my-6">
       
-      {/* CARD 1: Monthly Revenue & Sparkline (Efferd Style) */}
-      <div className="group relative top-shade rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#10131F] p-4 sm:p-5 transition-all hover:border-indigo-500/50 dark:hover:border-indigo-500/30 overflow-hidden">
+      {/* CARD 1: Monthly Revenue & Sparkline */}
+      <div className="group relative top-shade apple-glass rounded-2xl border border-slate-200 dark:border-slate-800/80 p-4 sm:p-5 transition-all hover:border-indigo-500/50 dark:hover:border-indigo-500/30 overflow-hidden">
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs font-mono font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
             <DollarSign className="w-3.5 h-3.5 text-indigo-500" />
@@ -53,7 +53,7 @@ export const KpiMetricsSection = ({ units = [], tenants = [], tickets = [], onAd
       </div>
 
       {/* CARD 2: Occupancy Rate */}
-      <div className="group relative top-shade rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#10131F] p-4 sm:p-5 transition-all hover:border-indigo-500/50 dark:hover:border-indigo-500/30 overflow-hidden">
+      <div className="group relative top-shade apple-glass rounded-2xl border border-slate-200 dark:border-slate-800/80 p-4 sm:p-5 transition-all hover:border-indigo-500/50 dark:hover:border-indigo-500/30 overflow-hidden">
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs font-mono font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
             <Home className="w-3.5 h-3.5 text-blue-500" />
@@ -83,7 +83,7 @@ export const KpiMetricsSection = ({ units = [], tenants = [], tickets = [], onAd
       </div>
 
       {/* CARD 3: Vacant Units & Fast Placement CTA */}
-      <div className="group relative top-shade rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#10131F] p-4 sm:p-5 transition-all hover:border-emerald-500/50 dark:hover:border-emerald-500/30 overflow-hidden flex flex-col justify-between">
+      <div className="group relative top-shade apple-glass rounded-2xl border border-slate-200 dark:border-slate-800/80 p-4 sm:p-5 transition-all hover:border-emerald-500/50 dark:hover:border-emerald-500/30 overflow-hidden flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-mono font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
@@ -114,7 +114,7 @@ export const KpiMetricsSection = ({ units = [], tenants = [], tickets = [], onAd
       </div>
 
       {/* CARD 4: Maintenance Tickets Overview */}
-      <div className="group relative top-shade rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#10131F] p-4 sm:p-5 transition-all hover:border-amber-500/50 dark:hover:border-amber-500/30 overflow-hidden flex flex-col justify-between">
+      <div className="group relative top-shade apple-glass rounded-2xl border border-slate-200 dark:border-slate-800/80 p-4 sm:p-5 transition-all hover:border-amber-500/50 dark:hover:border-amber-500/30 overflow-hidden flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-mono font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">

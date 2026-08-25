@@ -65,7 +65,7 @@ export const PaymentsTab = ({ payments: initialPayments = [], searchQuery = '' }
     <div className="space-y-4">
       {/* Financial Summary Top Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="p-4 rounded-2xl bg-white dark:bg-[#10131F] border border-slate-200 dark:border-slate-800/80 top-shade">
+        <div className="p-4 rounded-2xl apple-glass border border-slate-200 dark:border-slate-800/80 top-shade">
           <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
             Total Paid (Current Cycle)
           </span>
@@ -74,7 +74,7 @@ export const PaymentsTab = ({ payments: initialPayments = [], searchQuery = '' }
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white dark:bg-[#10131F] border border-slate-200 dark:border-slate-800/80 top-shade">
+        <div className="p-4 rounded-2xl apple-glass border border-slate-200 dark:border-slate-800/80 top-shade">
           <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
             Outstanding / Pending
           </span>
@@ -83,7 +83,7 @@ export const PaymentsTab = ({ payments: initialPayments = [], searchQuery = '' }
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white dark:bg-[#10131F] border border-slate-200 dark:border-slate-800/80 top-shade flex items-center justify-between">
+        <div className="p-4 rounded-2xl apple-glass border border-slate-200 dark:border-slate-800/80 top-shade flex items-center justify-between">
           <div>
             <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
               Automated Receipts
@@ -103,7 +103,7 @@ export const PaymentsTab = ({ payments: initialPayments = [], searchQuery = '' }
       </div>
 
       {/* Main Filter & Rent Roll Header */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#10131F] border border-slate-200 dark:border-slate-800/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="p-4 sm:p-5 rounded-2xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-bold font-grotesk text-slate-900 dark:text-white flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-emerald-500" />
@@ -132,7 +132,7 @@ export const PaymentsTab = ({ payments: initialPayments = [], searchQuery = '' }
       </div>
 
       {/* Payments Table */}
-      <div className="divide-y divide-slate-200 dark:divide-slate-800 border border-slate-200 dark:border-slate-800/80 rounded-2xl overflow-hidden bg-white dark:bg-[#10131F] shadow-xs">
+      <div className="divide-y divide-slate-200 dark:divide-slate-800 border border-slate-200 dark:border-slate-800/80 rounded-2xl overflow-hidden apple-glass top-shade shadow-xs">
         {filteredPayments.length === 0 ? (
           <div className="p-8 text-center text-slate-500 dark:text-slate-400 text-xs">
             No payments match the search criteria.
