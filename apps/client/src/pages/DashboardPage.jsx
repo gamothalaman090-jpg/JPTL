@@ -171,6 +171,7 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed((p) => !p)}
         onLogout={() => onNavigate('/')}
+        onNavigate={onNavigate}
       />
 
       {/* ─── MAIN CENTER CONTENT AREA ─── */}
@@ -181,17 +182,28 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
           <div className="flex items-center justify-between gap-4">
 
             {/* Search (⌘K) */}
-            <button
-              onClick={() => setIsCommandPaletteOpen(true)}
-              className="flex items-center w-full max-w-md bg-slate-100 dark:bg-[#10131F] border border-slate-200 dark:border-slate-800 rounded-xl pl-3 pr-2 py-2 text-xs text-slate-400 hover:border-indigo-500/50 transition-colors cursor-pointer btn-press"
-            >
-              <Search className="w-3.5 h-3.5 mr-2 shrink-0" />
-              <span className="flex-1 text-left">Search…</span>
-              <span className="font-mono text-[10px] bg-slate-200 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded">Ctrl K</span>
-            </button>
+            <div className="flex items-center gap-3 w-full max-w-md">
+              <button
+                onClick={() => setIsCommandPaletteOpen(true)}
+                className="flex items-center w-full bg-slate-100 dark:bg-[#10131F] border border-slate-200 dark:border-slate-800 rounded-xl pl-3 pr-2 py-2 text-xs text-slate-400 hover:border-indigo-500/50 transition-colors cursor-pointer btn-press"
+              >
+                <Search className="w-3.5 h-3.5 mr-2 shrink-0" />
+                <span className="flex-1 text-left">Search…</span>
+                <span className="font-mono text-[10px] bg-slate-200 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded">Ctrl K</span>
+              </button>
+            </div>
 
             {/* Right Controls */}
             <div className="flex items-center gap-3 shrink-0">
+              {/* Tenant Portal Link */}
+              <button
+                type="button"
+                onClick={() => onNavigate('/tenant')}
+                className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-xs font-semibold btn-press"
+              >
+                <Home className="w-3.5 h-3.5" />
+                <span>Tenant Portal</span>
+              </button>
               {/* Notification Bell */}
               <button
                 onClick={() => setIsNotificationOpen(true)}

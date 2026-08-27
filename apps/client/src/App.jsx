@@ -4,6 +4,7 @@ import { RegisterPage } from './pages/RegisterPage';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { TenantPortalPage } from './pages/TenantPortalPage';
 
 function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
@@ -33,6 +34,10 @@ function App() {
 
   if (currentPath === '/login') {
     return <LoginPage onNavigate={navigate} />;
+  }
+
+  if (currentPath === '/tenant' || currentPath.startsWith('/tenant')) {
+    return <TenantPortalPage onNavigate={navigate} />;
   }
 
   if (currentPath === '/dashboard' || currentPath.startsWith('/dashboard')) {

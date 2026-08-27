@@ -1,28 +1,28 @@
 import React from 'react';
-import {
-  LayoutDashboard, Building2, Users, Wrench, DollarSign,
-  Settings, LogOut, ChevronLeft, ChevronRight, Bell, Megaphone, CalendarDays
+import { 
+  LayoutDashboard, CreditCard, Wrench, FileText, Megaphone, 
+  Settings, LogOut, ChevronLeft, ChevronRight, Home, ShieldCheck 
 } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { key: 'overview', label: 'Dashboard', icon: LayoutDashboard },
-  { key: 'announcements', label: 'Announcements', icon: Megaphone },
-  { key: 'units', label: 'Properties & Units', icon: Building2 },
-  { key: 'tenants', label: 'Tenants Directory', icon: Users },
-  { key: 'tickets', label: 'Maintenance', icon: Wrench },
-  { key: 'payments', label: 'Rent Roll', icon: DollarSign },
+  { key: 'overview', label: 'Home', icon: LayoutDashboard },
+  { key: 'payments', label: 'Rent & Payments', icon: CreditCard },
+  { key: 'maintenance', label: 'Maintenance', icon: Wrench },
+  { key: 'lease', label: 'My Lease', icon: FileText },
+  { key: 'announcements', label: 'Community', icon: Megaphone },
 ];
 
 const BOTTOM_ITEMS = [
   { key: 'settings', label: 'Settings', icon: Settings },
 ];
 
-export const DashboardSidebar = ({
-  activeView,
-  onChangeView,
+export const TenantSidebar = ({
+  activeTab,
+  onChangeTab,
   collapsed,
   onToggleCollapse,
   onLogout,
+  tenant,
 }) => {
   return (
     <aside
@@ -35,16 +35,19 @@ export const DashboardSidebar = ({
       `}
       style={{ transitionTimingFunction: 'var(--ease-out)' }}
     >
-      {/* ─── LOGO + COLLAPSE TOGGLE ─── */}
+      {/* ─── HEADER: BRAND + COLLAPSE ─── */}
       <div className={`flex items-center justify-between px-3.5 py-4 border-b border-slate-200 dark:border-slate-800/80 ${collapsed ? 'justify-center' : ''}`}>
         {!collapsed && (
           <div className="flex items-center gap-2.5 overflow-hidden">
             <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-600/30 shrink-0">
-              <Building2 className="w-4 h-4" />
+              <Home className="w-4 h-4" />
             </div>
-            <span className="font-grotesk font-extrabold text-base tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
-              JPTL<span className="text-indigo-600 dark:text-indigo-400">.SYS</span>
-            </span>
+            <div>
+              <span className="font-grotesk font-extrabold text-base tracking-tight text-slate-900 dark:text-white block leading-tight">
+                JPTL<span className="text-indigo-600 dark:text-indigo-400">.TENANT</span>
+              </span>
+              <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Resident Portal</span>
+            </div>
           </div>
         )}
 
@@ -57,16 +60,30 @@ export const DashboardSidebar = ({
         </button>
       </div>
 
-      {/* ─── MAIN NAV ─── */}
+      {/* ─── RESIDENT MINI BADGE ─── */}
+      {!collapsed && tenant && (
+        <div className="mx-3 mt-3 p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 top-shade">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] font-mono font-bold uppercase text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3" /> Active Lease
+            </span>
+            <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">{tenant.unitLabel}</span>
+          </div>
+          <p className="text-xs font-bold font-grotesk text-slate-900 dark:text-white truncate">{tenant.name}</p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{tenant.propertyName}</p>
+        </div>
+      )}
+
+      {/* ─── NAVIGATION ITEMS ─── */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto overflow-x-hidden">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
-          const isActive = activeView === item.key;
+          const isActive = activeTab === item.key;
 
           return (
             <button
               key={item.key}
-              onClick={() => onChangeView(item.key)}
+              onClick={() => onChangeTab(item.key)}
               title={collapsed ? item.label : undefined}
               className={`
                 group w-full flex items-center gap-3 py-2.5 rounded-xl text-xs font-semibold btn-press transition-all relative
@@ -77,7 +94,7 @@ export const DashboardSidebar = ({
                 }
               `}
             >
-              {/* Active left accent bar (flush inside button) */}
+              {/* Active flush indicator bar */}
               {isActive && !collapsed && (
                 <div className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-4 rounded-full bg-white/80" />
               )}
@@ -92,36 +109,33 @@ export const DashboardSidebar = ({
         })}
       </nav>
 
-      {/* ─── BOTTOM NAV ─── */}
+      {/* ─── BOTTOM CONTROLS ─── */}
       <div className="px-3 py-4 border-t border-slate-200 dark:border-slate-800/80 space-y-1">
         {BOTTOM_ITEMS.map((item) => {
           const Icon = item.icon;
           return (
             <button
               key={item.key}
-              onClick={() => onChangeView(item.key)}
+              onClick={() => onChangeTab(item.key)}
               title={collapsed ? item.label : undefined}
-              className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-white btn-press transition-all"
+              className={`
+                group w-full flex items-center gap-3 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-white btn-press transition-all
+                ${collapsed ? 'justify-center px-0' : 'px-3'}
+              `}
             >
-              <Icon className="w-4 h-4 shrink-0 text-slate-500 dark:text-slate-500 group-hover:text-indigo-500" />
+              <Icon className="w-4 h-4 shrink-0 text-slate-500 group-hover:text-indigo-500" />
               {!collapsed && <span className="whitespace-nowrap font-grotesk">{item.label}</span>}
             </button>
           );
         })}
 
         <button
-          onClick={() => onNavigate && onNavigate('/tenant')}
-          title={collapsed ? 'Resident Portal' : undefined}
-          className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 btn-press transition-all"
-        >
-          <Home className="w-4 h-4 shrink-0 text-indigo-500" />
-          {!collapsed && <span className="whitespace-nowrap font-grotesk">Tenant Portal View</span>}
-        </button>
-
-        <button
           onClick={onLogout}
           title={collapsed ? 'Log out' : undefined}
-          className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-rose-500/10 hover:text-rose-500 btn-press transition-all"
+          className={`
+            group w-full flex items-center gap-3 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-rose-500/10 hover:text-rose-500 btn-press transition-all
+            ${collapsed ? 'justify-center px-0' : 'px-3'}
+          `}
         >
           <LogOut className="w-4 h-4 shrink-0 text-slate-500 group-hover:text-rose-500" />
           {!collapsed && <span className="whitespace-nowrap font-grotesk">Log out</span>}
