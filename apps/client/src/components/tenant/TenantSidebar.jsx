@@ -1,15 +1,16 @@
 import React from 'react';
-import { 
-  LayoutDashboard, CreditCard, Wrench, FileText, Megaphone, 
-  Settings, LogOut, ChevronLeft, ChevronRight, Home, ShieldCheck 
+import {
+  LayoutDashboard, CreditCard, Wrench, FileText, Megaphone,
+  Settings, LogOut, ChevronLeft, ChevronRight, Home, ShieldCheck, FileCheck
 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { key: 'overview', label: 'Home', icon: LayoutDashboard },
+  { key: 'announcements', label: 'Announcements', icon: Megaphone },
   { key: 'payments', label: 'Rent & Payments', icon: CreditCard },
   { key: 'maintenance', label: 'Maintenance', icon: Wrench },
   { key: 'lease', label: 'My Lease', icon: FileText },
-  { key: 'announcements', label: 'Community', icon: Megaphone },
+  { key: 'documents', label: 'Documents & Verification', icon: FileCheck },
 ];
 
 const BOTTOM_ITEMS = [
@@ -59,20 +60,6 @@ export const TenantSidebar = ({
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
       </div>
-
-      {/* ─── RESIDENT MINI BADGE ─── */}
-      {!collapsed && tenant && (
-        <div className="mx-3 mt-3 p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 top-shade">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] font-mono font-bold uppercase text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
-              <ShieldCheck className="w-3 h-3" /> Active Lease
-            </span>
-            <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">{tenant.unitLabel}</span>
-          </div>
-          <p className="text-xs font-bold font-grotesk text-slate-900 dark:text-white truncate">{tenant.name}</p>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{tenant.propertyName}</p>
-        </div>
-      )}
 
       {/* ─── NAVIGATION ITEMS ─── */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto overflow-x-hidden">
