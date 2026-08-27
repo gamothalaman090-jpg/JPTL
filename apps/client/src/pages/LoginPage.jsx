@@ -358,7 +358,7 @@ export const LoginPage = ({ onNavigate = () => {} }) => {
               </button>
             </>
           ) : (
-            <span>Don't have login credentials? Contact your property manager to issue your resident account.</span>
+            <span>Don't have login credentials? Contact your landlord to issue your resident account.</span>
           )}
         </div>
 
