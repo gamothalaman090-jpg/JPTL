@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Building2, Users, Shield, Wrench, DollarSign, Bell, FileText, 
   Database, Lock, CheckCircle2, Clock, Download, 
-  Key, RefreshCw, Zap, Check, AlertCircle, User, Sliders
+  Key, RefreshCw, Zap, Check, AlertCircle, User, Sliders, Camera, Eye, EyeOff, Smartphone, ShieldCheck
 } from 'lucide-react';
 
 const INITIAL_VENDORS = [
@@ -27,13 +27,20 @@ export const LandlordSettingsTab = ({
   const [activeSubTab, setActiveSubTab] = useState('account');
   const [saved, setSaved] = useState(false);
 
-  // 1. Landlord Account state
+  // 1. Landlord Account & Profile state
   const [landlordProfile, setLandlordProfile] = useState({
     name: 'Alexander Vance',
     email: 'alexander.vance@horizon.com',
     phone: '+1 (555) 019-2831',
     company: 'Horizon Property Holdings Group',
+    officePhone: '+1 (555) 990-1100',
   });
+  const [avatarUrl, setAvatarUrl] = useState(null);
+  const [passwordForm, setPasswordForm] = useState({ current: '', newPass: '', confirm: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [enable2FA, setEnable2FA] = useState(false);
+  const [show2FAModal, setShow2FAModal] = useState(false);
+
   const [defaultCurrency, setDefaultCurrency] = useState('USD');
   const [defaultTimezone, setDefaultTimezone] = useState('EST (UTC-5)');
 
@@ -79,7 +86,6 @@ export const LandlordSettingsTab = ({
 
   // 7. Security state
   const [sessionTimeoutMins, setSessionTimeoutMins] = useState('30');
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [lastBackupTime, setLastBackupTime] = useState('2026-08-27 04:00 AM');
   const [isBackingUp, setIsBackingUp] = useState(false);
 
@@ -98,7 +104,7 @@ export const LandlordSettingsTab = ({
   };
 
   const subTabs = [
-    { key: 'account', label: 'Account & Properties', icon: Building2 },
+    { key: 'account', label: 'Profile & Account', icon: User },
     { key: 'maintenance', label: 'Maintenance & Vendors', icon: Wrench },
     { key: 'payments', label: 'Payments & Payouts', icon: DollarSign },
     { key: 'notifications', label: 'Landlord Alerts', icon: Bell },
@@ -115,13 +121,13 @@ export const LandlordSettingsTab = ({
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-mono font-medium">
             <User className="w-3.5 h-3.5" />
-            <span>Landlord Settings</span>
+            <span>Landlord Control Panel</span>
           </div>
           <h1 className="text-2xl font-extrabold font-grotesk text-slate-900 dark:text-white mt-1">
-            Landlord & Property Settings
+            Landlord Profile & System Settings
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 font-sans">
-            Manage your property portfolio, rent roll rules, vendor dispatch, payment gateways, and financial reports.
+            Manage your owner profile, login security, property portfolio, rent roll rules, vendor dispatch, and payment gateways.
           </p>
         </div>
 
@@ -164,14 +170,94 @@ export const LandlordSettingsTab = ({
         })}
       </div>
 
-      {/* ─── SUB-TAB 1: ACCOUNT & PROPERTIES ─── */}
+      {/* ─── SUB-TAB 1: PROFILE & ACCOUNT ─── */}
       {activeSubTab === 'account' && (
         <div className="space-y-6">
           
-          {/* Landlord Profile */}
+          {/* Avatar & Portfolio Banner */}
+          <div className="p-6 rounded-3xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Photo & Avatar Controls */}
+            <div className="flex flex-col items-center justify-center p-6 rounded-2xl bg-slate-50 dark:bg-[#080B14] border border-slate-200/80 dark:border-slate-800/60 text-center space-y-3">
+              <div className="relative group">
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-600 to-purple-700 text-white flex items-center justify-center text-3xl font-extrabold font-grotesk shadow-xl overflow-hidden">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="Landlord Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    landlordProfile.name.split(' ').map((n) => n[0]).join('')
+                  )}
+                </div>
+                <label className="absolute bottom-0 right-0 p-2 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg cursor-pointer btn-press">
+                  <Camera className="w-4 h-4" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files?.[0]) {
+                        setAvatarUrl(URL.createObjectURL(e.target.files[0]));
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-bold font-grotesk text-slate-900 dark:text-white">{landlordProfile.name}</h3>
+                <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">Property Owner & Landlord</span>
+              </div>
+
+              {avatarUrl && (
+                <button
+                  onClick={() => setAvatarUrl(null)}
+                  className="text-[11px] font-mono text-rose-500 hover:underline"
+                >
+                  Remove custom photo
+                </button>
+              )}
+            </div>
+
+            {/* Portfolio Overview Summary */}
+            <div className="lg:col-span-2 p-6 rounded-2xl bg-slate-50 dark:bg-[#080B14] border border-slate-200/80 dark:border-slate-800/60 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <Building2 className="w-4 h-4 text-indigo-500" /> Portfolio Scope & Managed Units
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-bold">
+                  Verified Landlord
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
+                <div className="p-3 rounded-xl bg-white dark:bg-[#10131F] border border-slate-200 dark:border-slate-800">
+                  <span className="text-[10px] font-mono text-slate-400 block uppercase">Buildings</span>
+                  <strong className="text-lg font-bold font-grotesk text-slate-900 dark:text-white">
+                    {properties?.length || 3} Properties
+                  </strong>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white dark:bg-[#10131F] border border-slate-200 dark:border-slate-800">
+                  <span className="text-[10px] font-mono text-slate-400 block uppercase">Total Units</span>
+                  <strong className="text-lg font-bold font-grotesk text-slate-900 dark:text-white">
+                    {units?.length || 18} Units
+                  </strong>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white dark:bg-[#10131F] border border-slate-200 dark:border-slate-800">
+                  <span className="text-[10px] font-mono text-slate-400 block uppercase">Active Tenants</span>
+                  <strong className="text-lg font-bold font-grotesk text-slate-900 dark:text-white">
+                    {tenants?.length || 14} Residents
+                  </strong>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Landlord Personal Info */}
           <div className="p-6 rounded-3xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 space-y-4">
             <h2 className="text-base font-bold font-grotesk text-slate-900 dark:text-white flex items-center gap-2">
-              <User className="w-4 h-4 text-indigo-500" /> Landlord Profile & Portfolio Overview
+              <User className="w-4 h-4 text-indigo-500" /> Personal & Business Details
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-sans">
@@ -186,7 +272,7 @@ export const LandlordSettingsTab = ({
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Email</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Email Address</label>
                 <input
                   type="email"
                   value={landlordProfile.email}
@@ -196,7 +282,7 @@ export const LandlordSettingsTab = ({
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Contact Number</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Direct Mobile</label>
                 <input
                   type="text"
                   value={landlordProfile.phone}
@@ -206,7 +292,7 @@ export const LandlordSettingsTab = ({
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Company / Business Name</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Company / Holding Group</label>
                 <input
                   type="text"
                   value={landlordProfile.company}
@@ -214,6 +300,90 @@ export const LandlordSettingsTab = ({
                   className="w-full bg-slate-50 dark:bg-[#080B14] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-white font-mono"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Password & 2FA Security Preferences */}
+          <div className="p-6 rounded-3xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 space-y-4">
+            <h2 className="text-base font-bold font-grotesk text-slate-900 dark:text-white flex items-center gap-2">
+              <Lock className="w-4 h-4 text-indigo-500" /> Password & Login Preferences
+            </h2>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-xs">
+              {/* Password Form */}
+              <div className="space-y-3 font-sans">
+                <span className="font-semibold text-slate-800 dark:text-slate-200 block">Change Landlord Account Password</span>
+                <div className="space-y-2">
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Current Password"
+                      value={passwordForm.current}
+                      onChange={(e) => setPasswordForm((p) => ({ ...p, current: e.target.value }))}
+                      className="w-full bg-slate-50 dark:bg-[#080B14] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-white font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-200"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="New Password"
+                    value={passwordForm.newPass}
+                    onChange={(e) => setPasswordForm((p) => ({ ...p, newPass: e.target.value }))}
+                    className="w-full bg-slate-50 dark:bg-[#080B14] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-white font-mono"
+                  />
+
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Confirm New Password"
+                    value={passwordForm.confirm}
+                    onChange={(e) => setPasswordForm((p) => ({ ...p, confirm: e.target.value }))}
+                    className="w-full bg-slate-50 dark:bg-[#080B14] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-white font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* 2FA Option */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#080B14] border border-slate-200 dark:border-slate-800 space-y-3 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <strong className="text-slate-900 dark:text-white font-grotesk text-sm flex items-center gap-1.5">
+                      <Smartphone className="w-4 h-4 text-indigo-500" /> Two-Factor Authentication (2FA)
+                    </strong>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                      Optional
+                    </span>
+                  </div>
+                  <p className="text-slate-500 text-[11px] leading-relaxed">
+                    Protect your property financial ledgers and merchant accounts with TOTP authenticator app verification.
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800">
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Enable 2FA Protection</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEnable2FA(!enable2FA);
+                      if (!enable2FA) setShow2FAModal(true);
+                    }}
+                    className={`px-4 py-1.5 rounded-xl font-mono text-xs font-bold transition-all btn-press ${
+                      enable2FA
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-indigo-600 text-white'
+                    }`}
+                  >
+                    {enable2FA ? '2FA Active' : 'Setup 2FA'}
+                  </button>
+                </div>
+              </div>
+
             </div>
           </div>
 
@@ -259,6 +429,64 @@ export const LandlordSettingsTab = ({
               </div>
             </div>
           </div>
+
+          {/* 2FA Setup Modal */}
+          {show2FAModal && (
+            <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-[#10131F] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-bold font-grotesk text-slate-900 dark:text-white flex items-center gap-2">
+                    <Smartphone className="w-5 h-5 text-indigo-500" /> Landlord 2FA Authenticator Setup
+                  </h3>
+                  <button
+                    onClick={() => setShow2FAModal(false)}
+                    className="text-slate-400 hover:text-slate-200 text-xs font-mono"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#080B14] text-center space-y-3">
+                  <div className="w-32 h-32 mx-auto bg-white p-2 rounded-xl flex items-center justify-center border border-slate-300">
+                    {/* Simulated QR Code */}
+                    <div className="w-full h-full border-2 border-dashed border-slate-800 flex items-center justify-center text-[10px] font-mono text-slate-800 font-bold">
+                      [QR CODE SCAN]
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-mono text-slate-500 block">
+                    Scan with Google Authenticator or 1Password
+                  </span>
+                </div>
+
+                <div className="space-y-2 text-xs font-sans">
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold">Enter 6-digit Code</label>
+                  <input
+                    type="text"
+                    placeholder="123456"
+                    className="w-full bg-slate-50 dark:bg-[#080B14] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-center font-mono text-base font-bold tracking-widest text-indigo-600 dark:text-indigo-400"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    onClick={() => setShow2FAModal(false)}
+                    className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-mono"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEnable2FA(true);
+                      setShow2FAModal(false);
+                    }}
+                    className="px-5 py-2 rounded-xl bg-indigo-600 text-white text-xs font-grotesk font-bold"
+                  >
+                    Verify & Enable 2FA
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
         </div>
       )}
@@ -712,7 +940,7 @@ export const LandlordSettingsTab = ({
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#080B14] border border-slate-200/80 dark:border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
                   <strong className="text-slate-900 dark:text-white font-grotesk text-sm block">Property Data Backup</strong>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-bold">
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-bold">
                     Active
                   </span>
                 </div>
@@ -729,20 +957,6 @@ export const LandlordSettingsTab = ({
                 </button>
               </div>
 
-            </div>
-
-            {/* Two-Factor Authentication */}
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#080B14] border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
-              <div>
-                <strong className="text-slate-900 dark:text-white block font-grotesk">Two-Factor Authentication (2FA)</strong>
-                <span className="text-slate-500 text-[11px]">Add an extra layer of security with an authenticator app.</span>
-              </div>
-              <input
-                type="checkbox"
-                checked={twoFactorEnabled}
-                onChange={(e) => setTwoFactorEnabled(e.target.checked)}
-                className="w-5 h-5 rounded text-indigo-600 cursor-pointer"
-              />
             </div>
 
           </div>
