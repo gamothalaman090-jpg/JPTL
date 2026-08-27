@@ -58,6 +58,7 @@ export const TenantDocumentsTab = ({
     d.tenantId === 'all'
   );
 
+  const [docExpirationReminderDays, setDocExpirationReminderDays] = useState('30');
   const [docStatusFilter, setDocStatusFilter] = useState('all'); // 'all' | 'Pending Review' | 'Verified' | 'Rejected'
   const [docCategoryFilter, setDocCategoryFilter] = useState('all');
   const [docSearchQuery, setDocSearchQuery] = useState('');
@@ -337,6 +338,29 @@ export const TenantDocumentsTab = ({
           </div>
         );
       })()}
+
+      {/* Expiration Policy Lead Time Card */}
+      <div className="p-6 rounded-3xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 space-y-4">
+        <h3 className="text-sm font-bold font-grotesk text-slate-900 dark:text-white flex items-center gap-2">
+          <ShieldAlert className="w-4 h-4 text-indigo-500" /> Automated Compliance Expiration Reminders
+        </h3>
+
+        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#080B14] border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
+          <div>
+            <strong className="text-slate-900 dark:text-white block font-grotesk text-sm">Expiration Reminder Notice Lead Time</strong>
+            <span className="text-slate-500 text-[11px]">Automatically notify residents before their renter insurance policies or occupancy permits expire.</span>
+          </div>
+          <select
+            value={docExpirationReminderDays}
+            onChange={(e) => setDocExpirationReminderDays(e.target.value)}
+            className="bg-white dark:bg-[#10131F] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-slate-900 dark:text-white text-xs font-mono shrink-0"
+          >
+            <option value="15">15 Days Before Expiry</option>
+            <option value="30">30 Days Before Expiry</option>
+            <option value="60">60 Days Before Expiry</option>
+          </select>
+        </div>
+      </div>
 
       {/* Render Submit Document Modal */}
       <SubmitDocumentModal
