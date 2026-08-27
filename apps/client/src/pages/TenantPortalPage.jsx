@@ -115,30 +115,12 @@ export const TenantPortalPage = ({ onNavigate = () => {} }) => {
         <header className="sticky top-0 z-30 apple-glass border-b border-slate-200 dark:border-slate-800 px-6 py-3">
           <div className="flex items-center justify-between gap-4">
 
-            {/* Resident Persona / Unit Switcher */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-slate-100 dark:bg-[#10131F] border border-slate-200 dark:border-slate-800 text-xs">
-                <span className="text-[10px] font-mono text-slate-400 pl-2 hidden sm:inline">Active Resident:</span>
-                <select
-                  value={selectedTenantId}
-                  onChange={(e) => setSelectedTenantId(e.target.value)}
-                  className="bg-transparent border-none text-xs font-bold font-grotesk text-slate-900 dark:text-white focus:outline-none cursor-pointer pr-2"
-                >
-                  <option value="usr-tenant-1">Sophia Lin (Unit 14B • Aura Sky)</option>
-                  <option value="usr-tenant-2">Liam Carter (Loft 304 • Vantro)</option>
-                  <option value="usr-tenant-3">David K. Miller (Villa 04 • Solis)</option>
-                </select>
+            {/* Resident Unit Badge */}
+            <div className="flex items-center gap-2">
+              <div className="px-3 py-1.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-mono font-semibold flex items-center gap-2">
+                <Home className="w-3.5 h-3.5 text-indigo-500" />
+                <span>{currentProperty.name} &bull; <strong className="text-slate-900 dark:text-white">{currentUnit.label}</strong></span>
               </div>
-
-              {/* Quick Switch to Landlord Console */}
-              <button
-                type="button"
-                onClick={() => onNavigate('/dashboard')}
-                className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-xs font-semibold btn-press"
-              >
-                <span>Switch to Landlord Console</span>
-                <ArrowRight className="w-3 h-3" />
-              </button>
             </div>
 
             {/* Right Controls */}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Wrench, AlertTriangle, ShieldAlert, Sparkles, CheckCircle2, Clock, Camera } from 'lucide-react';
+import { X, Wrench, AlertTriangle, ShieldAlert, Sparkles, CheckCircle2, Clock, Camera, Upload, Paperclip } from 'lucide-react';
 
 const ISSUE_CATEGORIES = [
   { key: 'plumbing', label: 'Plumbing / Leak' },
@@ -22,8 +22,19 @@ export const ReportIssueModal = ({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [permissionToEnter, setPermissionToEnter] = useState(true);
+  const [hasPets, setHasPets] = useState(false);
+  const [preferredTime, setPreferredTime] = useState('afternoon');
+  const [attachedFiles, setAttachedFiles] = useState(['faucet-leak-photo.jpg']);
 
   if (!isOpen) return null;
+
+  const handleAddMockFile = () => {
+    setAttachedFiles((prev) => [...prev, `repair-photo-${prev.length + 1}.png`]);
+  };
+
+  const handleRemoveFile = (fileName) => {
+    setAttachedFiles((prev) => prev.filter((f) => f !== fileName));
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -43,6 +54,9 @@ export const ReportIssueModal = ({
       tenantId: tenant?.id || 'usr-tenant-1',
       tenantName: tenant?.name || 'Sophia Lin',
       permissionToEnter,
+      hasPets,
+      preferredTime,
+      attachments: attachedFiles,
       createdAt: new Date().toISOString(),
       statusHistory: [
         {
@@ -50,7 +64,7 @@ export const ReportIssueModal = ({
           changedBy: tenant?.name || 'Sophia Lin',
           userRole: 'tenant',
           timestamp: new Date().toISOString(),
-          note: 'Maintenance ticket created by tenant',
+          note: 'Maintenance ticket created by tenant with media attachments',
         },
       ],
     };
@@ -86,7 +100,7 @@ export const ReportIssueModal = ({
           </div>
           <div>
             <h2 className="text-xl font-bold font-grotesk text-slate-900 dark:text-white">Request Maintenance</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{unit?.label || 'Unit 14B'} &bull; Technician will be dispatched</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{unit?.label || 'Unit 14B'} &bull; Certified Technician Dispatch</p>
           </div>
         </div>
 
@@ -113,14 +127,14 @@ export const ReportIssueModal = ({
             </div>
           </div>
 
-          {/* Urgency / Priority */}
+          {/* Urgency Level */}
           <div>
             <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Urgency Level</label>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { key: 'low', label: 'Low (Within 72h)', color: 'text-slate-400' },
-                { key: 'medium', label: 'Standard (24-48h)', color: 'text-amber-500' },
-                { key: 'high', label: 'Urgent (Same Day)', color: 'text-rose-500' },
+                { key: 'low', label: 'Low (Within 72h)' },
+                { key: 'medium', label: 'Standard (24-48h)' },
+                { key: 'high', label: 'Urgent (Same Day)' },
               ].map((p) => (
                 <button
                   type="button"
@@ -164,18 +178,73 @@ export const ReportIssueModal = ({
             />
           </div>
 
-          {/* Permission to enter checkbox */}
-          <div className="flex items-center gap-2 pt-1">
-            <input
-              type="checkbox"
-              id="entry-check"
-              checked={permissionToEnter}
-              onChange={(e) => setPermissionToEnter(e.target.checked)}
-              className="rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-            />
-            <label htmlFor="entry-check" className="text-slate-700 dark:text-slate-300 cursor-pointer text-xs">
-              Permission to enter unit if I am not home
-            </label>
+          {/* Photo & Video Attachment Dropzone */}
+          <div>
+            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Photos / Video Evidence</label>
+            <div className="p-4 rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 bg-slate-50/50 dark:bg-[#080B14]/50 text-center space-y-2">
+              <div className="flex items-center justify-center gap-2 text-slate-500 dark:text-slate-400">
+                <Camera className="w-4 h-4 text-indigo-500" />
+                <span>Drag & drop photos or click to attach</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleAddMockFile}
+                className="px-3 py-1 rounded-lg bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 font-mono text-[11px] btn-press inline-flex items-center gap-1"
+              >
+                <Upload className="w-3 h-3" /> Add Photo
+              </button>
+            </div>
+
+            {/* Attached file chips */}
+            {attachedFiles.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap mt-2">
+                {attachedFiles.map((file) => (
+                  <span
+                    key={file}
+                    className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] font-mono text-slate-700 dark:text-slate-300 flex items-center gap-1.5"
+                  >
+                    <Paperclip className="w-3 h-3 text-indigo-500" />
+                    <span>{file}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFile(file)}
+                      className="text-slate-400 hover:text-rose-500 ml-1"
+                    >
+                      &times;
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Checkboxes: Permission to enter + Pets alert */}
+          <div className="space-y-2 pt-1 border-t border-slate-100 dark:border-slate-800/60">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="entry-check"
+                checked={permissionToEnter}
+                onChange={(e) => setPermissionToEnter(e.target.checked)}
+                className="rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+              />
+              <label htmlFor="entry-check" className="text-slate-700 dark:text-slate-300 cursor-pointer text-xs">
+                Permission to enter unit if I am not home
+              </label>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="pets-check"
+                checked={hasPets}
+                onChange={(e) => setHasPets(e.target.checked)}
+                className="rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+              />
+              <label htmlFor="pets-check" className="text-slate-700 dark:text-slate-300 cursor-pointer text-xs">
+                Pets present in unit (Alert technician)
+              </label>
+            </div>
           </div>
 
           {/* Footer Actions */}

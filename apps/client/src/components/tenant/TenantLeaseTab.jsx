@@ -1,11 +1,19 @@
-import React from 'react';
-import { FileText, Download, ShieldCheck, Home, Calendar, UserCheck, Key, CheckCircle2, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { FileText, Download, ShieldCheck, Home, Calendar, UserCheck, Key, CheckCircle2, AlertCircle, Plus, Sparkles } from 'lucide-react';
+import { LeaseRenewalModal } from './LeaseRenewalModal';
 
 export const TenantLeaseTab = ({
   tenant,
   unit,
   property,
 }) => {
+  const [isRenewalOpen, setIsRenewalOpen] = useState(false);
+  const [renewalStatus, setRenewalStatus] = useState(null);
+
+  const handleRenewalSubmitted = (data) => {
+    setRenewalStatus(data);
+  };
+
   return (
     <div className="space-y-6">
       
@@ -20,15 +28,37 @@ export const TenantLeaseTab = ({
           <p className="text-xs text-slate-500 dark:text-slate-400">View official tenancy contracts, building rules, and renewal terms.</p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => alert('Downloading official Signed Lease Agreement PDF')}
-          className="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-grotesk font-bold text-xs shadow-lg shadow-indigo-600/20 flex items-center gap-2 btn-press shrink-0"
-        >
-          <Download className="w-4 h-4" />
-          <span>Download Signed Lease PDF</span>
-        </button>
+        <div className="flex items-center gap-3 shrink-0">
+          <button
+            type="button"
+            onClick={() => setIsRenewalOpen(true)}
+            className="px-4 py-3 rounded-2xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 font-grotesk font-semibold text-xs flex items-center gap-2 btn-press"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Request Extension</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => alert('Downloading official Signed Lease Agreement PDF')}
+            className="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-grotesk font-bold text-xs shadow-lg shadow-indigo-600/20 flex items-center gap-2 btn-press"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download Signed Lease PDF</span>
+          </button>
+        </div>
       </div>
+
+      {/* Renewal Status Banner if requested */}
+      {renewalStatus && (
+        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs font-mono flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+            <span>Renewal request pending for <strong>{renewalStatus.term} Months</strong> (Effective {renewalStatus.proposedStartDate})</span>
+          </div>
+          <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded-md">Pending Review</span>
+        </div>
+      )}
 
       {/* Lease Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -115,6 +145,16 @@ export const TenantLeaseTab = ({
         </div>
 
       </div>
+
+      {/* MODAL */}
+      <LeaseRenewalModal
+        isOpen={isRenewalOpen}
+        onClose={() => setIsRenewalOpen(false)}
+        tenant={tenant}
+        unit={unit}
+        property={property}
+        onRenewalSubmitted={handleRenewalSubmitted}
+      />
 
     </div>
   );
