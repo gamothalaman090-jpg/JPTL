@@ -10,7 +10,7 @@ app.use(express.json());
 
 // Health check route
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'Server is healthy' });
+  res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
 
 // Authentication routes
