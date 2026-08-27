@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "env:encrypt": "openssl aes-256-cbc -salt -pbkdf2 -in .env -out .env.enc -k",
+    "env:decrypt": "openssl aes-256-cbc -d -pbkdf2 -in .env.enc -out .env -k"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
