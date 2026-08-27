@@ -24,6 +24,7 @@ import { NewTicketModal } from '../components/dashboard/NewTicketModal';
 import { NewAnnouncementModal } from '../components/dashboard/NewAnnouncementModal';
 import { DashboardSidebar } from '../components/dashboard/DashboardSidebar';
 import { RightNotificationSidebar } from '../components/dashboard/RightNotificationSidebar';
+import { LandlordSettingsTab } from '../components/dashboard/LandlordSettingsTab';
 
 export const DashboardPage = ({ onNavigate = () => {} }) => {
   const { theme, toggleTheme } = useTheme();
@@ -137,24 +138,24 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
     }
   };
 
-  const vacantCount = units.filter((u) => u.status === 'vacant').length;
-  const occupiedCount = units.filter((u) => u.status === 'occupied').length;
-  const totalMonthlyRevenue = units.filter((u) => u.status === 'occupied').reduce((sum, u) => sum + (u.monthlyRent || 0), 0);
-  const pendingTickets = tickets.filter((t) => t.status !== 'resolved').length;
+  const vacantCount = (units || []).filter((u) => u?.status === 'vacant').length;
+  const occupiedCount = (units || []).filter((u) => u?.status === 'occupied').length;
+  const totalMonthlyRevenue = (units || []).filter((u) => u?.status === 'occupied').reduce((sum, u) => sum + (u?.monthlyRent || 0), 0);
+  const pendingTickets = (tickets || []).filter((t) => t?.status !== 'resolved').length;
 
-  const filteredUnits = units.filter((u) => {
-    const q = searchQuery.toLowerCase();
-    const matchesSearch = u.label.toLowerCase().includes(q) || u.propertyName.toLowerCase().includes(q);
-    if (filterStatus === 'vacant') return matchesSearch && u.status === 'vacant';
-    if (filterStatus === 'occupied') return matchesSearch && u.status === 'occupied';
+  const filteredUnits = (units || []).filter((u) => {
+    const q = (searchQuery || '').toLowerCase();
+    const matchesSearch = (u?.label || '').toLowerCase().includes(q) || (u?.propertyName || '').toLowerCase().includes(q);
+    if (filterStatus === 'vacant') return matchesSearch && u?.status === 'vacant';
+    if (filterStatus === 'occupied') return matchesSearch && u?.status === 'occupied';
     return matchesSearch;
   });
 
-  const filteredTenants = tenants.filter((t) => {
-    const q = searchQuery.toLowerCase();
-    const matchesSearch = t.name.toLowerCase().includes(q) || t.email.toLowerCase().includes(q) || (t.propertyName && t.propertyName.toLowerCase().includes(q));
-    if (filterStatus === 'pre_added') return matchesSearch && t.status === 'pre_added';
-    if (filterStatus === 'occupied') return matchesSearch && t.status === 'active';
+  const filteredTenants = (tenants || []).filter((t) => {
+    const q = (searchQuery || '').toLowerCase();
+    const matchesSearch = (t?.name || '').toLowerCase().includes(q) || (t?.email || '').toLowerCase().includes(q) || (t?.propertyName || '').toLowerCase().includes(q);
+    if (filterStatus === 'pre_added') return matchesSearch && t?.status === 'pre_added';
+    if (filterStatus === 'occupied') return matchesSearch && t?.status === 'active';
     return matchesSearch;
   });
 
@@ -510,15 +511,13 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
             <PaymentsTab payments={payments} searchQuery={searchQuery} />
           )}
 
-          {/* ─── VIEW 7: SETTINGS (placeholder) ─── */}
+          {/* ─── VIEW 7: LANDLORD SETTINGS ─── */}
           {activeView === 'settings' && (
-            <div className="space-y-5">
-              <h1 className="text-2xl font-extrabold font-grotesk text-slate-900 dark:text-white">Settings</h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400 font-sans">Manage account permissions, billing webhooks, and theme preferences.</p>
-              <div className="p-12 rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 text-center text-xs text-slate-400 font-mono apple-glass">
-                Settings panel — system configuration ready.
-              </div>
-            </div>
+            <LandlordSettingsTab
+              properties={MOCK_PROPERTIES}
+              units={units}
+              tenants={tenants}
+            />
           )}
 
         </main>

@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   LayoutDashboard, Building2, Users, Wrench, DollarSign,
-  Settings, LogOut, ChevronLeft, ChevronRight, Bell, Megaphone, CalendarDays
+  Settings, LogOut, ChevronLeft, ChevronRight, Bell, Megaphone, CalendarDays, Home
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -23,6 +23,7 @@ export const DashboardSidebar = ({
   collapsed,
   onToggleCollapse,
   onLogout,
+  onNavigate,
 }) => {
   return (
     <aside

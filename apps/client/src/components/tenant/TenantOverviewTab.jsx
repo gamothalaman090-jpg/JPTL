@@ -224,7 +224,7 @@ export const TenantOverviewTab = ({
           </div>
         </div>
 
-        {/* Property Manager & Emergency Contacts */}
+        {/* Landlord & Emergency Contacts */}
         <div className="space-y-3">
           <h2 className="text-base font-bold font-grotesk text-slate-900 dark:text-white flex items-center gap-2">
             <UserCheck className="w-4 h-4 text-emerald-500" /> Property Contacts
@@ -232,7 +232,7 @@ export const TenantOverviewTab = ({
 
           <div className="p-5 rounded-2xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 space-y-4 text-xs">
             <div className="space-y-1">
-              <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Landlord / Manager</span>
+              <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Landlord</span>
               <strong className="text-slate-900 dark:text-white block text-sm font-grotesk">{property?.landlordName || 'Alexander Vance'}</strong>
               <p className="text-slate-500 dark:text-slate-400 font-mono">alexander.vance@jptl.com</p>
             </div>

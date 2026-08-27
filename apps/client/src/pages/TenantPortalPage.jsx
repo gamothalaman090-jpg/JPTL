@@ -28,7 +28,7 @@ const MOCK_RESIDENT_ANNOUNCEMENTS = [
     body: 'Welcome to your upgraded resident portal! You can now pay rent online with zero fees via ACH, track real-time maintenance technician dispatches, and access smart locker notifications.',
     category: 'System',
     isPinned: true,
-    author: 'Alexander Vance (Property Manager)',
+    author: 'Alexander Vance (Landlord)',
     date: 'Aug 24, 2026',
   },
   {

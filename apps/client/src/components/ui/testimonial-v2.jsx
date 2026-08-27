@@ -162,7 +162,7 @@ export function TestimonialsV2() {
             What our users say
           </h2>
           <p className="font-sans text-center mt-3 text-slate-600 dark:text-slate-400 text-sm sm:text-base leading-relaxed max-w-md font-normal">
-            Discover how property managers, landlords, and tenants streamline their operations with JPTL.
+            Discover how landlords and tenants streamline their operations with JPTL.
           </p>
         </div>
 
