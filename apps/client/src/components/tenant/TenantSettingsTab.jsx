@@ -74,7 +74,18 @@ export const TenantSettingsTab = ({
   const [isAddingVeh, setIsAddingVeh] = useState(false);
 
   // 5. Documents & Uploads state
-  const [documents, setDocuments] = useState(INITIAL_DOCUMENTS);
+  const [documents, setDocuments] = useState(() => {
+    try {
+      const savedDocs = sessionStorage.getItem('jptl_documents');
+      if (savedDocs) {
+        const parsed = JSON.parse(savedDocs);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return INITIAL_DOCUMENTS;
+  });
   const [uploadDocType, setUploadDocType] = useState('Proof of Insurance');
   const [isUploadingDoc, setIsUploadingDoc] = useState(false);
 
@@ -160,18 +171,30 @@ export const TenantSettingsTab = ({
     const fileInput = e.target.elements.docFile;
     const fileName = fileInput?.files?.[0]?.name || `${uploadDocType.replace(/\s+/g, '_')}_Uploaded.pdf`;
     
-    setDocuments((prev) => [
-      {
-        id: `doc-${Date.now()}`,
-        name: fileName,
-        type: uploadDocType,
-        size: '1.2 MB',
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-        status: 'Uploaded',
-        category: 'upload',
-      },
-      ...prev,
-    ]);
+    const newDoc = {
+      id: `doc-${Date.now()}`,
+      tenantId: tenant?.id || 'usr-tenant-1',
+      tenantName: tenant?.name || 'Sophia Lin',
+      unitLabel: unit?.label || 'Unit 14B',
+      propertyName: unit?.propertyName || 'Aura Sky Towers & Residences',
+      name: fileName,
+      type: uploadDocType,
+      size: '1.2 MB',
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+      status: 'Pending Review',
+      category: 'upload',
+      fileUrl: `/docs/${fileName}`
+    };
+
+    setDocuments((prev) => {
+      const updated = [newDoc, ...prev];
+      try {
+        sessionStorage.setItem('jptl_documents', JSON.stringify(updated));
+      } catch (err) {
+        console.error(err);
+      }
+      return updated;
+    });
     setIsUploadingDoc(false);
   };
 
@@ -180,7 +203,6 @@ export const TenantSettingsTab = ({
     { key: 'notifications', label: 'Notifications', icon: Bell },
     { key: 'maintenance', label: 'Maintenance Requests', icon: Wrench },
     { key: 'payments', label: 'Payments', icon: CreditCard },
-    { key: 'documents', label: 'Documents', icon: FileText },
     { key: 'privacy', label: 'Privacy & Permissions', icon: Shield },
   ];
 
@@ -989,117 +1011,8 @@ export const TenantSettingsTab = ({
         </div>
       )}
 
-      {/* ─── TAB 5: DOCUMENTS & UPLOADS ─── */}
-      {activeSubTab === 'documents' && (
-        <div className="space-y-6">
-          
-          {/* Uploader Card */}
-          <div className="p-6 rounded-3xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-bold font-grotesk text-slate-900 dark:text-white flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-indigo-500" /> Resident Documents & Compliance Files
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Access official leases, house rules, and upload required government ID or renter insurance certificates.
-                </p>
-              </div>
 
-              <button
-                type="button"
-                onClick={() => setIsUploadingDoc(true)}
-                className="px-4 py-2 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-grotesk font-bold text-xs flex items-center gap-1.5 btn-press"
-              >
-                <Upload className="w-3.5 h-3.5" /> Upload Document
-              </button>
-            </div>
-
-            {/* Modal / Inline Form for Document Upload */}
-            {isUploadingDoc && (
-              <form onSubmit={handleSimulateDocUpload} className="p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-3 text-xs">
-                <span className="font-bold text-slate-900 dark:text-white font-grotesk block">Upload Identification or Compliance Document</span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-slate-500 mb-1 font-mono">Document Type</label>
-                    <select
-                      value={uploadDocType}
-                      onChange={(e) => setUploadDocType(e.target.value)}
-                      className="w-full bg-white dark:bg-[#080B14] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-white font-mono"
-                    >
-                      <option value="Government ID">Government ID (Passport / Driver License)</option>
-                      <option value="Proof of Insurance">Proof of Renter Insurance</option>
-                      <option value="Income Verification">Proof of Income / Employment Letter</option>
-                      <option value="Pet Registration">Pet Vaccination / Registration</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-slate-500 mb-1 font-mono">Choose File (PDF/PNG/JPG)</label>
-                    <input
-                      type="file"
-                      name="docFile"
-                      className="w-full bg-white dark:bg-[#080B14] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-slate-900 dark:text-white font-mono"
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsUploadingDoc(false)}
-                    className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-900 text-slate-500 font-mono"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-1.5 rounded-xl bg-indigo-600 text-white font-bold font-grotesk"
-                  >
-                    Confirm Upload
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* Documents List */}
-            <div className="divide-y divide-slate-200 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">
-              {documents.map((doc) => (
-                <div key={doc.id} className="p-4 flex items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors text-xs font-mono">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
-                      <FileText className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <strong className="text-slate-900 dark:text-white font-grotesk text-sm block">{doc.name}</strong>
-                      <span className="text-slate-500 text-[11px]">{doc.type} &bull; {doc.size} &bull; Added {doc.date}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                      doc.status === 'Verified' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' :
-                      doc.status === 'Uploaded' ? 'bg-indigo-500/10 text-indigo-600 border border-indigo-500/20' :
-                      'bg-amber-500/10 text-amber-600 border border-amber-500/20'
-                    }`}>
-                      {doc.status}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => alert(`Downloading ${doc.name}...`)}
-                      className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 btn-press"
-                      title="Download PDF"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-          </div>
-
-        </div>
-      )}
-
-      {/* ─── TAB 6: PRIVACY & PERMISSIONS ─── */}
+      {/* ─── TAB 5: PRIVACY & PERMISSIONS ─── */}
       {activeSubTab === 'privacy' && (
         <div className="space-y-6">
           

@@ -10,7 +10,8 @@ import {
   MOCK_UNITS as INITIAL_UNITS, 
   MOCK_TENANTS as INITIAL_TENANTS,
   MOCK_TICKETS as INITIAL_TICKETS,
-  MOCK_PAYMENTS as INITIAL_PAYMENTS
+  MOCK_PAYMENTS as INITIAL_PAYMENTS,
+  MOCK_DOCUMENTS
 } from '../data/mockData';
 import { AddTenantModal } from '../components/dashboard/AddTenantModal';
 import { UnitDetailModal } from '../components/dashboard/UnitDetailModal';
@@ -25,6 +26,7 @@ import { NewAnnouncementModal } from '../components/dashboard/NewAnnouncementMod
 import { DashboardSidebar } from '../components/dashboard/DashboardSidebar';
 import { RightNotificationSidebar } from '../components/dashboard/RightNotificationSidebar';
 import { LandlordSettingsTab } from '../components/dashboard/LandlordSettingsTab';
+import { LandlordDocumentsTab } from '../components/dashboard/LandlordDocumentsTab';
 
 export const DashboardPage = ({ onNavigate = () => {} }) => {
   const { theme, toggleTheme } = useTheme();
@@ -34,6 +36,38 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
   const [tenants, setTenants] = useState(INITIAL_TENANTS);
   const [tickets, setTickets] = useState(INITIAL_TICKETS);
   const [payments, setPayments] = useState(INITIAL_PAYMENTS);
+  const [documents, setDocuments] = useState(() => {
+    try {
+      const savedDocs = sessionStorage.getItem('jptl_documents');
+      if (savedDocs) {
+        const parsed = JSON.parse(savedDocs);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return MOCK_DOCUMENTS;
+  });
+
+  const handleUpdateDocumentStatus = (docId, status, rejectionReason) => {
+    setDocuments((prev) => {
+      const updated = prev.map((d) => 
+        d.id === docId ? { 
+          ...d, 
+          status, 
+          rejectionReason: status === 'Rejected' ? rejectionReason : undefined,
+          verifiedAt: status === 'Verified' ? new Date().toISOString() : d.verifiedAt,
+          reviewedBy: 'Alexander Vance (Landlord)'
+        } : d
+      );
+      try {
+        sessionStorage.setItem('jptl_documents', JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      return updated;
+    });
+  };
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -173,6 +207,7 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
         onToggleCollapse={() => setSidebarCollapsed((p) => !p)}
         onLogout={() => onNavigate('/')}
         onNavigate={onNavigate}
+        pendingDocCount={documents.filter((d) => d.status === 'Pending Review').length}
       />
 
       {/* ─── MAIN CENTER CONTENT AREA ─── */}
@@ -196,15 +231,6 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
 
             {/* Right Controls */}
             <div className="flex items-center gap-3 shrink-0">
-              {/* Tenant Portal Link */}
-              <button
-                type="button"
-                onClick={() => onNavigate('/tenant')}
-                className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-xs font-semibold btn-press"
-              >
-                <Home className="w-3.5 h-3.5" />
-                <span>Tenant Portal</span>
-              </button>
               {/* Notification Bell */}
               <button
                 onClick={() => setIsNotificationOpen(true)}
@@ -511,7 +537,18 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
             <PaymentsTab payments={payments} searchQuery={searchQuery} />
           )}
 
-          {/* ─── VIEW 7: LANDLORD SETTINGS ─── */}
+          {/* ─── VIEW 7: DOCUMENTS & VERIFICATION ─── */}
+          {activeView === 'documents' && (
+            <LandlordDocumentsTab
+              properties={MOCK_PROPERTIES}
+              units={units}
+              tenants={tenants}
+              documents={documents}
+              onUpdateDocumentStatus={handleUpdateDocumentStatus}
+            />
+          )}
+
+          {/* ─── VIEW 8: LANDLORD SETTINGS ─── */}
           {activeView === 'settings' && (
             <LandlordSettingsTab
               properties={MOCK_PROPERTIES}

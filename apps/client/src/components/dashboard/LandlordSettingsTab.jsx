@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, Users, Shield, Wrench, DollarSign, Bell, FileText, 
   Database, Lock, CheckCircle2, Clock, Download, 
-  Key, RefreshCw, Zap, Check, AlertCircle, User, Sliders, Camera, Eye, EyeOff, Smartphone, ShieldCheck
+  Key, RefreshCw, Zap, Check, AlertCircle, User, Sliders, Camera, Eye, EyeOff, Smartphone, ShieldCheck,
+  Search, Filter, Upload, Plus, FileCheck, AlertTriangle, ShieldAlert
 } from 'lucide-react';
+import { MOCK_DOCUMENTS } from '../../data/mockData';
+import { DocumentInspectionModal } from './DocumentInspectionModal';
 
 const INITIAL_VENDORS = [
   { category: 'Plumbing', vendor: 'Apex Plumbing Services', autoAssign: true, contact: '+1 (555) 991-0022' },
@@ -23,8 +26,15 @@ export const LandlordSettingsTab = ({
   properties = [],
   units = [],
   tenants = [],
+  documents: documentsProp,
+  onUpdateDocumentStatus,
+  initialSubTab = 'account',
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState('account');
+  const [activeSubTab, setActiveSubTab] = useState(initialSubTab);
+
+  useEffect(() => {
+    if (initialSubTab) setActiveSubTab(initialSubTab);
+  }, [initialSubTab]);
   const [saved, setSaved] = useState(false);
 
   // 1. Landlord Account & Profile state
@@ -77,8 +87,132 @@ export const LandlordSettingsTab = ({
   });
   const [escalationHours, setEscalationHours] = useState('48');
 
-  // 5. Document Management state
+  // 5. Document Management Vault state
   const [docExpirationReminderDays, setDocExpirationReminderDays] = useState('30');
+  const [documents, setDocuments] = useState(() => {
+    if (documentsProp && documentsProp.length > 0) return documentsProp;
+    try {
+      const savedDocs = sessionStorage.getItem('jptl_documents');
+      if (savedDocs) return JSON.parse(savedDocs);
+    } catch (e) {
+      console.error(e);
+    }
+    return MOCK_DOCUMENTS;
+  });
+
+  // Keep state synced with prop or sessionStorage updates
+  useEffect(() => {
+    if (documentsProp) {
+      setDocuments(documentsProp);
+    }
+  }, [documentsProp]);
+
+  // Persist local changes to sessionStorage
+  const updateDocumentList = (newDocs) => {
+    setDocuments(newDocs);
+    try {
+      sessionStorage.setItem('jptl_documents', JSON.stringify(newDocs));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const [docStatusFilter, setDocStatusFilter] = useState('all'); // 'all' | 'Pending Review' | 'Verified' | 'Rejected'
+  const [docCategoryFilter, setDocCategoryFilter] = useState('all');
+  const [docSearchQuery, setDocSearchQuery] = useState('');
+  const [selectedDocForInspection, setSelectedDocForInspection] = useState(null);
+  const [isPublishingLandlordDoc, setIsPublishingLandlordDoc] = useState(false);
+  const [newLandlordDocTitle, setNewLandlordDocTitle] = useState('');
+  const [newLandlordDocType, setNewLandlordDocType] = useState('House Rules');
+
+  // Handle Verification
+  const handleVerifyDocument = (docId) => {
+    const updated = documents.map(d => 
+      d.id === docId ? { 
+        ...d, 
+        status: 'Verified', 
+        verifiedAt: new Date().toISOString(), 
+        reviewedBy: 'Alexander Vance (Landlord)',
+        rejectionReason: undefined 
+      } : d
+    );
+    updateDocumentList(updated);
+    if (onUpdateDocumentStatus) onUpdateDocumentStatus(docId, 'Verified');
+
+    // Append to audit logs
+    const targetDoc = documents.find(d => d.id === docId);
+    if (targetDoc) {
+      setAuditLogs(prev => [
+        {
+          id: `log-${Date.now()}`,
+          timestamp: new Date().toLocaleString(),
+          user: 'Alexander Vance (Landlord)',
+          action: 'VERIFIED_DOCUMENT',
+          target: `${targetDoc.name} (${targetDoc.tenantName})`,
+          ip: '192.168.1.104'
+        },
+        ...prev
+      ]);
+    }
+  };
+
+  // Handle Rejection
+  const handleRejectDocument = (docId, reason) => {
+    const updated = documents.map(d => 
+      d.id === docId ? { 
+        ...d, 
+        status: 'Rejected', 
+        rejectionReason: reason, 
+        reviewedBy: 'Alexander Vance (Landlord)',
+        reviewedAt: new Date().toISOString()
+      } : d
+    );
+    updateDocumentList(updated);
+    if (onUpdateDocumentStatus) onUpdateDocumentStatus(docId, 'Rejected', reason);
+
+    // Append to audit logs
+    const targetDoc = documents.find(d => d.id === docId);
+    if (targetDoc) {
+      setAuditLogs(prev => [
+        {
+          id: `log-${Date.now()}`,
+          timestamp: new Date().toLocaleString(),
+          user: 'Alexander Vance (Landlord)',
+          action: 'REJECTED_DOCUMENT',
+          target: `${targetDoc.name} (${targetDoc.tenantName}) - Reason: ${reason}`,
+          ip: '192.168.1.104'
+        },
+        ...prev
+      ]);
+    }
+  };
+
+  // Handle publishing a new landlord template/rules document
+  const handlePublishLandlordDoc = (e) => {
+    e.preventDefault();
+    if (!newLandlordDocTitle.trim()) return;
+
+    const newDoc = {
+      id: `doc-${Date.now()}`,
+      tenantId: 'all',
+      tenantName: 'All Residents (Building-wide)',
+      unitLabel: 'All Units',
+      propertyName: 'Property Portfolio',
+      name: `${newLandlordDocTitle.replace(/\s+/g, '_')}.pdf`,
+      type: newLandlordDocType,
+      category: 'rules',
+      size: '1.2 MB',
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+      status: 'Verified',
+      verifiedAt: new Date().toISOString(),
+      reviewedBy: 'Alexander Vance (Landlord)',
+      fileUrl: '/docs/published-rules.pdf'
+    };
+
+    updateDocumentList([newDoc, ...documents]);
+    setNewLandlordDocTitle('');
+    setIsPublishingLandlordDoc(false);
+  };
 
   // 6. Reporting & Logs state
   const [logRetentionPeriod, setLogRetentionPeriod] = useState('90');
@@ -108,7 +242,6 @@ export const LandlordSettingsTab = ({
     { key: 'maintenance', label: 'Maintenance & Vendors', icon: Wrench },
     { key: 'payments', label: 'Payments & Payouts', icon: DollarSign },
     { key: 'notifications', label: 'Landlord Alerts', icon: Bell },
-    { key: 'documents', label: 'Leases & Documents', icon: FileText },
     { key: 'reporting', label: 'Reporting & Logs', icon: Database },
     { key: 'security', label: 'Security', icon: Lock },
   ];
@@ -826,38 +959,7 @@ export const LandlordSettingsTab = ({
         </div>
       )}
 
-      {/* ─── SUB-TAB 5: LEASES & DOCUMENTS ─── */}
-      {activeSubTab === 'documents' && (
-        <div className="space-y-6">
-          
-          <div className="p-6 rounded-3xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 space-y-4">
-            <h2 className="text-base font-bold font-grotesk text-slate-900 dark:text-white flex items-center gap-2">
-              <FileText className="w-4 h-4 text-indigo-500" /> Document Policies & Expiration Reminders
-            </h2>
-
-            <div className="space-y-4 text-xs font-mono">
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#080B14] border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <strong className="text-slate-900 dark:text-white block font-grotesk text-sm">Expiration Reminder Lead Time</strong>
-                  <span className="text-slate-500 text-[11px]">Get notified before tenant insurance or occupancy permits expire.</span>
-                </div>
-                <select
-                  value={docExpirationReminderDays}
-                  onChange={(e) => setDocExpirationReminderDays(e.target.value)}
-                  className="bg-white dark:bg-[#10131F] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-slate-900 dark:text-white text-xs font-mono"
-                >
-                  <option value="15">15 Days Before Expiry</option>
-                  <option value="30">30 Days Before Expiry</option>
-                  <option value="60">60 Days Before Expiry</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      )}
-
-      {/* ─── SUB-TAB 6: REPORTING & LOGS ─── */}
+      {/* ─── SUB-TAB 5: REPORTING & LOGS ─── */}
       {activeSubTab === 'reporting' && (
         <div className="space-y-6">
           

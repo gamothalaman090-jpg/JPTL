@@ -1,16 +1,17 @@
 import React from 'react';
 import {
   LayoutDashboard, Building2, Users, Wrench, DollarSign,
-  Settings, LogOut, ChevronLeft, ChevronRight, Bell, Megaphone, CalendarDays, Home
+  Settings, LogOut, ChevronLeft, ChevronRight, Bell, Megaphone, CalendarDays, Home, FileCheck
 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { key: 'overview', label: 'Dashboard', icon: LayoutDashboard },
   { key: 'announcements', label: 'Announcements', icon: Megaphone },
+  { key: 'payments', label: 'Rent Roll', icon: DollarSign },
+  { key: 'tickets', label: 'Maintenance', icon: Wrench },
   { key: 'units', label: 'Properties & Units', icon: Building2 },
   { key: 'tenants', label: 'Tenants Directory', icon: Users },
-  { key: 'tickets', label: 'Maintenance', icon: Wrench },
-  { key: 'payments', label: 'Rent Roll', icon: DollarSign },
+  { key: 'documents', label: 'Documents & Verification', icon: FileCheck },
 ];
 
 const BOTTOM_ITEMS = [
@@ -24,6 +25,7 @@ export const DashboardSidebar = ({
   onToggleCollapse,
   onLogout,
   onNavigate,
+  pendingDocCount = 0,
 }) => {
   return (
     <aside
@@ -63,12 +65,13 @@ export const DashboardSidebar = ({
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive = activeView === item.key;
+          const isDocItem = item.key === 'documents';
 
           return (
             <button
               key={item.key}
               onClick={() => onChangeView(item.key)}
-              title={collapsed ? item.label : undefined}
+              title={collapsed ? (isDocItem && pendingDocCount > 0 ? `${item.label} (${pendingDocCount} pending)` : item.label) : undefined}
               className={`
                 group w-full flex items-center gap-3 py-2.5 rounded-xl text-xs font-semibold btn-press transition-all relative
                 ${collapsed ? 'justify-center px-0' : 'px-3'}
@@ -110,14 +113,7 @@ export const DashboardSidebar = ({
           );
         })}
 
-        <button
-          onClick={() => onNavigate && onNavigate('/tenant')}
-          title={collapsed ? 'Resident Portal' : undefined}
-          className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 btn-press transition-all"
-        >
-          <Home className="w-4 h-4 shrink-0 text-indigo-500" />
-          {!collapsed && <span className="whitespace-nowrap font-grotesk">Tenant Portal View</span>}
-        </button>
+        {/* Log Out */}
 
         <button
           onClick={onLogout}

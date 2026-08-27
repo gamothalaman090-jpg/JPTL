@@ -17,6 +17,7 @@ import { TenantMaintenanceTab } from '../components/tenant/TenantMaintenanceTab'
 import { TenantLeaseTab } from '../components/tenant/TenantLeaseTab';
 import { TenantAnnouncementsTab } from '../components/tenant/TenantAnnouncementsTab';
 import { TenantSettingsTab } from '../components/tenant/TenantSettingsTab';
+import { TenantDocumentsTab } from '../components/tenant/TenantDocumentsTab';
 import { PayRentModal } from '../components/tenant/PayRentModal';
 import { ReportIssueModal } from '../components/tenant/ReportIssueModal';
 import { RightNotificationSidebar } from '../components/dashboard/RightNotificationSidebar';
@@ -115,12 +116,16 @@ export const TenantPortalPage = ({ onNavigate = () => {} }) => {
         <header className="sticky top-0 z-30 apple-glass border-b border-slate-200 dark:border-slate-800 px-6 py-3">
           <div className="flex items-center justify-between gap-4">
 
-            {/* Resident Unit Badge */}
-            <div className="flex items-center gap-2">
-              <div className="px-3 py-1.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-mono font-semibold flex items-center gap-2">
-                <Home className="w-3.5 h-3.5 text-indigo-500" />
-                <span>{currentProperty.name} &bull; <strong className="text-slate-900 dark:text-white">{currentUnit.label}</strong></span>
-              </div>
+            {/* Search (⌘K) */}
+            <div className="flex items-center gap-3 w-full max-w-md">
+              <button
+                type="button"
+                className="flex items-center w-full bg-slate-100 dark:bg-[#10131F] border border-slate-200 dark:border-slate-800 rounded-xl pl-3 pr-2 py-2 text-xs text-slate-400 hover:border-indigo-500/50 transition-colors cursor-pointer btn-press"
+              >
+                <Search className="w-3.5 h-3.5 mr-2 shrink-0" />
+                <span className="flex-1 text-left">Search…</span>
+                <span className="font-mono text-[10px] bg-slate-200 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded">Ctrl K</span>
+              </button>
             </div>
 
             {/* Right Controls */}
@@ -206,6 +211,13 @@ export const TenantPortalPage = ({ onNavigate = () => {} }) => {
           {activeTab === 'announcements' && (
             <TenantAnnouncementsTab
               announcements={announcements}
+            />
+          )}
+
+          {activeTab === 'documents' && (
+            <TenantDocumentsTab
+              tenant={currentTenant}
+              unit={currentUnit}
             />
           )}
 
