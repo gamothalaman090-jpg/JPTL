@@ -38,4 +38,23 @@ async function logout(req, res) {
   return res.status(200).json({ success: true, message: 'Logged out' });
 }
 
-export { signupLandlord, login, logout };
+async function changePassword(req, res) {
+  try {
+    // req.user is set by your authentication middleware (e.g., protectRoute)
+    const userId = req.user?.id || req.user?._id;
+    const { currentPassword, newPassword } = req.body;
+
+    const result = await authService.changePasswordService(
+      userId,
+      currentPassword,
+      newPassword
+    );
+
+    return res.status(200).json({ success: true, message: result.message });
+  } catch (err) {
+    const statusCode = err.statusCode || 500;
+    return res.status(statusCode).json({ success: false, message: err.message });
+  }
+}
+
+export { signupLandlord, login, logout, changePassword };
