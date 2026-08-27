@@ -1,8 +1,6 @@
-import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../../shared/models/user.model.js';
 
-const SALT_ROUNDS = 10;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_MIN_LENGTH = 8;
 const PASSWORD_HAS_NUMBER = /\d/;
@@ -40,6 +38,21 @@ function validateSignup({ firstName, lastName, email, password }) {
   if (errors.length) throw new AuthError(errors.join(', '), 400);
 }
 
+function validatePasswordStrength(password) {
+  const errors = [];
+  if (!password) {
+    errors.push('newPassword is required');
+  } else {
+    if (password.length < PASSWORD_MIN_LENGTH) {
+      errors.push(`password must be at least ${PASSWORD_MIN_LENGTH} characters`);
+    }
+    if (!PASSWORD_HAS_NUMBER.test(password)) {
+      errors.push('password must contain at least one number');
+    }
+  }
+  if (errors.length) throw new AuthError(errors.join(', '), 400);
+}
+
 function signToken(payload) {
   return jwt.sign(payload, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '1d',
@@ -68,14 +81,13 @@ async function signupLandlord({ firstName, middleName, lastName, email, password
     throw new AuthError('Email is already registered', 409);
   }
 
-  const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-
+  // Pass raw password; userSchema.pre('save') handles hashing
   const user = await User.create({
     firstName: firstName.trim(),
     middleName: middleName?.trim() || '',
     lastName: lastName.trim(),
     email: normalizedEmail,
-    password: hashedPassword,
+    password: password,
     role: 'landlord',
   });
 
@@ -92,7 +104,8 @@ async function login({ email, password }) {
     throw new AuthError('Invalid email or password', 401);
   }
 
-  const isMatch = await bcrypt.compare(password, user.password);
+  // Use model method
+  const isMatch = await user.comparePassword(password);
   if (!isMatch) {
     throw new AuthError('Invalid email or password', 401);
   }
@@ -102,4 +115,35 @@ async function login({ email, password }) {
   return { user: sanitizeUser(user), token };
 }
 
-export { signupLandlord, login, AuthError };
+async function changePasswordService(userId, currentPassword, newPassword) {
+  if (!currentPassword || !newPassword) {
+    throw new AuthError('Both currentPassword and newPassword are required', 400);
+  }
+
+  validatePasswordStrength(newPassword);
+
+  const user = await User.findById(userId).select('+password');
+  if (!user) {
+    throw new AuthError('User not found', 404);
+  }
+
+  // 1. Verify current password using model instance method
+  const isMatch = await user.comparePassword(currentPassword);
+  if (!isMatch) {
+    throw new AuthError('Current password is incorrect', 401);
+  }
+
+  // 2. Prevent re-using the same password
+  const isSame = await user.comparePassword(newPassword);
+  if (isSame) {
+    throw new AuthError('New password must be different from current password', 400);
+  }
+
+  // 3. Assign plain text; userSchema.pre('save') will hash it automatically on save()
+  user.password = newPassword;
+  await user.save();
+
+  return { message: 'Password updated successfully' };
+}
+
+export { signupLandlord, login, changePasswordService, AuthError };
