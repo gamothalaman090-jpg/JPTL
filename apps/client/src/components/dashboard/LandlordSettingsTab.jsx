@@ -39,6 +39,9 @@ export const LandlordSettingsTab = ({
 
   // 1. Landlord Account & Profile state
   const [landlordProfile, setLandlordProfile] = useState({
+    firstName: 'Alexander',
+    middleName: 'J.',
+    lastName: 'Vance',
     name: 'Alexander Vance',
     email: 'alexander.vance@horizon.com',
     phone: '+1 (555) 019-2831',
@@ -317,7 +320,7 @@ export const LandlordSettingsTab = ({
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="Landlord Profile" className="w-full h-full object-cover" />
                   ) : (
-                    landlordProfile.name.split(' ').map((n) => n[0]).join('')
+                    ((landlordProfile.firstName?.[0] || '') + (landlordProfile.lastName?.[0] || '')).toUpperCase() || 'AV'
                   )}
                 </div>
                 <label className="absolute bottom-0 right-0 p-2 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg cursor-pointer btn-press">
@@ -336,7 +339,9 @@ export const LandlordSettingsTab = ({
               </div>
 
               <div>
-                <h3 className="text-sm font-bold font-grotesk text-slate-900 dark:text-white">{landlordProfile.name}</h3>
+                <h3 className="text-sm font-bold font-grotesk text-slate-900 dark:text-white">
+                  {landlordProfile.name || [landlordProfile.firstName, landlordProfile.middleName, landlordProfile.lastName].filter(Boolean).join(' ')}
+                </h3>
                 <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">Property Owner & Landlord</span>
               </div>
 
@@ -393,13 +398,54 @@ export const LandlordSettingsTab = ({
               <User className="w-4 h-4 text-indigo-500" /> Personal & Business Details
             </h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-sans">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs font-sans">
               <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Full Name</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">First Name</label>
                 <input
                   type="text"
-                  value={landlordProfile.name}
-                  onChange={(e) => setLandlordProfile((p) => ({ ...p, name: e.target.value }))}
+                  value={landlordProfile.firstName || ''}
+                  onChange={(e) => {
+                    const first = e.target.value;
+                    setLandlordProfile((p) => ({
+                      ...p,
+                      firstName: first,
+                      name: [first, p.middleName, p.lastName].filter(Boolean).join(' '),
+                    }));
+                  }}
+                  className="w-full bg-slate-50 dark:bg-[#080B14] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-white font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Middle Name <span className="text-slate-500 font-normal">(Opt)</span></label>
+                <input
+                  type="text"
+                  value={landlordProfile.middleName || ''}
+                  onChange={(e) => {
+                    const mid = e.target.value;
+                    setLandlordProfile((p) => ({
+                      ...p,
+                      middleName: mid,
+                      name: [p.firstName, mid, p.lastName].filter(Boolean).join(' '),
+                    }));
+                  }}
+                  className="w-full bg-slate-50 dark:bg-[#080B14] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-white font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Last Name</label>
+                <input
+                  type="text"
+                  value={landlordProfile.lastName || ''}
+                  onChange={(e) => {
+                    const last = e.target.value;
+                    setLandlordProfile((p) => ({
+                      ...p,
+                      lastName: last,
+                      name: [p.firstName, p.middleName, last].filter(Boolean).join(' '),
+                    }));
+                  }}
                   className="w-full bg-slate-50 dark:bg-[#080B14] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-white font-mono"
                 />
               </div>

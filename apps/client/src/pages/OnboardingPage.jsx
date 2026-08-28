@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Building2, Layers, Users, Megaphone, Rocket, Check, ArrowRight, ArrowLeft, Plus, Trash2, Sun, Moon, Key, DollarSign } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
-import { MOCK_UNITS } from '../data/mockData';
+import { MOCK_PROPERTIES, MOCK_UNITS } from '../data/mockData';
+import { AddPropertyOrUnitModal } from '../components/dashboard/AddPropertyOrUnitModal';
 
 export const OnboardingPage = ({ onNavigate = () => {} }) => {
   const { theme, toggleTheme } = useTheme();
@@ -14,10 +15,42 @@ export const OnboardingPage = ({ onNavigate = () => {} }) => {
   // Step 1: Default selected tier to 'pro' (the RECOMMENDED tier)
   const [selectedTier, setSelectedTier] = useState('pro');
 
+  // Properties & Units State (with custom created items stored in sessionStorage)
+  const [propertiesList, setPropertiesList] = useState(() => {
+    try {
+      const savedProps = sessionStorage.getItem('jptl_custom_properties');
+      if (savedProps) {
+        const parsed = JSON.parse(savedProps);
+        if (Array.isArray(parsed) && parsed.length > 0) return [...MOCK_PROPERTIES, ...parsed];
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return MOCK_PROPERTIES;
+  });
+
+  const [unitsList, setUnitsList] = useState(() => {
+    try {
+      const savedUnits = sessionStorage.getItem('jptl_custom_units');
+      if (savedUnits) {
+        const parsed = JSON.parse(savedUnits);
+        if (Array.isArray(parsed) && parsed.length > 0) return [...MOCK_UNITS, ...parsed];
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return MOCK_UNITS;
+  });
+
+  // Modal State for Property / Unit Creation
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [addModalTab, setAddModalTab] = useState('unit'); // 'unit' | 'property'
+  const [activeMemberRowId, setActiveMemberRowId] = useState(null);
+
   // Step 2: Tenant list state
   const [tenantMembers, setTenantMembers] = useState([
-    { id: '1', name: 'Sophia Lin', email: 'sophia.lin@example.com', unitId: 'unit-102' },
-    { id: '2', name: 'Liam Carter', email: 'liam.carter@example.com', unitId: 'pre_add_unassigned' },
+    { id: '1', firstName: 'Sophia', middleName: '', lastName: 'Lin', name: 'Sophia Lin', email: 'sophia.lin@example.com', unitId: 'unit-102' },
+    { id: '2', firstName: 'Liam', middleName: '', lastName: 'Carter', name: 'Liam Carter', email: 'liam.carter@example.com', unitId: 'pre_add_unassigned' },
   ]);
 
   // Step 3: Announcement draft
@@ -26,18 +59,83 @@ export const OnboardingPage = ({ onNavigate = () => {} }) => {
     'We are thrilled to launch our new tenant and property management system. Please explore your dashboard and let us know if you have any questions.'
   );
 
+  // Open modal handlers
+  const handleOpenAddProperty = (memberId = null) => {
+    setActiveMemberRowId(memberId);
+    setAddModalTab('property');
+    setIsAddModalOpen(true);
+  };
+
+  const handleOpenAddUnit = (memberId = null) => {
+    setActiveMemberRowId(memberId);
+    setAddModalTab('unit');
+    setIsAddModalOpen(true);
+  };
+
+  // Callback when a new property is created
+  const handlePropertyCreated = (newProp) => {
+    setPropertiesList((prev) => {
+      const updated = [...prev, newProp];
+      try {
+        const customOnly = updated.filter((p) => p.id.startsWith('prop-custom-'));
+        sessionStorage.setItem('jptl_custom_properties', JSON.stringify(customOnly));
+      } catch (e) {
+        console.error(e);
+      }
+      return updated;
+    });
+  };
+
+  // Callback when a new unit is created
+  const handleUnitCreated = (newUnit, targetMemberId) => {
+    setUnitsList((prev) => {
+      const updated = [...prev, newUnit];
+      try {
+        const customOnly = updated.filter((u) => u.id.startsWith('unit-custom-'));
+        sessionStorage.setItem('jptl_custom_units', JSON.stringify(customOnly));
+      } catch (e) {
+        console.error(e);
+      }
+      return updated;
+    });
+
+    if (targetMemberId) {
+      handleUpdateMember(targetMemberId, 'unitId', newUnit.id);
+    }
+  };
+
   // Add new tenant row in Step 2
   const handleAddMember = () => {
     setTenantMembers((prev) => [
       ...prev,
-      { id: String(Date.now()), name: '', email: '', unitId: 'pre_add_unassigned' },
+      { id: String(Date.now()), firstName: '', middleName: '', lastName: '', name: '', email: '', unitId: 'pre_add_unassigned' },
     ]);
   };
 
   const handleUpdateMember = (id, field, value) => {
     setTenantMembers((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, [field]: value } : m))
+      prev.map((m) => {
+        if (m.id !== id) return m;
+        const updated = { ...m, [field]: value };
+        if (['firstName', 'middleName', 'lastName'].includes(field)) {
+          const first = field === 'firstName' ? value : updated.firstName || '';
+          const middle = field === 'middleName' ? value : updated.middleName || '';
+          const last = field === 'lastName' ? value : updated.lastName || '';
+          updated.name = [first.trim(), middle.trim(), last.trim()].filter(Boolean).join(' ');
+        }
+        return updated;
+      })
     );
+  };
+
+  const handleSelectUnitChange = (memberId, value) => {
+    if (value === 'CREATE_NEW_UNIT') {
+      handleOpenAddUnit(memberId);
+    } else if (value === 'CREATE_NEW_PROPERTY') {
+      handleOpenAddProperty(memberId);
+    } else {
+      handleUpdateMember(memberId, 'unitId', value);
+    }
   };
 
   const handleRemoveMember = (id) => {
@@ -54,12 +152,16 @@ export const OnboardingPage = ({ onNavigate = () => {} }) => {
     } else {
       // Complete onboarding & store new tenants in sessionStorage for Dashboard
       const validNewTenants = tenantMembers
-        .filter((m) => m.name.trim() && m.email.trim())
+        .filter((m) => (m.firstName?.trim() || m.name?.trim()) && m.email.trim())
         .map((m) => {
-          const matchedUnit = MOCK_UNITS.find((u) => u.id === m.unitId);
+          const matchedUnit = unitsList.find((u) => u.id === m.unitId);
+          const computedName = m.name?.trim() || [m.firstName?.trim(), m.middleName?.trim(), m.lastName?.trim()].filter(Boolean).join(' ');
           return {
             id: `usr-tenant-${Date.now()}-${m.id}`,
-            name: m.name.trim(),
+            firstName: m.firstName?.trim() || '',
+            middleName: m.middleName?.trim() || '',
+            lastName: m.lastName?.trim() || '',
+            name: computedName,
             email: m.email.trim(),
             propertyId: matchedUnit?.propertyId,
             propertyName: matchedUnit?.propertyName || 'Unassigned',
@@ -89,7 +191,7 @@ export const OnboardingPage = ({ onNavigate = () => {} }) => {
   };
 
   // Vacant unit dropdown options
-  const vacantUnits = MOCK_UNITS.filter((u) => u.status === 'vacant');
+  const vacantUnits = unitsList.filter((u) => u.status === 'vacant');
 
   const stepBreadcrumbs = [
     { num: 1, label: 'Portfolio Plan' },
@@ -360,9 +462,37 @@ export const OnboardingPage = ({ onNavigate = () => {} }) => {
         {step === 2 && (
           <div className="space-y-4 my-auto">
             
+            {/* Quick Actions Header */}
+            <div className="flex items-center justify-between gap-2 p-3 rounded-2xl bg-indigo-50 dark:bg-[#101424] border border-indigo-100 dark:border-indigo-900/40">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  Portfolio Setup & Roster
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleOpenAddProperty()}
+                  className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-slate-700 text-xs font-semibold hover:border-indigo-400 flex items-center gap-1 transition-all shadow-xs"
+                >
+                  <Building2 className="w-3.5 h-3.5" /> + Add Property
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleOpenAddUnit()}
+                  className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold font-grotesk shadow-md shadow-indigo-600/30 flex items-center gap-1 active:scale-95 transition-all"
+                >
+                  <Plus className="w-3.5 h-3.5" /> + Add Unit
+                </button>
+              </div>
+            </div>
+
             {/* Column Headers */}
-            <div className="hidden md:grid grid-cols-[1fr_1.1fr_1.2fr_auto] gap-2.5 px-3 text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-              <span>Full Name</span>
+            <div className="hidden lg:grid grid-cols-[1.1fr_0.9fr_1.1fr_1.4fr_1.4fr_auto] gap-2.5 px-3 text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              <span>First Name</span>
+              <span>Middle Name</span>
+              <span>Last Name</span>
               <span>Email Address</span>
               <span>Property / Unit</span>
               <span className="w-8"></span>
@@ -373,13 +503,27 @@ export const OnboardingPage = ({ onNavigate = () => {} }) => {
               {tenantMembers.map((member) => (
                 <div
                   key={member.id}
-                  className="p-3.5 rounded-2xl bg-white dark:bg-[#111625] border border-slate-200 dark:border-slate-800/80 grid grid-cols-1 md:grid-cols-[1fr_1.1fr_1.2fr_auto] items-center gap-2.5 w-full overflow-hidden shadow-sm"
+                  className="p-3.5 rounded-2xl bg-white dark:bg-[#111625] border border-slate-200 dark:border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-[1.1fr_0.9fr_1.1fr_1.4fr_1.4fr_auto] items-center gap-2.5 w-full overflow-hidden shadow-sm"
                 >
                   <input
                     type="text"
-                    value={member.name}
-                    onChange={(e) => handleUpdateMember(member.id, 'name', e.target.value)}
-                    placeholder="Full Name"
+                    value={member.firstName || ''}
+                    onChange={(e) => handleUpdateMember(member.id, 'firstName', e.target.value)}
+                    placeholder="First Name"
+                    className="w-full min-w-0 bg-slate-50 dark:bg-[#090C16] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <input
+                    type="text"
+                    value={member.middleName || ''}
+                    onChange={(e) => handleUpdateMember(member.id, 'middleName', e.target.value)}
+                    placeholder="Middle Name (Opt)"
+                    className="w-full min-w-0 bg-slate-50 dark:bg-[#090C16] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <input
+                    type="text"
+                    value={member.lastName || ''}
+                    onChange={(e) => handleUpdateMember(member.id, 'lastName', e.target.value)}
+                    placeholder="Last Name"
                     className="w-full min-w-0 bg-slate-50 dark:bg-[#090C16] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                   <input
@@ -387,28 +531,34 @@ export const OnboardingPage = ({ onNavigate = () => {} }) => {
                     value={member.email}
                     onChange={(e) => handleUpdateMember(member.id, 'email', e.target.value)}
                     placeholder="Email Address"
-                    className="w-full min-w-0 bg-slate-50 dark:bg-[#090C16] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full min-w-0 bg-slate-50 dark:bg-[#090C16] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:col-span-3 lg:col-span-1"
                   />
                   
-                  {/* Select Dropdown formatted so Rent price $3,800/mo is prominent and never truncated */}
+                  {/* Select Dropdown with Vacant Units + Quick Creation */}
                   <select
                     value={member.unitId}
-                    onChange={(e) => handleUpdateMember(member.id, 'unitId', e.target.value)}
-                    className="w-full min-w-0 bg-slate-50 dark:bg-[#090C16] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate"
+                    onChange={(e) => handleSelectUnitChange(member.id, e.target.value)}
+                    className="w-full min-w-0 bg-slate-50 dark:bg-[#090C16] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate font-sans sm:col-span-2 lg:col-span-1"
                   >
                     <option value="pre_add_unassigned">Unassigned (Pre-add)</option>
-                    {vacantUnits.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        ${u.monthlyRent}/mo &mdash; {u.label}
-                      </option>
-                    ))}
+                    <optgroup label="Available Vacant Units">
+                      {vacantUnits.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          ${u.monthlyRent}/mo &mdash; {u.label} ({u.propertyName})
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Quick Create">
+                      <option value="CREATE_NEW_UNIT">+ Create New Unit...</option>
+                      <option value="CREATE_NEW_PROPERTY">+ Create New Property...</option>
+                    </optgroup>
                   </select>
 
                   {tenantMembers.length > 1 && (
                     <button
                       type="button"
                       onClick={() => handleRemoveMember(member.id)}
-                      className="p-2 text-slate-400 hover:text-rose-500 rounded-lg shrink-0 flex items-center justify-center"
+                      className="p-2 text-slate-400 hover:text-rose-500 rounded-lg shrink-0 flex items-center justify-center justify-self-center sm:col-span-1 lg:col-span-1"
                       title="Remove row"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -559,6 +709,17 @@ export const OnboardingPage = ({ onNavigate = () => {} }) => {
         </div>
 
       </div>
+
+      {/* CREATE PROPERTY / UNIT MODAL */}
+      <AddPropertyOrUnitModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        initialTab={addModalTab}
+        properties={propertiesList}
+        targetMemberId={activeMemberRowId}
+        onPropertyCreated={handlePropertyCreated}
+        onUnitCreated={handleUnitCreated}
+      />
 
     </div>
   );

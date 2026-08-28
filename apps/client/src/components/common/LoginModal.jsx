@@ -5,7 +5,9 @@ import { X, Lock, Mail, Smartphone, Building2, CheckCircle2, ArrowRight, UserPlu
 export const LoginModal = ({ isOpen, initialRole = 'tenant', onClose, onLoginSuccess }) => {
   const [mode, setMode] = useState('login'); // 'login' | 'register'
   const [selectedRole, setSelectedRole] = useState(initialRole === 'superadmin' ? 'tenant' : initialRole);
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [middleName, setMiddleName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,7 +33,9 @@ export const LoginModal = ({ isOpen, initialRole = 'tenant', onClose, onLoginSuc
       setEmail(demoAccounts[selectedRole]?.email || '');
       setPassword('••••••••••••');
     } else {
-      setFullName('');
+      setFirstName('');
+      setMiddleName('');
+      setLastName('');
       setEmail('');
       setPassword('');
     }
@@ -46,8 +50,12 @@ export const LoginModal = ({ isOpen, initialRole = 'tenant', onClose, onLoginSuc
       setIsSuccess(true);
 
       setTimeout(() => {
+        const computedName = [firstName.trim(), middleName.trim(), lastName.trim()].filter(Boolean).join(' ');
         onLoginSuccess({
-          name: mode === 'register' ? (fullName || 'New User') : (demoAccounts[selectedRole]?.name || 'User'),
+          firstName: firstName.trim(),
+          middleName: middleName.trim(),
+          lastName: lastName.trim(),
+          name: mode === 'register' ? (computedName || 'New User') : (demoAccounts[selectedRole]?.name || 'User'),
           email: email || demoAccounts[selectedRole]?.email,
           role: selectedRole,
         });
@@ -198,18 +206,49 @@ export const LoginModal = ({ isOpen, initialRole = 'tenant', onClose, onLoginSuc
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.2 }}
+                    className="space-y-3"
                   >
-                    <label className="text-xs text-slate-300 font-medium mb-1.5 block">Full Name</label>
-                    <div className="relative">
-                      <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. Alex Rivera"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-10 pr-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                      />
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs text-slate-300 font-medium mb-1.5 block">First Name</label>
+                        <div className="relative">
+                          <User className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Alex"
+                            value={firstName}
+                            onChange={(e) => setFirstName(e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-xs text-slate-300 font-medium mb-1.5 block">Middle Name <span className="text-slate-500 text-[10px]">(Opt)</span></label>
+                        <input
+                          type="text"
+                          placeholder="e.g. J."
+                          value={middleName}
+                          onChange={(e) => setMiddleName(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-slate-300 font-medium mb-1.5 block">Last Name</label>
+                      <div className="relative">
+                        <User className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Rivera"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
                     </div>
                   </motion.div>
                 )}

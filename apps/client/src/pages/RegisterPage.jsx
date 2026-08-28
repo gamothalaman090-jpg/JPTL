@@ -5,7 +5,9 @@ import { useTheme } from '../hooks/useTheme';
 export const RegisterPage = ({ onNavigate = () => {} }) => {
   const { theme, toggleTheme } = useTheme();
 
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [middleName, setMiddleName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -22,11 +24,25 @@ export const RegisterPage = ({ onNavigate = () => {} }) => {
   // Field validation - only triggers on blur or submit
   const validateField = (name, value) => {
     let error = '';
-    if (name === 'fullName') {
+    if (name === 'firstName') {
       if (!value.trim()) {
-        error = 'Full name is required';
-      } else if (value.trim().length < 2 || value.trim().length > 100) {
-        error = 'Full name must be 2–100 characters';
+        error = 'First name is required';
+      } else if (value.trim().length < 2 || value.trim().length > 50) {
+        error = 'First name must be 2–50 characters';
+      }
+    }
+
+    if (name === 'middleName') {
+      if (value && value.trim().length > 50) {
+        error = 'Middle name must be under 50 characters';
+      }
+    }
+
+    if (name === 'lastName') {
+      if (!value.trim()) {
+        error = 'Last name is required';
+      } else if (value.trim().length < 2 || value.trim().length > 50) {
+        error = 'Last name must be 2–50 characters';
       }
     }
 
@@ -64,7 +80,9 @@ export const RegisterPage = ({ onNavigate = () => {} }) => {
   const handleBlur = (field) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
     let val = '';
-    if (field === 'fullName') val = fullName;
+    if (field === 'firstName') val = firstName;
+    if (field === 'middleName') val = middleName;
+    if (field === 'lastName') val = lastName;
     if (field === 'email') val = email;
     if (field === 'password') val = password;
     if (field === 'confirmPassword') val = confirmPassword;
@@ -74,9 +92,17 @@ export const RegisterPage = ({ onNavigate = () => {} }) => {
 
   const handleChange = (field, val) => {
     setSubmitError(null);
-    if (field === 'fullName') {
-      setFullName(val);
-      if (touched.fullName) setErrors((prev) => ({ ...prev, fullName: validateField('fullName', val) }));
+    if (field === 'firstName') {
+      setFirstName(val);
+      if (touched.firstName) setErrors((prev) => ({ ...prev, firstName: validateField('firstName', val) }));
+    }
+    if (field === 'middleName') {
+      setMiddleName(val);
+      if (touched.middleName) setErrors((prev) => ({ ...prev, middleName: validateField('middleName', val) }));
+    }
+    if (field === 'lastName') {
+      setLastName(val);
+      if (touched.lastName) setErrors((prev) => ({ ...prev, lastName: validateField('lastName', val) }));
     }
     if (field === 'email') {
       setEmail(val);
@@ -107,8 +133,10 @@ export const RegisterPage = ({ onNavigate = () => {} }) => {
   const is8Chars = password.length >= 8;
   const hasDigit = /\d/.test(password);
   const isFormValid =
-    fullName.trim().length >= 2 &&
-    fullName.trim().length <= 100 &&
+    firstName.trim().length >= 2 &&
+    firstName.trim().length <= 50 &&
+    lastName.trim().length >= 2 &&
+    lastName.trim().length <= 50 &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) &&
     is8Chars &&
     hasDigit &&
@@ -118,24 +146,33 @@ export const RegisterPage = ({ onNavigate = () => {} }) => {
     e.preventDefault();
     setSubmitError(null);
 
-    const nameErr = validateField('fullName', fullName);
+    const firstErr = validateField('firstName', firstName);
+    const middleErr = validateField('middleName', middleName);
+    const lastErr = validateField('lastName', lastName);
     const emailErr = validateField('email', email);
     const passErr = validateField('password', password);
     const confirmErr = validateField('confirmPassword', confirmPassword);
 
-    setTouched({ fullName: true, email: true, password: true, confirmPassword: true });
-    setErrors({ fullName: nameErr, email: emailErr, password: passErr, confirmPassword: confirmErr });
+    setTouched({ firstName: true, middleName: true, lastName: true, email: true, password: true, confirmPassword: true });
+    setErrors({ firstName: firstErr, middleName: middleErr, lastName: lastErr, email: emailErr, password: passErr, confirmPassword: confirmErr });
 
-    if (nameErr || emailErr || passErr || confirmErr) return;
+    if (firstErr || middleErr || lastErr || emailErr || passErr || confirmErr) return;
 
     setIsSubmitting(true);
 
     setTimeout(() => {
       setIsSubmitting(false);
 
+      const fullName = [firstName.trim(), middleName.trim(), lastName.trim()].filter(Boolean).join(' ');
       sessionStorage.setItem(
         'jptl_landlord_account',
-        JSON.stringify({ fullName: fullName.trim(), email: email.trim() })
+        JSON.stringify({
+          firstName: firstName.trim(),
+          middleName: middleName.trim(),
+          lastName: lastName.trim(),
+          fullName,
+          email: email.trim()
+        })
       );
       onNavigate('/onboarding?step=1');
     }, 1000);
@@ -252,32 +289,90 @@ export const RegisterPage = ({ onNavigate = () => {} }) => {
         {/* Registration Form */}
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
           
-          {/* Full Name */}
-          <div>
-            <label htmlFor="reg-fullName" className="text-xs font-semibold text-slate-800 dark:text-slate-200 mb-1.5 block">
-              Full name
-            </label>
-            <input
-              id="reg-fullName"
-              type="text"
-              required
-              disabled={isSubmitting}
-              value={fullName}
-              onChange={(e) => handleChange('fullName', e.target.value)}
-              onBlur={() => handleBlur('fullName')}
-              placeholder="Alexander Vance"
-              className={`w-full bg-white dark:bg-[#0D111D] border ${
-                touched.fullName && errors.fullName
-                  ? 'border-rose-500 focus:ring-rose-500'
-                  : 'border-slate-300 dark:border-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15'
-              } rounded-2xl px-4 py-3 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition-all duration-150 ease-out shadow-sm`}
-            />
-            {touched.fullName && errors.fullName && (
-              <p className="text-[11px] text-rose-500 mt-1.5 flex items-center gap-1 font-medium">
-                <AlertCircle className="w-3 h-3 shrink-0" />
-                <span>{errors.fullName}</span>
-              </p>
-            )}
+          {/* Name Fields: First, Middle, Last */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* First Name */}
+            <div>
+              <label htmlFor="reg-firstName" className="text-xs font-semibold text-slate-800 dark:text-slate-200 mb-1.5 block">
+                First name
+              </label>
+              <input
+                id="reg-firstName"
+                type="text"
+                required
+                disabled={isSubmitting}
+                value={firstName}
+                onChange={(e) => handleChange('firstName', e.target.value)}
+                onBlur={() => handleBlur('firstName')}
+                placeholder="Alexander"
+                className={`w-full bg-white dark:bg-[#0D111D] border ${
+                  touched.firstName && errors.firstName
+                    ? 'border-rose-500 focus:ring-rose-500'
+                    : 'border-slate-300 dark:border-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15'
+                } rounded-2xl px-3.5 py-3 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition-all duration-150 ease-out shadow-sm`}
+              />
+              {touched.firstName && errors.firstName && (
+                <p className="text-[11px] text-rose-500 mt-1.5 flex items-center gap-1 font-medium">
+                  <AlertCircle className="w-3 h-3 shrink-0" />
+                  <span>{errors.firstName}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Middle Name */}
+            <div>
+              <label htmlFor="reg-middleName" className="text-xs font-semibold text-slate-800 dark:text-slate-200 mb-1.5 block">
+                Middle name <span className="text-slate-400 dark:text-slate-500 font-normal">(Opt)</span>
+              </label>
+              <input
+                id="reg-middleName"
+                type="text"
+                disabled={isSubmitting}
+                value={middleName}
+                onChange={(e) => handleChange('middleName', e.target.value)}
+                onBlur={() => handleBlur('middleName')}
+                placeholder="J."
+                className={`w-full bg-white dark:bg-[#0D111D] border ${
+                  touched.middleName && errors.middleName
+                    ? 'border-rose-500 focus:ring-rose-500'
+                    : 'border-slate-300 dark:border-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15'
+                } rounded-2xl px-3.5 py-3 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition-all duration-150 ease-out shadow-sm`}
+              />
+              {touched.middleName && errors.middleName && (
+                <p className="text-[11px] text-rose-500 mt-1.5 flex items-center gap-1 font-medium">
+                  <AlertCircle className="w-3 h-3 shrink-0" />
+                  <span>{errors.middleName}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Last Name */}
+            <div>
+              <label htmlFor="reg-lastName" className="text-xs font-semibold text-slate-800 dark:text-slate-200 mb-1.5 block">
+                Last name
+              </label>
+              <input
+                id="reg-lastName"
+                type="text"
+                required
+                disabled={isSubmitting}
+                value={lastName}
+                onChange={(e) => handleChange('lastName', e.target.value)}
+                onBlur={() => handleBlur('lastName')}
+                placeholder="Vance"
+                className={`w-full bg-white dark:bg-[#0D111D] border ${
+                  touched.lastName && errors.lastName
+                    ? 'border-rose-500 focus:ring-rose-500'
+                    : 'border-slate-300 dark:border-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15'
+                } rounded-2xl px-3.5 py-3 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition-all duration-150 ease-out shadow-sm`}
+              />
+              {touched.lastName && errors.lastName && (
+                <p className="text-[11px] text-rose-500 mt-1.5 flex items-center gap-1 font-medium">
+                  <AlertCircle className="w-3 h-3 shrink-0" />
+                  <span>{errors.lastName}</span>
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Email Address */}

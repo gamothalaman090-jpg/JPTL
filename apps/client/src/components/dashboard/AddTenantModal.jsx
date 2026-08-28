@@ -10,7 +10,9 @@ export const AddTenantModal = ({
   initialUnitId = '',
   onTenantAdded = () => {},
 }) => {
-  const [tenantName, setTenantName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [middleName, setMiddleName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [tenantEmail, setTenantEmail] = useState('');
   const [selectedPropertyId, setSelectedPropertyId] = useState(initialPropertyId);
   const [selectedUnitId, setSelectedUnitId] = useState(initialUnitId);
@@ -39,7 +41,9 @@ export const AddTenantModal = ({
   // Synchronize initial pre-filled parameters when modal opens
   useEffect(() => {
     if (isOpen) {
-      setTenantName('');
+      setFirstName('');
+      setMiddleName('');
+      setLastName('');
       setTenantEmail('');
       setTouched({});
       setErrors({});
@@ -102,9 +106,16 @@ export const AddTenantModal = ({
   // Validation logic
   const validateField = (name, value) => {
     let err = '';
-    if (name === 'tenantName') {
-      if (!value.trim()) err = 'Tenant full name is required';
-      else if (value.trim().length < 2 || value.trim().length > 100) err = 'Name must be between 2 and 100 characters';
+    if (name === 'firstName') {
+      if (!value.trim()) err = 'First name is required';
+      else if (value.trim().length < 2 || value.trim().length > 50) err = 'First name must be 2–50 characters';
+    }
+    if (name === 'middleName') {
+      if (value && value.trim().length > 50) err = 'Middle name must be under 50 characters';
+    }
+    if (name === 'lastName') {
+      if (!value.trim()) err = 'Last name is required';
+      else if (value.trim().length < 2 || value.trim().length > 50) err = 'Last name must be 2–50 characters';
     }
     if (name === 'tenantEmail') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -123,7 +134,9 @@ export const AddTenantModal = ({
   const handleBlur = (field) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
     let val = '';
-    if (field === 'tenantName') val = tenantName;
+    if (field === 'firstName') val = firstName;
+    if (field === 'middleName') val = middleName;
+    if (field === 'lastName') val = lastName;
     if (field === 'tenantEmail') val = tenantEmail;
     if (field === 'unit') val = selectedUnitId;
     if (field === 'leaseStart') val = leaseStart;
@@ -134,9 +147,17 @@ export const AddTenantModal = ({
 
   const handleTextChange = (field, val) => {
     setConflictError(null);
-    if (field === 'tenantName') {
-      setTenantName(val);
-      if (touched.tenantName) setErrors((prev) => ({ ...prev, tenantName: validateField('tenantName', val) }));
+    if (field === 'firstName') {
+      setFirstName(val);
+      if (touched.firstName) setErrors((prev) => ({ ...prev, firstName: validateField('firstName', val) }));
+    }
+    if (field === 'middleName') {
+      setMiddleName(val);
+      if (touched.middleName) setErrors((prev) => ({ ...prev, middleName: validateField('middleName', val) }));
+    }
+    if (field === 'lastName') {
+      setLastName(val);
+      if (touched.lastName) setErrors((prev) => ({ ...prev, lastName: validateField('lastName', val) }));
     }
     if (field === 'tenantEmail') {
       setTenantEmail(val);
@@ -145,8 +166,10 @@ export const AddTenantModal = ({
   };
 
   const isFormValid =
-    tenantName.trim().length >= 2 &&
-    tenantName.trim().length <= 100 &&
+    firstName.trim().length >= 2 &&
+    firstName.trim().length <= 50 &&
+    lastName.trim().length >= 2 &&
+    lastName.trim().length <= 50 &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(tenantEmail.trim()) &&
     (isPreAdd || (selectedUnitId && leaseStart));
 
@@ -154,15 +177,17 @@ export const AddTenantModal = ({
     e.preventDefault();
     setConflictError(null);
 
-    const nameErr = validateField('tenantName', tenantName);
+    const firstErr = validateField('firstName', firstName);
+    const middleErr = validateField('middleName', middleName);
+    const lastErr = validateField('lastName', lastName);
     const emailErr = validateField('tenantEmail', tenantEmail);
     const unitErr = validateField('unit', selectedUnitId);
     const startErr = validateField('leaseStart', leaseStart);
 
-    setTouched({ tenantName: true, tenantEmail: true, unit: true, leaseStart: true });
-    setErrors({ tenantName: nameErr, tenantEmail: emailErr, unit: unitErr, leaseStart: startErr });
+    setTouched({ firstName: true, middleName: true, lastName: true, tenantEmail: true, unit: true, leaseStart: true });
+    setErrors({ firstName: firstErr, middleName: middleErr, lastName: lastErr, tenantEmail: emailErr, unit: unitErr, leaseStart: startErr });
 
-    if (nameErr || emailErr || (!isPreAdd && (unitErr || startErr))) return;
+    if (firstErr || middleErr || lastErr || emailErr || (!isPreAdd && (unitErr || startErr))) return;
 
     setIsSubmitting(true);
 
@@ -181,9 +206,14 @@ export const AddTenantModal = ({
       const targetUnit = units.find((u) => u.id === selectedUnitId);
       const targetProperty = properties.find((p) => p.id === selectedPropertyId);
 
+      const fullName = [firstName.trim(), middleName.trim(), lastName.trim()].filter(Boolean).join(' ');
+
       const newTenant = {
         id: `usr-tenant-${Date.now()}`,
-        name: tenantName.trim(),
+        firstName: firstName.trim(),
+        middleName: middleName.trim(),
+        lastName: lastName.trim(),
+        name: fullName,
         email: tenantEmail.trim(),
         propertyId: isPreAdd ? undefined : selectedPropertyId,
         propertyName: isPreAdd ? 'Unassigned' : targetProperty?.name || 'Property',
@@ -267,35 +297,93 @@ export const AddTenantModal = ({
 
             <form onSubmit={handleSubmit} noValidate className="space-y-4">
               
-              {/* Tenant Full Name */}
-              <div>
-                <label htmlFor="tenant-name" className="text-xs font-semibold text-slate-300 mb-1 block">
-                  Tenant full name
-                </label>
-                <div className="relative">
-                  <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3 pointer-events-none" />
+              {/* Tenant Name Fields: First, Middle, Last */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                {/* First Name */}
+                <div>
+                  <label htmlFor="tenant-firstName" className="text-xs font-semibold text-slate-300 mb-1 block">
+                    First name
+                  </label>
+                  <div className="relative">
+                    <User className="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none" />
+                    <input
+                      id="tenant-firstName"
+                      type="text"
+                      required
+                      disabled={isSubmitting}
+                      value={firstName}
+                      onChange={(e) => handleTextChange('firstName', e.target.value)}
+                      onBlur={() => handleBlur('firstName')}
+                      placeholder="Sophia"
+                      className={`w-full bg-slate-900 border ${
+                        touched.firstName && errors.firstName
+                          ? 'border-rose-500 focus:ring-rose-500'
+                          : 'border-slate-700/80 focus:border-indigo-500 focus:ring-indigo-500'
+                      } rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all`}
+                    />
+                  </div>
+                  {touched.firstName && errors.firstName && (
+                    <p className="text-[11px] text-rose-400 mt-1 flex items-center gap-1 font-medium">
+                      <AlertCircle className="w-3 h-3" />
+                      <span>{errors.firstName}</span>
+                    </p>
+                  )}
+                </div>
+
+                {/* Middle Name */}
+                <div>
+                  <label htmlFor="tenant-middleName" className="text-xs font-semibold text-slate-300 mb-1 block">
+                    Middle name <span className="text-slate-500 font-normal">(Opt)</span>
+                  </label>
                   <input
-                    id="tenant-name"
+                    id="tenant-middleName"
+                    type="text"
+                    disabled={isSubmitting}
+                    value={middleName}
+                    onChange={(e) => handleTextChange('middleName', e.target.value)}
+                    onBlur={() => handleBlur('middleName')}
+                    placeholder="M."
+                    className={`w-full bg-slate-900 border ${
+                      touched.middleName && errors.middleName
+                        ? 'border-rose-500 focus:ring-rose-500'
+                        : 'border-slate-700/80 focus:border-indigo-500 focus:ring-indigo-500'
+                    } rounded-xl px-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all`}
+                  />
+                  {touched.middleName && errors.middleName && (
+                    <p className="text-[11px] text-rose-400 mt-1 flex items-center gap-1 font-medium">
+                      <AlertCircle className="w-3 h-3" />
+                      <span>{errors.middleName}</span>
+                    </p>
+                  )}
+                </div>
+
+                {/* Last Name */}
+                <div>
+                  <label htmlFor="tenant-lastName" className="text-xs font-semibold text-slate-300 mb-1 block">
+                    Last name
+                  </label>
+                  <input
+                    id="tenant-lastName"
                     type="text"
                     required
                     disabled={isSubmitting}
-                    value={tenantName}
-                    onChange={(e) => handleTextChange('tenantName', e.target.value)}
-                    onBlur={() => handleBlur('tenantName')}
-                    placeholder="e.g. Sophia Lin"
+                    value={lastName}
+                    onChange={(e) => handleTextChange('lastName', e.target.value)}
+                    onBlur={() => handleBlur('lastName')}
+                    placeholder="Lin"
                     className={`w-full bg-slate-900 border ${
-                      touched.tenantName && errors.tenantName
+                      touched.lastName && errors.lastName
                         ? 'border-rose-500 focus:ring-rose-500'
                         : 'border-slate-700/80 focus:border-indigo-500 focus:ring-indigo-500'
-                    } rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all`}
+                    } rounded-xl px-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all`}
                   />
+                  {touched.lastName && errors.lastName && (
+                    <p className="text-[11px] text-rose-400 mt-1 flex items-center gap-1 font-medium">
+                      <AlertCircle className="w-3 h-3" />
+                      <span>{errors.lastName}</span>
+                    </p>
+                  )}
                 </div>
-                {touched.tenantName && errors.tenantName && (
-                  <p className="text-[11px] text-rose-400 mt-1 flex items-center gap-1 font-medium">
-                    <AlertCircle className="w-3 h-3" />
-                    <span>{errors.tenantName}</span>
-                  </p>
-                )}
               </div>
 
               {/* Tenant Email */}
