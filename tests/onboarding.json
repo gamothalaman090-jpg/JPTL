@@ -1,0 +1,382 @@
+{
+  "info": {
+    "name": "Landlord Onboarding Module",
+    "description": "Postman test collection for the Landlord Onboarding API in JPTL (step-by-step and full-batch onboarding flows).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "property_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "unit_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tenant_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00. Authentication (Prerequisites)",
+      "item": [
+        {
+          "name": "1. Signup Landlord",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Alexander\",\n  \"middleName\": \"J.\",\n  \"lastName\": \"Vance\",\n  \"email\": \"vance.landlord@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/signup",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "signup"]
+            }
+          }
+        },
+        {
+          "name": "2. Login Landlord (Extract Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData && jsonData.token) {",
+                  "    pm.collectionVariables.set('jwt_token', jsonData.token);",
+                  "    console.log('JWT Token successfully set:', jsonData.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"vance.landlord@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "01. Step-by-Step Onboarding Flow",
+      "item": [
+        {
+          "name": "1. Get Onboarding Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/landlord/onboarding/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "landlord", "onboarding", "status"]
+            }
+          }
+        },
+        {
+          "name": "2. Select Portfolio Plan (Pro)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plan\": \"pro\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/landlord/onboarding/plan",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "landlord", "onboarding", "plan"]
+            }
+          }
+        },
+        {
+          "name": "3. Create Property",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData && jsonData.data && jsonData.data._id) {",
+                  "    pm.collectionVariables.set('property_id', jsonData.data._id);",
+                  "    console.log('Saved property_id:', jsonData.data._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Grand Horizon Towers\",\n  \"address\": \"500 Ocean Avenue, Suite 100\",\n  \"city\": \"Metro Area\",\n  \"category\": \"Luxury\",\n  \"image\": \"/images/property-1.jpg\",\n  \"featured\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/landlord/onboarding/properties",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "landlord", "onboarding", "properties"]
+            }
+          }
+        },
+        {
+          "name": "4. Create Unit for Property",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData && jsonData.data && jsonData.data._id) {",
+                  "    pm.collectionVariables.set('unit_id', jsonData.data._id);",
+                  "    console.log('Saved unit_id:', jsonData.data._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"propertyId\": \"{{property_id}}\",\n  \"label\": \"Unit 24B\",\n  \"monthlyRent\": 2800,\n  \"bedrooms\": 2,\n  \"bathrooms\": 2,\n  \"sqft\": 1000,\n  \"status\": \"vacant\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/landlord/onboarding/units",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "landlord", "onboarding", "units"]
+            }
+          }
+        },
+        {
+          "name": "5. Add Assigned Tenant (Auto Password)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData && jsonData.data && jsonData.data.id) {",
+                  "    pm.collectionVariables.set('tenant_id', jsonData.data.id);",
+                  "    console.log('Saved tenant_id:', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Sophia\",\n  \"middleName\": \"\",\n  \"lastName\": \"Lin\",\n  \"email\": \"sophia.lin@example.com\",\n  \"unitId\": \"{{unit_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/landlord/onboarding/tenants",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "landlord", "onboarding", "tenants"]
+            }
+          }
+        },
+        {
+          "name": "6. Add Unassigned Tenant (Pre-added)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Liam\",\n  \"middleName\": \"\",\n  \"lastName\": \"Carter\",\n  \"email\": \"liam.carter@example.com\",\n  \"unitId\": \"pre_add_unassigned\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/landlord/onboarding/tenants",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "landlord", "onboarding", "tenants"]
+            }
+          }
+        },
+        {
+          "name": "7. Post Welcome Announcement",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Welcome to our new Property Portal! 🚀\",\n  \"content\": \"We are thrilled to launch our new tenant and property management system. Please explore your dashboard and let us know if you have any questions.\",\n  \"category\": \"General\",\n  \"isPinned\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/landlord/onboarding/announcement",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "landlord", "onboarding", "announcement"]
+            }
+          }
+        },
+        {
+          "name": "8. Verify Final Onboarding Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/landlord/onboarding/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "landlord", "onboarding", "status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02. Full Batch Complete Onboarding",
+      "item": [
+        {
+          "name": "Complete Onboarding (All-in-One Payload)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plan\": \"pro\",\n  \"properties\": [\n    {\n      \"tempId\": \"prop-batch-1\",\n      \"name\": \"Skyline Heights Residences\",\n      \"address\": \"1200 Sunset Boulevard\",\n      \"city\": \"Westside Metro\",\n      \"category\": \"Luxury\"\n    }\n  ],\n  \"units\": [\n    {\n      \"tempId\": \"unit-batch-101\",\n      \"propertyTempId\": \"prop-batch-1\",\n      \"label\": \"Penthouse 12A\",\n      \"monthlyRent\": 3500,\n      \"bedrooms\": 3,\n      \"bathrooms\": 2,\n      \"sqft\": 1450\n    },\n    {\n      \"tempId\": \"unit-batch-102\",\n      \"propertyTempId\": \"prop-batch-1\",\n      \"label\": \"Suite 4B\",\n      \"monthlyRent\": 2200,\n      \"bedrooms\": 1,\n      \"bathrooms\": 1,\n      \"sqft\": 750\n    }\n  ],\n  \"tenants\": [\n    {\n      \"firstName\": \"Maya\",\n      \"middleName\": \"Rose\",\n      \"lastName\": \"Patel\",\n      \"email\": \"maya.patel@example.com\",\n      \"unitTempId\": \"unit-batch-101\"\n    },\n    {\n      \"firstName\": \"Ethan\",\n      \"middleName\": \"\",\n      \"lastName\": \"Walker\",\n      \"email\": \"ethan.walker@example.com\",\n      \"unitTempId\": \"pre_add_unassigned\"\n    }\n  ],\n  \"announcement\": {\n    \"title\": \"Welcome to Skyline Heights Portal! 🏢\",\n    \"content\": \"Our digital tenant portal is now live. Access unit leases, receipts, and maintenance tickets here.\",\n    \"category\": \"General\",\n    \"isPinned\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/landlord/onboarding/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "landlord", "onboarding", "complete"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03. Validation & Edge Cases",
+      "item": [
+        {
+          "name": "Invalid Plan (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plan\": \"non_existing_tier\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/landlord/onboarding/plan",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "landlord", "onboarding", "plan"]
+            }
+          }
+        },
+        {
+          "name": "Missing Property Required Fields (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"\",\n  \"address\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/landlord/onboarding/properties",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "landlord", "onboarding", "properties"]
+            }
+          }
+        },
+        {
+          "name": "Invalid Tenant Email Format (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Alex\",\n  \"lastName\": \"Smith\",\n  \"email\": \"invalid-email-format\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/landlord/onboarding/tenants",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "landlord", "onboarding", "tenants"]
+            }
+          }
+        },
+        {
+          "name": "Unauthorized - Missing Token (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/landlord/onboarding/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "landlord", "onboarding", "status"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import { corsOptions } from './src/shared/config/cors.js';
 import authRoutes from './src/modules/auth/auth.routes.js';
 import landlordAnnouncementRoutes from './src/modules/landlord/announcements/announcements.routes.js';
+import landlordOnboardingRoutes from './src/modules/landlord/onboarding/onboarding.routes.js';
 import tenantAnnouncementRoutes from './src/modules/tenant/announcements/announcements.routes.js';
 
 const app = express();
@@ -21,8 +22,11 @@ app.get('/api/health', (req, res) => {
 // Authentication routes
 app.use('/api/auth', authRoutes);
 
-// Announcement routes (Separated by role)
+// Landlord routes
+app.use('/api/landlord/onboarding', landlordOnboardingRoutes);
 app.use('/api/landlord/announcements', landlordAnnouncementRoutes);
+
+// Tenant routes
 app.use('/api/tenant/announcements', tenantAnnouncementRoutes);
 
 export default app;

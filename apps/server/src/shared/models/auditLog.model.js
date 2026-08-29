@@ -11,10 +11,10 @@ const auditLogSchema = new mongoose.Schema(
     action: { type: String, required: true }, // e.g. "TICKET_STATUS_UPDATE"
     entityKind: {
       type: String,
-      enum: ['Ticket', 'Payment', 'Document', 'Unit', 'Property', 'User'],
+      enum: ['Ticket', 'Payment', 'Document', 'Unit', 'Property', 'User', 'Announcement', 'Onboarding'],
       required: true,
     },
-    entityId: { type: mongoose.Schema.Types.ObjectId, required: true },
+    entityId: { type: mongoose.Schema.Types.ObjectId, default: null },
     ipAddress: { type: String, default: '' },
   },
   { timestamps: true }
