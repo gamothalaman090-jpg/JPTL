@@ -1,0 +1,177 @@
+{
+  "info": {
+    "name": "JPTL – Dashboard API",
+    "description": "Test collection for landlord and tenant dashboard endpoints.\nAuthenticate first, then copy the returned token into the Authorization variable.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
+    { "key": "landlord_token", "value": "<paste token here>", "type": "string" },
+    { "key": "tenant_token",   "value": "<paste token here>", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth – Login as Landlord",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "if (res.data && res.data.token) {",
+              "  pm.collectionVariables.set('landlord_token', res.data.token);",
+              "  console.log('Landlord token saved.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"juan.delacruz@example.com\",\n  \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "Auth – Login as Tenant",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "if (res.data && res.data.token) {",
+              "  pm.collectionVariables.set('tenant_token', res.data.token);",
+              "  console.log('Tenant token saved.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"tenant@example.com\",\n  \"password\": \"JPTL2026\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "Landlord – Full Dashboard",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/dash",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "dash"]
+        },
+        "description": "Returns full dashboard payload:\n- landlord profile\n- KPI metrics (revenue, occupancy, tickets, payments)\n- per-property breakdown\n- recentTickets (last 5)\n- recentPayments (last 5)\n- pinnedAnnouncement"
+      }
+    },
+    {
+      "name": "Landlord – KPI Snapshot",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/dash/kpi",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "dash", "kpi"]
+        },
+        "description": "Lightweight KPI-only endpoint. Suitable for badge/header polling.\nReturns: totalProperties, totalUnits, occupiedUnits, vacantUnits, occupancyRate, totalMonthlyRevenue, totalTenants, pendingTickets, overduePayments."
+      }
+    },
+    {
+      "name": "Tenant – Full Dashboard",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tenant_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/tenant/dash",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "dash"]
+        },
+        "description": "Returns full tenant dashboard payload:\n- tenant profile\n- lease summary (status, start, end, rent)\n- current unit & property\n- payment summary (upcoming, overdue, history)\n- ticket summary (open, resolved, recent 5)\n- announcements from landlord (pinned first)"
+      }
+    },
+    {
+      "name": "Tenant – KPI Snapshot",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tenant_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/tenant/dash/kpi",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "dash", "kpi"]
+        },
+        "description": "Lightweight KPI-only endpoint for tenant.\nReturns: leaseStatus, monthlyRent, openTickets, overduePayments, nextPayment."
+      }
+    },
+    {
+      "name": "Guard Test – No Token (expect 401)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/dash",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "dash"]
+        },
+        "description": "Must return 401 – No token provided."
+      }
+    },
+    {
+      "name": "Guard Test – Tenant hits Landlord route (expect 403)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tenant_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/dash",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "dash"]
+        },
+        "description": "Tenant JWT sent to a landlord-only route. Must return 403 – Forbidden."
+      }
+    },
+    {
+      "name": "Guard Test – Landlord hits Tenant route (expect 403)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/tenant/dash",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "dash"]
+        },
+        "description": "Landlord JWT sent to a tenant-only route. Must return 403 – Forbidden."
+      }
+    }
+  ]
+}
