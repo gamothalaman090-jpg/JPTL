@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Home, Bell, Sun, Moon, LogOut, Search, Sparkles, User, ShieldCheck, 
-  ChevronDown, CreditCard, Wrench, FileText, Megaphone, ArrowRight 
+import {
+  Home, Bell, Sun, Moon, LogOut, Search, Sparkles, User, ShieldCheck,
+  ChevronDown, CreditCard, Wrench, FileText, Megaphone, ArrowRight
 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
-import { 
-  MOCK_PROPERTIES, 
-  MOCK_UNITS, 
+import {
+  MOCK_PROPERTIES,
+  MOCK_UNITS,
   MOCK_TENANTS,
-  MOCK_TICKETS as INITIAL_TICKETS 
+  MOCK_TICKETS as INITIAL_TICKETS
 } from '../data/mockData';
 import { TenantSidebar } from '../components/tenant/TenantSidebar';
 import { TenantOverviewTab } from '../components/tenant/TenantOverviewTab';
@@ -52,7 +52,7 @@ const MOCK_RESIDENT_ANNOUNCEMENTS = [
   },
 ];
 
-export const TenantPortalPage = ({ onNavigate = () => {} }) => {
+export const TenantPortalPage = ({ onNavigate = () => { } }) => {
   const { theme, toggleTheme } = useTheme();
 
   // Active Tab & Resident selection
@@ -98,7 +98,7 @@ export const TenantPortalPage = ({ onNavigate = () => {} }) => {
 
   return (
     <div className="min-h-screen bg-[#F4F6F9] dark:bg-[#070A12] text-slate-900 dark:text-slate-100 font-sans flex selection:bg-indigo-600/30 selection:text-indigo-300 transition-colors duration-300">
-      
+
       {/* ─── LEFT SIDEBAR NAV ─── */}
       <TenantSidebar
         activeTab={activeTab}
@@ -130,7 +130,7 @@ export const TenantPortalPage = ({ onNavigate = () => {} }) => {
 
             {/* Right Controls */}
             <div className="flex items-center gap-3 shrink-0">
-              
+
               {/* Notification Bell */}
               <button
                 onClick={() => setIsNotificationOpen(true)}
@@ -168,7 +168,7 @@ export const TenantPortalPage = ({ onNavigate = () => {} }) => {
 
         {/* ─── SCROLLABLE MAIN TAB CONTENT ─── */}
         <main className="flex-1 px-6 py-6 space-y-6 overflow-y-auto">
-          
+
           {activeTab === 'overview' && (
             <TenantOverviewTab
               tenant={{ ...currentTenant, unitLabel: currentUnit.label, propertyName: currentProperty.name }}
