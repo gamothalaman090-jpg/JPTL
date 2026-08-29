@@ -292,16 +292,6 @@ export const DashboardPage = ({ onNavigate = () => { } }) => {
 
             {/* Right Controls */}
             <div className="flex items-center gap-3 shrink-0">
-              {/* Direct Portal Messaging Button */}
-              <button
-                onClick={() => setIsMessagingOpen(true)}
-                aria-label="Open Direct Portal Messages"
-                className="p-2 rounded-xl bg-slate-100 dark:bg-[#10131F] hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 btn-press"
-                title="Direct Portal & SMS Messaging Center"
-              >
-                <MessageSquare className="w-4 h-4 text-indigo-500" />
-              </button>
-
               {/* Notification Bell */}
               <button
                 onClick={() => setIsNotificationOpen(true)}

@@ -167,7 +167,7 @@ export const SuperadminPortalPage = ({ onLogout = () => {} }) => {
 
                   <div className="p-3.5 rounded-2xl bg-[#070A12] border border-slate-800/80 flex items-center justify-between">
                     <div>
-                      <strong className="text-white block font-grotesk">Twilio SMS Broadcast Dispatcher</strong>
+                      <strong className="text-white block font-grotesk">Web Push Broadcast Dispatcher</strong>
                       <span className="text-[#8E9B9A]">Gateway API Status: Connected &bull; Delivery: 99.8%</span>
                     </div>
                     <span className="px-2.5 py-1 rounded-full text-[10px] bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20">Connected</span>
@@ -252,7 +252,7 @@ export const SuperadminPortalPage = ({ onLogout = () => {} }) => {
                     { method: 'POST', path: '/api/v1/payments/stripe-webhook', status: 200, time: '14:32:01.042', latency: '38ms', client: 'Stripe/v2' },
                     { method: 'GET', path: '/api/v1/tenants/usr-tenant-1/lease', status: 200, time: '14:31:58.891', latency: '12ms', client: 'WebClient/Windows' },
                     { method: 'POST', path: '/api/v1/iot/smartlock/unlock-gate', status: 200, time: '14:31:45.102', latency: '54ms', client: 'IoT-Hub/Unit14B' },
-                    { method: 'POST', path: '/api/v1/announcements/broadcast', status: 200, time: '14:30:12.330', latency: '41ms', client: 'Twilio-Relay' },
+                    { method: 'POST', path: '/api/v1/announcements/broadcast', status: 200, time: '14:30:12.330', latency: '41ms', client: 'Push-Relay' },
                     { method: 'GET', path: '/api/v1/healthcheck', status: 200, time: '14:30:00.001', latency: '4ms', client: 'UptimeRobot/v3' },
                   ].map((log, idx) => (
                     <div key={idx} className="flex items-center justify-between p-2 rounded-xl bg-[#0D111D] border border-slate-800/60 hover:bg-slate-900/50 transition-colors">
@@ -307,7 +307,7 @@ export const SuperadminPortalPage = ({ onLogout = () => {} }) => {
                       <strong className="text-emerald-400">Online (38ms)</strong>
                     </div>
                     <div className="flex justify-between p-3 rounded-2xl bg-[#070A12] border border-slate-800">
-                      <span className="text-slate-400">Twilio SMS Relay API:</span>
+                      <span className="text-slate-400">VAPID Web Push Relay API:</span>
                       <strong className="text-emerald-400">Online (52ms)</strong>
                     </div>
                     <div className="flex justify-between p-3 rounded-2xl bg-[#070A12] border border-slate-800">
@@ -442,10 +442,10 @@ export const SuperadminPortalPage = ({ onLogout = () => {} }) => {
                   </div>
                   <div className="p-3.5 rounded-2xl bg-[#070A12] border border-slate-800 flex items-center justify-between">
                     <div>
-                      <strong className="text-white block font-grotesk">Twilio SMS Account SID</strong>
-                      <span className="text-slate-500">AC_live_8402••••••••••••••••••••1092</span>
+                      <strong className="text-white block font-grotesk">VAPID Web Push Server Keys</strong>
+                      <span className="text-slate-500">VAPID_pub_8402••••••••••••••••••••1092</span>
                     </div>
-                    <button onClick={() => alert("Twilio SMS Account SID verified & active.")} className="px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-white btn-press cursor-pointer">Inspect</button>
+                    <button onClick={() => alert("VAPID Web Push Server Keys verified & active.")} className="px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-white btn-press cursor-pointer">Inspect</button>
                   </div>
                 </div>
               </div>
@@ -542,7 +542,7 @@ export const SuperadminPortalPage = ({ onLogout = () => {} }) => {
                     <span className="text-emerald-400 font-bold">Enabled</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span>Twilio SMS Resident Alert Broadcasts</span>
+                    <span>VAPID Push Resident Alert Broadcasts</span>
                     <span className="text-emerald-400 font-bold">Enabled</span>
                   </div>
                   <div className="flex justify-between items-center">

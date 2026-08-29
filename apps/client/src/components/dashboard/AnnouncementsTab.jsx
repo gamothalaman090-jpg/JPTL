@@ -90,8 +90,8 @@ export const AnnouncementsTab = ({ onOpenNewAnnouncement }) => {
             <span className="text-[10px] text-slate-500">Avg Read Time: 4.2 mins</span>
           </div>
           <div className="p-3 rounded-xl bg-white dark:bg-[#0D111D] border border-slate-200 dark:border-slate-800 space-y-1">
-            <span className="text-[10px] text-slate-400 block">SMS Gateway Relay</span>
-            <strong className="text-purple-500 text-sm block">Twilio Relay Operational</strong>
+            <span className="text-[10px] text-slate-400 block">Push Gateway Relay</span>
+            <strong className="text-purple-500 text-sm block">VAPID Push Operational</strong>
             <span className="text-[10px] text-slate-500">Latency: 52ms &bull; 0 Errors</span>
           </div>
         </div>

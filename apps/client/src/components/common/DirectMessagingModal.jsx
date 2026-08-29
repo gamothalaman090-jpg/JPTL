@@ -166,11 +166,11 @@ export const DirectMessagingModal = ({ isOpen, onClose, currentUserRole = 'tenan
             </div>
             <div>
               <h2 className="text-base font-bold font-grotesk text-slate-900 dark:text-white flex items-center gap-2">
-                Direct Portal & SMS Messaging Center
+                Direct Portal Messaging Center
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               </h2>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono flex items-center gap-2">
-                <span>Twilio SMS Gateway &bull; Encrypted 2-Way Relay</span>
+                <span>Direct Portal Gateway &bull; Encrypted 2-Way Relay</span>
               </p>
             </div>
           </div>
@@ -274,7 +274,7 @@ export const DirectMessagingModal = ({ isOpen, onClose, currentUserRole = 'tenan
               </div>
 
               <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold hidden sm:block">
-                SMS & Portal Synced
+                Portal Messages Active
               </span>
             </div>
 
@@ -309,14 +309,14 @@ export const DirectMessagingModal = ({ isOpen, onClose, currentUserRole = 'tenan
                 type="text"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                placeholder={currentUserRole === 'landlord' ? `Send SMS / Portal message to ${currentConv.tenantName}…` : 'Type a secure message to property manager…'}
+                placeholder={currentUserRole === 'landlord' ? `Send portal message to ${currentConv.tenantName}…` : 'Type a secure message to property manager…'}
                 className="flex-1 bg-slate-100 dark:bg-[#10131F] border border-slate-300 dark:border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-sans"
               />
               <button
                 type="submit"
                 className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold font-grotesk text-xs flex items-center gap-1.5 btn-press shadow-md shadow-indigo-600/20 shrink-0"
               >
-                <span>Send SMS</span>
+                <span>Send Message</span>
                 <Send className="w-3.5 h-3.5" />
               </button>
             </form>

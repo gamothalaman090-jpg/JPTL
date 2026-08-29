@@ -22,7 +22,7 @@ export const IntegrationHealthWidget = () => {
       color: 'indigo',
     },
     {
-      name: 'Broadcast Telemetry & SMS',
+      name: 'Broadcast Telemetry & Push',
       status: 'Active',
       latency: '52ms',
       uptime: '100%',
