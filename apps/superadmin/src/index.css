@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --font-grotesk: 'Space Grotesk', system-ui, sans-serif;
+    --font-sans: 'DM Sans', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+}
+
+.font-grotesk {
+  font-family: var(--font-grotesk);
+}
+
+.font-sans {
+  font-family: var(--font-sans);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+.btn-press {
+  transition: transform 120ms var(--ease-out), opacity 120ms var(--ease-out);
+}
+.btn-press:active {
+  transform: scale(0.97);
+}
