@@ -9,6 +9,7 @@ export const LoginModal = ({ isOpen, initialRole = 'tenant', onClose, onLoginSuc
   const [middleName, setMiddleName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -37,6 +38,7 @@ export const LoginModal = ({ isOpen, initialRole = 'tenant', onClose, onLoginSuc
       setMiddleName('');
       setLastName('');
       setEmail('');
+      setPhone('');
       setPassword('');
     }
   };
@@ -57,6 +59,7 @@ export const LoginModal = ({ isOpen, initialRole = 'tenant', onClose, onLoginSuc
           lastName: lastName.trim(),
           name: mode === 'register' ? (computedName || 'New User') : (demoAccounts[selectedRole]?.name || 'User'),
           email: email || demoAccounts[selectedRole]?.email,
+          phone: phone.trim(),
           role: selectedRole,
         });
         setIsSuccess(false);
@@ -247,6 +250,20 @@ export const LoginModal = ({ isOpen, initialRole = 'tenant', onClose, onLoginSuc
                           value={lastName}
                           onChange={(e) => setLastName(e.target.value)}
                           className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-slate-300 font-medium mb-1.5 block">Phone Number</label>
+                      <div className="relative">
+                        <Smartphone className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                        <input
+                          type="tel"
+                          placeholder="+1 (555) 234-5678"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-10 pr-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                         />
                       </div>
                     </div>

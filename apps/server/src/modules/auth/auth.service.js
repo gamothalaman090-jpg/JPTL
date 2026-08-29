@@ -12,7 +12,7 @@ class AuthError extends Error {
   }
 }
 
-function validateSignup({ firstName, lastName, email, password }) {
+function validateSignup({ firstName, lastName, email, phone, password }) {
   const errors = [];
 
   if (!firstName?.trim()) errors.push('firstName is required');
@@ -22,6 +22,10 @@ function validateSignup({ firstName, lastName, email, password }) {
     errors.push('email is required');
   } else if (!EMAIL_REGEX.test(email.trim())) {
     errors.push('email is invalid');
+  }
+
+  if (phone && phone.trim().length > 30) {
+    errors.push('phone must be under 30 characters');
   }
 
   if (!password) {
@@ -66,13 +70,14 @@ function sanitizeUser(user) {
     middleName: user.middleName,
     lastName: user.lastName,
     email: user.email,
+    phone: user.phone || '',
     role: user.role,
     createdAt: user.createdAt,
   };
 }
 
-async function signupLandlord({ firstName, middleName, lastName, email, password }) {
-  validateSignup({ firstName, lastName, email, password });
+async function signupLandlord({ firstName, middleName, lastName, email, phone, password }) {
+  validateSignup({ firstName, lastName, email, phone, password });
 
   const normalizedEmail = email.trim().toLowerCase();
 
@@ -87,6 +92,7 @@ async function signupLandlord({ firstName, middleName, lastName, email, password
     middleName: middleName?.trim() || '',
     lastName: lastName.trim(),
     email: normalizedEmail,
+    phone: phone?.trim() || '',
     password: password,
     role: 'landlord',
   });

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, Eye, EyeOff, AlertCircle, Loader2, ArrowRight, ShieldCheck, X, Sun, Moon, Check, Circle } from 'lucide-react';
+import { Building2, Eye, EyeOff, AlertCircle, Loader2, ArrowRight, ShieldCheck, X, Sun, Moon, Check, Circle, Phone } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 
 export const RegisterPage = ({ onNavigate = () => {} }) => {
@@ -9,6 +9,7 @@ export const RegisterPage = ({ onNavigate = () => {} }) => {
   const [middleName, setMiddleName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -55,6 +56,15 @@ export const RegisterPage = ({ onNavigate = () => {} }) => {
       }
     }
 
+    if (name === 'phone') {
+      const phoneRegex = /^[+]?[(]?[0-9]{1,4}[)]?[-\s./0-9]{6,15}$/;
+      if (!value.trim()) {
+        error = 'Phone number is required';
+      } else if (!phoneRegex.test(value.trim())) {
+        error = 'Enter a valid phone number';
+      }
+    }
+
     if (name === 'password') {
       const hasNumber = /\d/.test(value);
       if (!value) {
@@ -84,6 +94,7 @@ export const RegisterPage = ({ onNavigate = () => {} }) => {
     if (field === 'middleName') val = middleName;
     if (field === 'lastName') val = lastName;
     if (field === 'email') val = email;
+    if (field === 'phone') val = phone;
     if (field === 'password') val = password;
     if (field === 'confirmPassword') val = confirmPassword;
 
@@ -107,6 +118,10 @@ export const RegisterPage = ({ onNavigate = () => {} }) => {
     if (field === 'email') {
       setEmail(val);
       if (touched.email) setErrors((prev) => ({ ...prev, email: validateField('email', val) }));
+    }
+    if (field === 'phone') {
+      setPhone(val);
+      if (touched.phone) setErrors((prev) => ({ ...prev, phone: validateField('phone', val) }));
     }
     if (field === 'password') {
       setPassword(val);
@@ -132,12 +147,14 @@ export const RegisterPage = ({ onNavigate = () => {} }) => {
   // Checkmark criteria boolean logic (strictly false when empty)
   const is8Chars = password.length >= 8;
   const hasDigit = /\d/.test(password);
+  const isPhoneValid = phone.trim().length >= 7 && /^[+]?[(]?[0-9]{1,4}[)]?[-\s./0-9]{6,15}$/.test(phone.trim());
   const isFormValid =
     firstName.trim().length >= 2 &&
     firstName.trim().length <= 50 &&
     lastName.trim().length >= 2 &&
     lastName.trim().length <= 50 &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) &&
+    isPhoneValid &&
     is8Chars &&
     hasDigit &&
     confirmPassword === password;
@@ -150,13 +167,14 @@ export const RegisterPage = ({ onNavigate = () => {} }) => {
     const middleErr = validateField('middleName', middleName);
     const lastErr = validateField('lastName', lastName);
     const emailErr = validateField('email', email);
+    const phoneErr = validateField('phone', phone);
     const passErr = validateField('password', password);
     const confirmErr = validateField('confirmPassword', confirmPassword);
 
-    setTouched({ firstName: true, middleName: true, lastName: true, email: true, password: true, confirmPassword: true });
-    setErrors({ firstName: firstErr, middleName: middleErr, lastName: lastErr, email: emailErr, password: passErr, confirmPassword: confirmErr });
+    setTouched({ firstName: true, middleName: true, lastName: true, email: true, phone: true, password: true, confirmPassword: true });
+    setErrors({ firstName: firstErr, middleName: middleErr, lastName: lastErr, email: emailErr, phone: phoneErr, password: passErr, confirmPassword: confirmErr });
 
-    if (firstErr || middleErr || lastErr || emailErr || passErr || confirmErr) return;
+    if (firstErr || middleErr || lastErr || emailErr || phoneErr || passErr || confirmErr) return;
 
     setIsSubmitting(true);
 
@@ -171,7 +189,8 @@ export const RegisterPage = ({ onNavigate = () => {} }) => {
           middleName: middleName.trim(),
           lastName: lastName.trim(),
           fullName,
-          email: email.trim()
+          email: email.trim(),
+          phone: phone.trim(),
         })
       );
       onNavigate('/onboarding?step=1');
@@ -375,32 +394,64 @@ export const RegisterPage = ({ onNavigate = () => {} }) => {
             </div>
           </div>
 
-          {/* Email Address */}
-          <div>
-            <label htmlFor="reg-email" className="text-xs font-semibold text-slate-800 dark:text-slate-200 mb-1.5 block">
-              Email address
-            </label>
-            <input
-              id="reg-email"
-              type="email"
-              required
-              disabled={isSubmitting}
-              value={email}
-              onChange={(e) => handleChange('email', e.target.value)}
-              onBlur={() => handleBlur('email')}
-              placeholder="vance.landlord@horizonliving.io"
-              className={`w-full bg-white dark:bg-[#0D111D] border ${
-                touched.email && errors.email
-                  ? 'border-rose-500 focus:ring-rose-500'
-                  : 'border-slate-300 dark:border-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15'
-              } rounded-2xl px-4 py-3 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition-all duration-150 ease-out shadow-sm`}
-            />
-            {touched.email && errors.email && (
-              <p className="text-[11px] text-rose-500 mt-1.5 flex items-center gap-1 font-medium">
-                <AlertCircle className="w-3 h-3 shrink-0" />
-                <span>{errors.email}</span>
-              </p>
-            )}
+          {/* Email Address & Phone Number */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="reg-email" className="text-xs font-semibold text-slate-800 dark:text-slate-200 mb-1.5 block">
+                Email address
+              </label>
+              <input
+                id="reg-email"
+                type="email"
+                required
+                disabled={isSubmitting}
+                value={email}
+                onChange={(e) => handleChange('email', e.target.value)}
+                onBlur={() => handleBlur('email')}
+                placeholder="vance.landlord@horizonliving.io"
+                className={`w-full bg-white dark:bg-[#0D111D] border ${
+                  touched.email && errors.email
+                    ? 'border-rose-500 focus:ring-rose-500'
+                    : 'border-slate-300 dark:border-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15'
+                } rounded-2xl px-3.5 py-3 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition-all duration-150 ease-out shadow-sm`}
+              />
+              {touched.email && errors.email && (
+                <p className="text-[11px] text-rose-500 mt-1.5 flex items-center gap-1 font-medium">
+                  <AlertCircle className="w-3 h-3 shrink-0" />
+                  <span>{errors.email}</span>
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="reg-phone" className="text-xs font-semibold text-slate-800 dark:text-slate-200 mb-1.5 block">
+                Phone number
+              </label>
+              <div className="relative">
+                <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5 pointer-events-none" />
+                <input
+                  id="reg-phone"
+                  type="tel"
+                  required
+                  disabled={isSubmitting}
+                  value={phone}
+                  onChange={(e) => handleChange('phone', e.target.value)}
+                  onBlur={() => handleBlur('phone')}
+                  placeholder="+1 (555) 234-5678"
+                  className={`w-full bg-white dark:bg-[#0D111D] border ${
+                    touched.phone && errors.phone
+                      ? 'border-rose-500 focus:ring-rose-500'
+                      : 'border-slate-300 dark:border-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15'
+                  } rounded-2xl pl-10 pr-3.5 py-3 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition-all duration-150 ease-out shadow-sm`}
+                />
+              </div>
+              {touched.phone && errors.phone && (
+                <p className="text-[11px] text-rose-500 mt-1.5 flex items-center gap-1 font-medium">
+                  <AlertCircle className="w-3 h-3 shrink-0" />
+                  <span>{errors.phone}</span>
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Password */}
