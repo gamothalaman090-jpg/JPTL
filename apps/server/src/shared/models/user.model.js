@@ -11,8 +11,13 @@ const userSchema = new Schema(
     middleName: { type: String, trim: true, default: '' },
     lastName: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    phone: { type: String, trim: true, default: '' },
     password: { type: String, required: true, select: false },
     role: { type: String, enum: USER_ROLES, default: 'landlord' },
+    plan: { type: String, enum: ['starter', 'pro', 'enterprise'], default: 'starter' },
+    onboardingCompleted: { type: Boolean, default: false },
+    landlord: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    status: { type: String, enum: ['active', 'suspended'], default: 'active' },
   },
   { timestamps: true }
 );

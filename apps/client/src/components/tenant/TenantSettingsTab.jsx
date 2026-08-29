@@ -32,7 +32,9 @@ export const TenantSettingsTab = ({
   const [saved, setSaved] = useState(false);
 
   // 1. Profile & Account state
-  const [name, setName] = useState(tenant?.name || 'Sophia Lin');
+  const [firstName, setFirstName] = useState(tenant?.firstName || 'Sophia');
+  const [middleName, setMiddleName] = useState(tenant?.middleName || '');
+  const [lastName, setLastName] = useState(tenant?.lastName || 'Lin');
   const [email, setEmail] = useState(tenant?.email || 'sophia.lin@example.com');
   const [phone, setPhone] = useState('+1 (555) 234-8901');
   const [emergencyContact, setEmergencyContact] = useState('David Lin (+1 555-901-4432) - Brother');
@@ -40,6 +42,8 @@ export const TenantSettingsTab = ({
   const [enable2FA, setEnable2FA] = useState(false);
   const [show2FAModal, setShow2FAModal] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ current: '', newPass: '', confirm: '' });
+
+  const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ');
 
   // 2. Notifications state
   const [notifChannels, setNotifChannels] = useState({
@@ -174,7 +178,7 @@ export const TenantSettingsTab = ({
     const newDoc = {
       id: `doc-${Date.now()}`,
       tenantId: tenant?.id || 'usr-tenant-1',
-      tenantName: tenant?.name || 'Sophia Lin',
+      tenantName: fullName || tenant?.name || 'Sophia Lin',
       unitLabel: unit?.label || 'Unit 14B',
       propertyName: unit?.propertyName || 'Aura Sky Towers & Residences',
       name: fileName,
@@ -278,7 +282,7 @@ export const TenantSettingsTab = ({
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
-                    name.split(' ').map((n) => n[0]).join('')
+                    ((firstName?.[0] || '') + (lastName?.[0] || '')).toUpperCase() || 'SL'
                   )}
                 </div>
                 <label className="absolute bottom-0 right-0 p-2 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg cursor-pointer btn-press">
@@ -297,7 +301,7 @@ export const TenantSettingsTab = ({
               </div>
 
               <div>
-                <h3 className="text-sm font-bold font-grotesk text-slate-900 dark:text-white">{name}</h3>
+                <h3 className="text-sm font-bold font-grotesk text-slate-900 dark:text-white">{fullName}</h3>
                 <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">Resident Account</span>
               </div>
 
@@ -357,16 +361,37 @@ export const TenantSettingsTab = ({
               <User className="w-4 h-4 text-indigo-500" /> Personal & Emergency Details
             </h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-sans">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-sans">
               <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Full Name</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">First Name</label>
                 <input
                   type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-[#080B14] border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
                 />
               </div>
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Middle Name <span className="text-slate-500 font-normal">(Opt)</span></label>
+                <input
+                  type="text"
+                  value={middleName}
+                  onChange={(e) => setMiddleName(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-[#080B14] border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Last Name</label>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-[#080B14] border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-sans">
               <div>
                 <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Email Address</label>
                 <input

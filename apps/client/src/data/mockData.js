@@ -155,6 +155,9 @@ export const MOCK_UNITS = [
 export const MOCK_TENANTS = [
   {
     id: 'usr-tenant-1',
+    firstName: 'Sophia',
+    middleName: '',
+    lastName: 'Lin',
     name: 'Sophia Lin',
     email: 'sophia.lin@example.com',
     propertyId: 'prop-1',
@@ -168,6 +171,9 @@ export const MOCK_TENANTS = [
   },
   {
     id: 'usr-tenant-2',
+    firstName: 'Liam',
+    middleName: '',
+    lastName: 'Carter',
     name: 'Liam Carter',
     email: 'liam.carter@example.com',
     propertyId: 'prop-2',
@@ -181,6 +187,9 @@ export const MOCK_TENANTS = [
   },
   {
     id: 'usr-tenant-3',
+    firstName: 'David',
+    middleName: 'K.',
+    lastName: 'Miller',
     name: 'David K. Miller',
     email: 'david.miller@example.com',
     propertyId: 'prop-3',
@@ -194,6 +203,9 @@ export const MOCK_TENANTS = [
   },
   {
     id: 'usr-tenant-4',
+    firstName: 'Elena',
+    middleName: '',
+    lastName: 'Rostova',
     name: 'Elena Rostova (Pending)',
     email: 'elena.rostova@example.com',
     propertyId: undefined,

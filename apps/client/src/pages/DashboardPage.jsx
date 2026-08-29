@@ -28,11 +28,39 @@ import { RightNotificationSidebar } from '../components/dashboard/RightNotificat
 import { LandlordSettingsTab } from '../components/dashboard/LandlordSettingsTab';
 import { LandlordDocumentsTab } from '../components/dashboard/LandlordDocumentsTab';
 
+import { AddPropertyOrUnitModal } from '../components/dashboard/AddPropertyOrUnitModal';
+
 export const DashboardPage = ({ onNavigate = () => {} }) => {
   const { theme, toggleTheme } = useTheme();
 
   const [activeView, setActiveView] = useState('overview');
-  const [units, setUnits] = useState(INITIAL_UNITS);
+
+  const [properties, setProperties] = useState(() => {
+    try {
+      const savedProps = sessionStorage.getItem('jptl_custom_properties');
+      if (savedProps) {
+        const parsed = JSON.parse(savedProps);
+        if (Array.isArray(parsed) && parsed.length > 0) return [...MOCK_PROPERTIES, ...parsed];
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return MOCK_PROPERTIES;
+  });
+
+  const [units, setUnits] = useState(() => {
+    try {
+      const savedUnits = sessionStorage.getItem('jptl_custom_units');
+      if (savedUnits) {
+        const parsed = JSON.parse(savedUnits);
+        if (Array.isArray(parsed) && parsed.length > 0) return [...INITIAL_UNITS, ...parsed];
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return INITIAL_UNITS;
+  });
+
   const [tenants, setTenants] = useState(INITIAL_TENANTS);
   const [tickets, setTickets] = useState(INITIAL_TICKETS);
   const [payments, setPayments] = useState(INITIAL_PAYMENTS);
@@ -89,6 +117,36 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false);
   const [isNewAnnouncementOpen, setIsNewAnnouncementOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+
+  // Property / Unit Creation Modal
+  const [isAddPropUnitOpen, setIsAddPropUnitOpen] = useState(false);
+  const [addPropUnitTab, setAddPropUnitTab] = useState('unit');
+
+  const handleDashboardPropertyCreated = (newProp) => {
+    setProperties((prev) => {
+      const updated = [...prev, newProp];
+      try {
+        const customOnly = updated.filter((p) => p.id.startsWith('prop-custom-'));
+        sessionStorage.setItem('jptl_custom_properties', JSON.stringify(customOnly));
+      } catch (e) {
+        console.error(e);
+      }
+      return updated;
+    });
+  };
+
+  const handleDashboardUnitCreated = (newUnit) => {
+    setUnits((prev) => {
+      const updated = [...prev, newUnit];
+      try {
+        const customOnly = updated.filter((u) => u.id.startsWith('unit-custom-'));
+        sessionStorage.setItem('jptl_custom_units', JSON.stringify(customOnly));
+      } catch (e) {
+        console.error(e);
+      }
+      return updated;
+    });
+  };
 
   // ⌘K shortcut
   useEffect(() => {
@@ -397,6 +455,9 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Manage your real estate portfolio — {units.length} total units across {MOCK_PROPERTIES.length} properties.</p>
                 </div>
                 <div className="flex items-center gap-3">
+                  <button onClick={() => { setAddPropUnitTab('unit'); setIsAddPropUnitOpen(true); }} className="px-4 py-2.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 text-xs font-bold font-grotesk btn-press flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-indigo-500" /> + Add Property / Unit
+                  </button>
                   <button onClick={() => onNavigate('/onboarding?step=2')} className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 text-xs font-semibold btn-press flex items-center gap-2">
                     <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Onboarding Wizard
                   </button>
@@ -569,6 +630,14 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
       <UnitDetailModal isOpen={Boolean(selectedUnitForDetail)} unit={selectedUnitForDetail} property={MOCK_PROPERTIES.find((p) => p.id === selectedUnitForDetail?.propertyId)} onClose={() => setSelectedUnitForDetail(null)} onAddTenant={handleOpenAddTenant} />
       <NewTicketModal isOpen={isNewTicketOpen} onClose={() => setIsNewTicketOpen(false)} properties={MOCK_PROPERTIES} units={units} onTicketCreated={handleTicketCreated} />
       <NewAnnouncementModal isOpen={isNewAnnouncementOpen} onClose={() => setIsNewAnnouncementOpen(false)} onAnnouncementCreated={handleAnnouncementCreated} />
+      <AddPropertyOrUnitModal
+        isOpen={isAddPropUnitOpen}
+        onClose={() => setIsAddPropUnitOpen(false)}
+        initialTab={addPropUnitTab}
+        properties={properties}
+        onPropertyCreated={handleDashboardPropertyCreated}
+        onUnitCreated={handleDashboardUnitCreated}
+      />
 
     </div>
   );
