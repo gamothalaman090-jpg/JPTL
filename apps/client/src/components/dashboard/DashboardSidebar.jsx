@@ -45,9 +45,12 @@ export const DashboardSidebar = ({
             <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-600/30 shrink-0">
               <Building2 className="w-4 h-4" />
             </div>
-            <span className="font-grotesk font-extrabold text-base tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
-              JPTL<span className="text-indigo-600 dark:text-indigo-400">.SYS</span>
-            </span>
+            <div>
+              <span className="font-grotesk font-extrabold text-base tracking-tight text-slate-900 dark:text-white block leading-tight">
+                JPTL<span className="text-indigo-600 dark:text-indigo-400">.LANDLORD</span>
+              </span>
+              <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Landlord Portal</span>
+            </div>
           </div>
         )}
 

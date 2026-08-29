@@ -12,8 +12,8 @@ export const OnboardingPage = ({ onNavigate = () => {} }) => {
   const initialStep = parseInt(queryParams.get('step') || '1', 10);
   const [step, setStep] = useState(initialStep);
 
-  // Step 1: Default selected tier to 'pro' (the RECOMMENDED tier)
-  const [selectedTier, setSelectedTier] = useState('pro');
+  // Step 1: Default selected tier to 'starter'
+  const [selectedTier, setSelectedTier] = useState('starter');
 
   // Properties & Units State (with custom created items stored in sessionStorage)
   const [propertiesList, setPropertiesList] = useState(() => {
@@ -399,30 +399,29 @@ export const OnboardingPage = ({ onNavigate = () => {} }) => {
                 </div>
               </div>
 
-              {/* Professional Tier ($29/mo) */}
+              {/* Professional Tier (Coming Soon) */}
               <div
-                onClick={() => setSelectedTier('pro')}
-                className={`p-6 rounded-3xl border cursor-pointer transition-all flex flex-col justify-between ${
-                  selectedTier === 'pro'
-                    ? 'bg-slate-900 text-white border-indigo-500 ring-2 ring-indigo-500/50 shadow-xl'
-                    : 'bg-white dark:bg-[#111625] text-slate-900 dark:text-slate-200 border-slate-200 dark:border-slate-800 hover:border-indigo-400'
-                }`}
+                className="p-6 rounded-3xl border opacity-75 bg-slate-50/50 dark:bg-[#0E121E] text-slate-400 dark:text-slate-400 border-slate-200 dark:border-slate-800/80 cursor-not-allowed flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-mono text-[9px] font-bold tracking-wider uppercase text-orange-400">
-                      RECOMMENDED
+                    <span className="font-mono text-[9px] font-bold tracking-wider uppercase text-orange-500 dark:text-orange-400">
+                      COMING SOON
                     </span>
                     <span className="w-2 h-2 rounded-full bg-orange-500" />
                   </div>
-                  <h3 className="text-lg font-bold font-grotesk mb-0.5">Professional</h3>
-                  <p className="text-[11px] text-slate-600 dark:text-slate-400 font-sans mb-3">For growing portfolios</p>
-                  <div className="text-3xl font-extrabold font-grotesk mb-3">$29 <span className="text-xs text-slate-500 dark:text-slate-400 font-normal">/mo</span></div>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-6">The operational backbone for landlords scaling past a handful of units.</p>
+                  <h3 className="text-lg font-bold font-grotesk text-slate-500 dark:text-slate-300 mb-0.5">Professional</h3>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 font-sans mb-3">For growing portfolios</p>
+                  <div className="text-2xl font-extrabold font-grotesk mb-3 text-slate-400 dark:text-slate-400">Coming soon</div>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 leading-relaxed mb-6">The operational backbone for landlords scaling past a handful of units.</p>
                 </div>
-                <div className={`py-2 px-3 rounded-xl text-xs font-semibold text-center transition-all ${selectedTier === 'pro' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30' : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400'}`}>
-                  {selectedTier === 'pro' ? '✓ Selected' : 'Select Pro'}
-                </div>
+                <button
+                  type="button"
+                  disabled
+                  className="w-full py-2.5 px-3 rounded-xl text-xs font-semibold text-center bg-slate-200/80 dark:bg-white/[0.06] text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-300/50 dark:border-white/5"
+                >
+                  Coming Soon
+                </button>
               </div>
 
               {/* Enterprise Tier (Coming Soon) */}
@@ -638,7 +637,7 @@ export const OnboardingPage = ({ onNavigate = () => {} }) => {
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Selected Plan</span>
                   <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                     <DollarSign className="w-3.5 h-3.5 text-indigo-500" />
-                    <span className="capitalize">{selectedTier} Tier ({selectedTier === 'pro' ? '$29/mo' : selectedTier === 'starter' ? '$0/mo' : '$149/mo'})</span>
+                    <span className="capitalize">{selectedTier} Tier ({selectedTier === 'starter' ? 'Free ($0/mo)' : 'Coming Soon'})</span>
                   </div>
                 </div>
 

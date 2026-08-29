@@ -164,6 +164,31 @@ export const TicketsTab = ({ tickets: initialTickets = [], searchQuery = '', onO
                 </div>
               </div>
 
+              {/* Work Order Cost Threshold & Approval Workflow */}
+              <div className="p-3 rounded-xl bg-indigo-500/5 dark:bg-indigo-500/[0.03] border border-indigo-500/20 text-xs flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2 font-mono text-[11px]">
+                  <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-500/20">
+                    Est. Cost Threshold: $650.00 (Exceeds $500 Limit)
+                  </span>
+                  <span className="text-slate-500 dark:text-slate-400">&bull; Vendor: Apex Plumbing & HVAC</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateStatus(t.id, 'in_progress')}
+                    className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold font-grotesk text-[11px] btn-press shadow-xs"
+                  >
+                    ✓ Approve $650 Work Order
+                  </button>
+                  <button
+                    type="button"
+                    className="px-2.5 py-1 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono text-[11px] hover:bg-slate-300 dark:hover:bg-slate-700 btn-press"
+                  >
+                    Request Re-Quote
+                  </button>
+                </div>
+              </div>
+
               {/* Location & Tenant Info Bar */}
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#080B14] border border-slate-200/80 dark:border-slate-800/60 text-xs flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-4">

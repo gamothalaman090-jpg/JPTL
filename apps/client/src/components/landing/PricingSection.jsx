@@ -23,11 +23,11 @@ const tiers = [
   },
   {
     id: 'pro',
-    label: 'RECOMMENDED',
+    label: 'COMING SOON',
     name: 'Professional',
     subtitle: 'For growing portfolios',
-    price: '$29',
-    period: '/ month',
+    price: null,
+    priceLabel: 'Coming soon',
     description: 'The operational backbone for landlords scaling past a handful of units.',
     features: [
       'Up to 25 properties',
@@ -37,10 +37,10 @@ const tiers = [
       'VAPID push notifications',
       'Priority support',
     ],
-    cta: 'Start Professional',
+    cta: 'Coming Soon',
     tagline: 'This is the plan JPTL has been building toward.',
-    recommended: true,
-    comingSoon: false,
+    recommended: false,
+    comingSoon: true,
     dotColor: 'bg-orange-500',
   },
   {
@@ -170,7 +170,7 @@ export const PricingSection = ({ onNavigate = () => {} }) => {
                       <span
                         className={`block w-5 h-[1.5px] mt-[7px] ${
                           tier.comingSoon
-                            ? 'bg-emerald-500 dark:bg-emerald-400'
+                            ? (tier.id === 'pro' ? 'bg-orange-500 dark:bg-orange-400' : 'bg-emerald-500 dark:bg-emerald-400')
                             : tier.recommended
                             ? 'bg-slate-900 dark:bg-white'
                             : 'bg-slate-400 dark:bg-slate-500'

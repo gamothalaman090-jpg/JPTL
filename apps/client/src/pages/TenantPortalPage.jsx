@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Home, Bell, Sun, Moon, LogOut, Search, Sparkles, User, ShieldCheck,
-  ChevronDown, CreditCard, Wrench, FileText, Megaphone, ArrowRight
+  ChevronDown, CreditCard, Wrench, FileText, Megaphone, ArrowRight, MessageSquare
 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import {
@@ -21,6 +21,7 @@ import { TenantDocumentsTab } from '../components/tenant/TenantDocumentsTab';
 import { PayRentModal } from '../components/tenant/PayRentModal';
 import { ReportIssueModal } from '../components/tenant/ReportIssueModal';
 import { RightNotificationSidebar } from '../components/dashboard/RightNotificationSidebar';
+import { DirectMessagingModal } from '../components/common/DirectMessagingModal';
 
 const MOCK_RESIDENT_ANNOUNCEMENTS = [
   {
@@ -52,22 +53,19 @@ const MOCK_RESIDENT_ANNOUNCEMENTS = [
   },
 ];
 
-export const TenantPortalPage = ({ onNavigate = () => { } }) => {
+export const TenantPortalPage = ({ onNavigate = () => {} }) => {
   const { theme, toggleTheme } = useTheme();
 
-  // Active Tab & Resident selection
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'payments' | 'maintenance' | 'lease' | 'announcements' | 'settings'
+  const [activeTab, setActiveTab] = useState('overview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [selectedTenantId, setSelectedTenantId] = useState('usr-tenant-1'); // Default: Sophia Lin
-
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isPayRentOpen, setIsPayRentOpen] = useState(false);
+  const [isReportIssueOpen, setIsReportIssueOpen] = useState(false);
+  const [isMessagingOpen, setIsMessagingOpen] = useState(false);
+  const [selectedTenantId, setSelectedTenantId] = useState('usr-tenant-1');
   // Live state for tickets & announcements
   const [tickets, setTickets] = useState(INITIAL_TICKETS);
   const [announcements, setAnnouncements] = useState(MOCK_RESIDENT_ANNOUNCEMENTS);
-
-  // Modals & Drawers
-  const [isPayRentOpen, setIsPayRentOpen] = useState(false);
-  const [isReportIssueOpen, setIsReportIssueOpen] = useState(false);
-  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
   // Find active tenant, unit, and property
   const currentTenant = MOCK_TENANTS.find((t) => t.id === selectedTenantId) || MOCK_TENANTS[0];
@@ -110,7 +108,7 @@ export const TenantPortalPage = ({ onNavigate = () => { } }) => {
       />
 
       {/* ─── MAIN CONTENT AREA ─── */}
-      <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
+      <div className="flex-1 flex flex-col min-h-screen min-w-0">
 
         {/* ─── TOP BAR ─── */}
         <header className="sticky top-0 z-30 apple-glass border-b border-slate-200 dark:border-slate-800 px-6 py-3">
@@ -130,6 +128,16 @@ export const TenantPortalPage = ({ onNavigate = () => { } }) => {
 
             {/* Right Controls */}
             <div className="flex items-center gap-3 shrink-0">
+
+              {/* Direct Portal Messaging Button */}
+              <button
+                onClick={() => setIsMessagingOpen(true)}
+                aria-label="Direct message landlord"
+                className="p-2 rounded-xl bg-slate-100 dark:bg-[#10131F] hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 btn-press"
+                title="Direct Message Property Manager"
+              >
+                <MessageSquare className="w-4 h-4 text-indigo-500" />
+              </button>
 
               {/* Notification Bell */}
               <button
@@ -252,6 +260,12 @@ export const TenantPortalPage = ({ onNavigate = () => { } }) => {
         tenant={currentTenant}
         unit={currentUnit}
         onTicketSubmitted={handleTicketSubmitted}
+      />
+
+      <DirectMessagingModal
+        isOpen={isMessagingOpen}
+        onClose={() => setIsMessagingOpen(false)}
+        currentUserRole="tenant"
       />
 
     </div>

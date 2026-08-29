@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Building2, UserPlus, Users, Search, Home, LogOut, ShieldCheck, ArrowUpRight, 
+import {
+  Building2, UserPlus, Users, Search, Home, LogOut, ShieldCheck, ArrowUpRight,
   Sun, Moon, Sparkles, Megaphone, Wrench, DollarSign, X, Bell, ArrowRight,
-  TrendingUp, CheckCircle2, Clock, AlertCircle
+  TrendingUp, CheckCircle2, Clock, AlertCircle, MessageSquare, FileText
 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
-import { 
-  MOCK_PROPERTIES, 
-  MOCK_UNITS as INITIAL_UNITS, 
+import {
+  MOCK_PROPERTIES,
+  MOCK_UNITS as INITIAL_UNITS,
   MOCK_TENANTS as INITIAL_TENANTS,
   MOCK_TICKETS as INITIAL_TICKETS,
   MOCK_PAYMENTS as INITIAL_PAYMENTS,
@@ -29,11 +29,14 @@ import { LandlordSettingsTab } from '../components/dashboard/LandlordSettingsTab
 import { LandlordDocumentsTab } from '../components/dashboard/LandlordDocumentsTab';
 
 import { AddPropertyOrUnitModal } from '../components/dashboard/AddPropertyOrUnitModal';
+import { IntegrationHealthWidget } from '../components/common/IntegrationHealthWidget';
+import { DirectMessagingModal } from '../components/common/DirectMessagingModal';
 
-export const DashboardPage = ({ onNavigate = () => {} }) => {
+export const DashboardPage = ({ onNavigate = () => { } }) => {
   const { theme, toggleTheme } = useTheme();
 
   const [activeView, setActiveView] = useState('overview');
+  const [isMessagingOpen, setIsMessagingOpen] = useState(false);
 
   const [properties, setProperties] = useState(() => {
     try {
@@ -79,10 +82,10 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
 
   const handleUpdateDocumentStatus = (docId, status, rejectionReason) => {
     setDocuments((prev) => {
-      const updated = prev.map((d) => 
-        d.id === docId ? { 
-          ...d, 
-          status, 
+      const updated = prev.map((d) =>
+        d.id === docId ? {
+          ...d,
+          status,
           rejectionReason: status === 'Rejected' ? rejectionReason : undefined,
           verifiedAt: status === 'Verified' ? new Date().toISOString() : d.verifiedAt,
           reviewedBy: 'Alexander Vance (Landlord)'
@@ -256,7 +259,7 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
 
   return (
     <div className="min-h-screen bg-[#F4F6F9] dark:bg-[#070A12] text-slate-900 dark:text-slate-100 font-sans flex selection:bg-indigo-600/30 selection:text-indigo-300 transition-colors duration-300">
-      
+
       {/* ─── LEFT SIDEBAR NAV ─── */}
       <DashboardSidebar
         activeView={activeView}
@@ -269,7 +272,7 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
       />
 
       {/* ─── MAIN CENTER CONTENT AREA ─── */}
-      <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
+      <div className="flex-1 flex flex-col min-h-screen min-w-0">
 
         {/* ─── TOP BAR ─── */}
         <header className="sticky top-0 z-30 apple-glass border-b border-slate-200 dark:border-slate-800 px-6 py-3">
@@ -296,11 +299,7 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
                 className="relative p-2 rounded-xl bg-slate-100 dark:bg-[#10131F] hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 btn-press"
               >
                 <Bell className="w-4 h-4" />
-                {pendingTickets > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center animate-pulse">
-                    {pendingTickets}
-                  </span>
-                )}
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-indigo-500" />
               </button>
 
               {/* Theme Toggle */}
@@ -313,11 +312,11 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
               </button>
 
               {/* User Avatar + Name */}
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 pl-2 border-l border-slate-200 dark:border-slate-800">
                 <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold font-grotesk">AV</div>
-                <div className="text-right hidden md:block">
+                <div className="text-right hidden sm:block">
                   <span className="text-xs font-bold text-slate-900 dark:text-white block leading-tight">Alexander Vance</span>
-                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">Landlord</span>
+                  <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400">Landlord</span>
                 </div>
               </div>
             </div>
@@ -351,7 +350,7 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
               {/* Hero Greeting */}
               <div>
                 <h1 className="text-3xl sm:text-4xl font-extrabold font-grotesk tracking-tight text-slate-900 dark:text-white leading-tight">
-                  {greeting}, <span className="bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">Alexander</span> 👋
+                  {greeting}, <span className="bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">Alexander</span>
                 </h1>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Here's what's happening with your properties today.</p>
               </div>
@@ -364,6 +363,58 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
                 onAddTenant={() => setActiveView('units')}
                 onNavigateTickets={() => setActiveView('tickets')}
               />
+
+              {/* System Integration Observability Telemetry */}
+              <IntegrationHealthWidget />
+
+              {/* Lease Expiration & Renewal Pipeline */}
+              <div className="top-shade apple-glass rounded-3xl border border-slate-200 dark:border-slate-800/80 p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-indigo-500" />
+                    <h3 className="text-sm font-bold font-grotesk text-slate-900 dark:text-white">
+                      Lease Expiration & Renewal Pipeline
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-mono text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 font-bold">
+                    2 Contracts Expiring Soon
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#090C16] border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <strong className="text-slate-900 dark:text-white">Sophia Lin (Unit 14B)</strong>
+                        <span className="text-[10px] font-mono text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded font-bold">140 Days Left</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500">Aura Sky Towers &bull; Current Rent: $2,450/mo</p>
+                    </div>
+                    <button
+                      onClick={() => setIsMessagingOpen(true)}
+                      className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-grotesk font-bold text-[11px] btn-press shadow-xs shrink-0"
+                    >
+                      Send Renewal Offer
+                    </button>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#090C16] border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <strong className="text-slate-900 dark:text-white">Liam Carter (Unit 102)</strong>
+                        <span className="text-[10px] font-mono text-rose-500 bg-rose-500/10 px-1.5 py-0.5 rounded font-bold">30 Days Left</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500">Horizon Heights &bull; Current Rent: $1,950/mo</p>
+                    </div>
+                    <button
+                      onClick={() => setIsMessagingOpen(true)}
+                      className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-grotesk font-bold text-[11px] btn-press shadow-xs shrink-0"
+                    >
+                      Urgent Renewal
+                    </button>
+                  </div>
+                </div>
+              </div>
 
               <SectionDivider label="Recent Activity" />
 
@@ -388,11 +439,10 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
                           </div>
                           <p className="text-[11px] text-slate-500 dark:text-slate-400">{t.propertyName} &bull; {t.unitLabel}</p>
                         </div>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono border ${
-                          t.status === 'resolved' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                          : t.status === 'in_progress' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20'
-                          : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-                        }`}>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono border ${t.status === 'resolved' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                            : t.status === 'in_progress' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20'
+                              : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                          }`}>
                           {t.status.replace('_', ' ')}
                         </span>
                       </div>
@@ -428,6 +478,13 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
                       <div>
                         <span className="text-xs font-bold text-slate-900 dark:text-white block">Post Broadcast</span>
                         <span className="text-[11px] text-slate-500 dark:text-slate-400">Publish announcements to all tenants</span>
+                      </div>
+                    </button>
+                    <button onClick={() => setIsMessagingOpen(true)} className="w-full px-5 py-4 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors text-left btn-press">
+                      <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-500"><MessageSquare className="w-4 h-4" /></div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-white block">Direct Portal Messages</span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">Secure 2-way messaging with tenants</span>
                       </div>
                     </button>
                   </div>
@@ -638,6 +695,9 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
         onPropertyCreated={handleDashboardPropertyCreated}
         onUnitCreated={handleDashboardUnitCreated}
       />
+
+      {/* Direct Messaging Modal */}
+      <DirectMessagingModal isOpen={isMessagingOpen} onClose={() => setIsMessagingOpen(false)} currentUserRole="landlord" />
 
     </div>
   );
