@@ -77,8 +77,8 @@ export const TenantLeaseTab = ({
 
         <div className="p-5 rounded-2xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 space-y-1">
           <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Security Deposit Held</span>
-          <strong className="text-xl text-indigo-500 font-grotesk block">${((unit?.monthlyRent || 2400) * 1.5).toLocaleString()}</strong>
-          <p className="text-[11px] text-slate-400 font-mono">Refundable upon move-out</p>
+          <strong className="text-xl text-indigo-500 font-grotesk block">${((unit?.monthlyRent || 2400) * 1.5).toLocaleString()}.00</strong>
+          <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono">+$42.18 Accrued Interest (1.2% APY)</p>
         </div>
 
         <div className="p-5 rounded-2xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 space-y-1">

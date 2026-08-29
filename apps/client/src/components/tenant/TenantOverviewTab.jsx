@@ -54,7 +54,27 @@ export const TenantOverviewTab = ({
         </div>
 
         {/* Action CTAs */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+          <button
+            type="button"
+            onClick={() => {
+              const icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//JPTL//Resident Portal Calendar//EN\nBEGIN:VEVENT\nSUMMARY:JPTL Monthly Rent Due ($2,450.00)\nDESCRIPTION:Monthly rent payment due for Unit 14B.\nRRULE:FREQ=MONTHLY;BYMONTHDAY=1\nEND:VEVENT\nEND:VCALENDAR";
+              const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8;' });
+              const url = window.URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.setAttribute('download', 'JPTL_Resident_Schedule.ics');
+              document.body.appendChild(link);
+              link.click();
+              link.remove();
+            }}
+            className="px-3.5 py-3 rounded-2xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-grotesk font-semibold text-xs border border-indigo-500/20 flex items-center gap-1.5 btn-press"
+            title="Export iCal / Google Calendar Feed"
+          >
+            <Calendar className="w-4 h-4 text-indigo-500" />
+            <span>Sync iCal Feed</span>
+          </button>
+
           <button
             type="button"
             onClick={onRequestRepairClick}

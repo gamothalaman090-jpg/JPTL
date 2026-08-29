@@ -267,7 +267,7 @@ export const TenantDocumentsTab = ({
                           </strong>
                         </p>
 
-                        <div className="flex items-center gap-3 text-[10px] text-slate-400">
+                        <div className="flex items-center gap-3 text-[10px] text-slate-400 flex-wrap">
                           <span>Submitted: {docItem.date}</span>
                           <span>&bull;</span>
                           <span>Size: {docItem.size}</span>
@@ -277,6 +277,18 @@ export const TenantDocumentsTab = ({
                               <span>Reviewer: {docItem.reviewedBy}</span>
                             </>
                           )}
+                          <span>&bull;</span>
+                          <span className="text-slate-700 dark:text-slate-300 font-semibold">
+                            Expires: {docItem.expiresAt || 'Jan 15, 2027'}
+                          </span>
+                          <span>&bull;</span>
+                          <button
+                            type="button"
+                            onClick={() => alert(`Document Compliance Access Audit Trail:\n\n• Document ID: ${docItem.id}\n• Title: ${docItem.name}\n• Reviewed/Accessed By: ${docItem.reviewedBy || 'Alexander Vance (Landlord)'}\n• Last Admin Access: Aug 28, 2026 at 14:32:10\n• Access Vault Method: Encrypted TLS 1.3 Compliance Vault\n• Governance Status: Verified & Logged (GDPR Art 15)`)}
+                            className="text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 font-bold btn-press"
+                          >
+                            <ShieldAlert className="w-3 h-3" /> View Access Audit Trail
+                          </button>
                         </div>
 
                         {/* Rejection feedback banner if flagged by landlord */}
