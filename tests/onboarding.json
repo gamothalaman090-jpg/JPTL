@@ -6,8 +6,8 @@
   },
   "variable": [
     {
-      "key": "baseUrl",
-      "value": "http://localhost:3000",
+      "key": "base-url",
+      "value": "http://localhost:8000",
       "type": "string"
     },
     {
@@ -47,8 +47,8 @@
               "raw": "{\n  \"firstName\": \"Alexander\",\n  \"middleName\": \"J.\",\n  \"lastName\": \"Vance\",\n  \"email\": \"vance.landlord@example.com\",\n  \"password\": \"password123\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/auth/signup",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{base-url}}/api/auth/signup",
+              "host": ["{{base-url}}"],
               "path": ["api", "auth", "signup"]
             }
           }
@@ -80,8 +80,8 @@
               "raw": "{\n  \"email\": \"vance.landlord@example.com\",\n  \"password\": \"password123\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/auth/login",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{base-url}}/api/auth/login",
+              "host": ["{{base-url}}"],
               "path": ["api", "auth", "login"]
             }
           }
@@ -99,8 +99,8 @@
               { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/landlord/onboarding/status",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{base-url}}/api/landlord/onboarding/status",
+              "host": ["{{base-url}}"],
               "path": ["api", "landlord", "onboarding", "status"]
             }
           }
@@ -118,8 +118,8 @@
               "raw": "{\n  \"plan\": \"pro\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/landlord/onboarding/plan",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{base-url}}/api/landlord/onboarding/plan",
+              "host": ["{{base-url}}"],
               "path": ["api", "landlord", "onboarding", "plan"]
             }
           }
@@ -152,8 +152,8 @@
               "raw": "{\n  \"name\": \"Grand Horizon Towers\",\n  \"address\": \"500 Ocean Avenue, Suite 100\",\n  \"city\": \"Metro Area\",\n  \"category\": \"Luxury\",\n  \"image\": \"/images/property-1.jpg\",\n  \"featured\": true\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/landlord/onboarding/properties",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{base-url}}/api/landlord/onboarding/properties",
+              "host": ["{{base-url}}"],
               "path": ["api", "landlord", "onboarding", "properties"]
             }
           }
@@ -186,8 +186,8 @@
               "raw": "{\n  \"propertyId\": \"{{property_id}}\",\n  \"label\": \"Unit 24B\",\n  \"monthlyRent\": 2800,\n  \"bedrooms\": 2,\n  \"bathrooms\": 2,\n  \"sqft\": 1000,\n  \"status\": \"vacant\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/landlord/onboarding/units",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{base-url}}/api/landlord/onboarding/units",
+              "host": ["{{base-url}}"],
               "path": ["api", "landlord", "onboarding", "units"]
             }
           }
@@ -220,8 +220,8 @@
               "raw": "{\n  \"firstName\": \"Sophia\",\n  \"middleName\": \"\",\n  \"lastName\": \"Lin\",\n  \"email\": \"sophia.lin@example.com\",\n  \"unitId\": \"{{unit_id}}\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/landlord/onboarding/tenants",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{base-url}}/api/landlord/onboarding/tenants",
+              "host": ["{{base-url}}"],
               "path": ["api", "landlord", "onboarding", "tenants"]
             }
           }
@@ -239,8 +239,8 @@
               "raw": "{\n  \"firstName\": \"Liam\",\n  \"middleName\": \"\",\n  \"lastName\": \"Carter\",\n  \"email\": \"liam.carter@example.com\",\n  \"unitId\": \"pre_add_unassigned\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/landlord/onboarding/tenants",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{base-url}}/api/landlord/onboarding/tenants",
+              "host": ["{{base-url}}"],
               "path": ["api", "landlord", "onboarding", "tenants"]
             }
           }
@@ -258,8 +258,8 @@
               "raw": "{\n  \"title\": \"Welcome to our new Property Portal! 🚀\",\n  \"content\": \"We are thrilled to launch our new tenant and property management system. Please explore your dashboard and let us know if you have any questions.\",\n  \"category\": \"General\",\n  \"isPinned\": true\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/landlord/onboarding/announcement",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{base-url}}/api/landlord/onboarding/announcement",
+              "host": ["{{base-url}}"],
               "path": ["api", "landlord", "onboarding", "announcement"]
             }
           }
@@ -272,8 +272,8 @@
               { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/landlord/onboarding/status",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{base-url}}/api/landlord/onboarding/status",
+              "host": ["{{base-url}}"],
               "path": ["api", "landlord", "onboarding", "status"]
             }
           }
@@ -296,8 +296,8 @@
               "raw": "{\n  \"plan\": \"pro\",\n  \"properties\": [\n    {\n      \"tempId\": \"prop-batch-1\",\n      \"name\": \"Skyline Heights Residences\",\n      \"address\": \"1200 Sunset Boulevard\",\n      \"city\": \"Westside Metro\",\n      \"category\": \"Luxury\"\n    }\n  ],\n  \"units\": [\n    {\n      \"tempId\": \"unit-batch-101\",\n      \"propertyTempId\": \"prop-batch-1\",\n      \"label\": \"Penthouse 12A\",\n      \"monthlyRent\": 3500,\n      \"bedrooms\": 3,\n      \"bathrooms\": 2,\n      \"sqft\": 1450\n    },\n    {\n      \"tempId\": \"unit-batch-102\",\n      \"propertyTempId\": \"prop-batch-1\",\n      \"label\": \"Suite 4B\",\n      \"monthlyRent\": 2200,\n      \"bedrooms\": 1,\n      \"bathrooms\": 1,\n      \"sqft\": 750\n    }\n  ],\n  \"tenants\": [\n    {\n      \"firstName\": \"Maya\",\n      \"middleName\": \"Rose\",\n      \"lastName\": \"Patel\",\n      \"email\": \"maya.patel@example.com\",\n      \"unitTempId\": \"unit-batch-101\"\n    },\n    {\n      \"firstName\": \"Ethan\",\n      \"middleName\": \"\",\n      \"lastName\": \"Walker\",\n      \"email\": \"ethan.walker@example.com\",\n      \"unitTempId\": \"pre_add_unassigned\"\n    }\n  ],\n  \"announcement\": {\n    \"title\": \"Welcome to Skyline Heights Portal! 🏢\",\n    \"content\": \"Our digital tenant portal is now live. Access unit leases, receipts, and maintenance tickets here.\",\n    \"category\": \"General\",\n    \"isPinned\": true\n  }\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/landlord/onboarding/complete",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{base-url}}/api/landlord/onboarding/complete",
+              "host": ["{{base-url}}"],
               "path": ["api", "landlord", "onboarding", "complete"]
             }
           }
@@ -320,8 +320,8 @@
               "raw": "{\n  \"plan\": \"non_existing_tier\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/landlord/onboarding/plan",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{base-url}}/api/landlord/onboarding/plan",
+              "host": ["{{base-url}}"],
               "path": ["api", "landlord", "onboarding", "plan"]
             }
           }
@@ -339,8 +339,8 @@
               "raw": "{\n  \"name\": \"\",\n  \"address\": \"\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/landlord/onboarding/properties",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{base-url}}/api/landlord/onboarding/properties",
+              "host": ["{{base-url}}"],
               "path": ["api", "landlord", "onboarding", "properties"]
             }
           }
@@ -358,8 +358,8 @@
               "raw": "{\n  \"firstName\": \"Alex\",\n  \"lastName\": \"Smith\",\n  \"email\": \"invalid-email-format\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/landlord/onboarding/tenants",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{base-url}}/api/landlord/onboarding/tenants",
+              "host": ["{{base-url}}"],
               "path": ["api", "landlord", "onboarding", "tenants"]
             }
           }
@@ -370,8 +370,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/landlord/onboarding/status",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{base-url}}/api/landlord/onboarding/status",
+              "host": ["{{base-url}}"],
               "path": ["api", "landlord", "onboarding", "status"]
             }
           }

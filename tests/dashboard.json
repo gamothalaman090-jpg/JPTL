@@ -1,6 +1,6 @@
 {
   "info": {
-    "name": "JPTL – Dashboard API",
+    "name": "Dashboard Module",
     "description": "Test collection for landlord and tenant dashboard endpoints.\nAuthenticate first, then copy the returned token into the Authorization variable.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
@@ -31,7 +31,7 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"email\": \"juan.delacruz@example.com\",\n  \"password\": \"password123\"\n}"
+          "raw": "{\n  \"email\": \"vance.landlord@example.com\",\n  \"password\": \"password123\"\n}"
         },
         "url": {
           "raw": "{{base_url}}/api/auth/login",
