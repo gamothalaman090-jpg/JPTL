@@ -6,6 +6,7 @@ import authRoutes from './src/modules/auth/auth.routes.js';
 import landlordAnnouncementRoutes from './src/modules/landlord/announcements/announcements.routes.js';
 import landlordOnboardingRoutes from './src/modules/landlord/onboarding/onboarding.routes.js';
 import landlordDashRoutes from './src/modules/landlord/dash/dash.routers.js';
+import landlordTenantDirectoryRoutes from './src/modules/landlord/tenantdirectory/tenantdirectory.routes.js';
 import tenantAnnouncementRoutes from './src/modules/tenant/announcements/announcements.routes.js';
 import tenantDashRoutes from './src/modules/tenant/dash/dash.routers.js';
 
@@ -28,6 +29,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/landlord/dash', landlordDashRoutes);
 app.use('/api/landlord/onboarding', landlordOnboardingRoutes);
 app.use('/api/landlord/announcements', landlordAnnouncementRoutes);
+app.use('/api/landlord/tenantdirectory', landlordTenantDirectoryRoutes);
 
 // Tenant routes
 app.use('/api/tenant/dash', tenantDashRoutes);
