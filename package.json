@@ -1,0 +1,36 @@
+{
+  "name": "jptl",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:functional": "playwright test",
+    "test:postman": "newman run tests/auth.json && newman run tests/dashboard.json && newman run tests/onboarding.json && newman run tests/rentroll.json && newman run tests/tenantdirectory.json && newman run tests/tenantpayments.json",
+    "test:integration": "npm run test:integration --prefix apps/server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gamothalaman090-jpg/JPTL.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/gamothalaman090-jpg/JPTL/issues"
+  },
+  "homepage": "https://github.com/gamothalaman090-jpg/JPTL#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "axios": "^1.20.0",
+    "dotenv": "^17.4.2",
+    "newman": "^6.2.2",
+    "newman-reporter-htmlextra": "^1.23.1",
+    "zaproxy": "^2.0.0-rc.7"
+  }
+}
