@@ -26,6 +26,18 @@ const tenantProfileSchema = new mongoose.Schema(
       enum: ['active', 'pre_added', 'evicted', 'past'],
       default: 'pre_added',
     },
+    autoPayEnabled: { type: Boolean, default: true },
+    securityDeposit: { type: Number, default: 0 },
+    paymentMethods: [
+      {
+        id: { type: String },
+        brand: { type: String },
+        last4: { type: String },
+        type: { type: String }, // 'card' or 'ach'
+        isDefault: { type: Boolean, default: false },
+        expiry: { type: String },
+      },
+    ],
   },
   { timestamps: true }
 );

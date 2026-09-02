@@ -1,0 +1,423 @@
+{
+  "info": {
+    "name": "Tenant – Rent & Payments Ledger Module",
+    "description": "Postman/Bruno test collection for Tenant Rent & Payments endpoints in JPTL.\nIncludes itemized monthly statements, paying monthly rent (Credit Card & ACH simulations), official tax receipt inspection, auto-pay schedule management, saved payment methods, and role guards.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
+    { "key": "tenant_token", "value": "<paste token here>", "type": "string" },
+    { "key": "landlord_token", "value": "<paste token here>", "type": "string" },
+    { "key": "sample_payment_id", "value": "", "type": "string" },
+    { "key": "paid_transaction_id", "value": "", "type": "string" },
+    { "key": "created_method_id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "00. Auth – Login as Tenant",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "const token = res.token || (res.data && res.data.token);",
+              "if (token) {",
+              "  pm.collectionVariables.set('tenant_token', token);",
+              "  console.log('Tenant token saved.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"sophia.lin@example.com\",\n  \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "00. Auth – Login as Landlord",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "const token = res.token || (res.data && res.data.token);",
+              "if (token) {",
+              "  pm.collectionVariables.set('landlord_token', token);",
+              "  console.log('Landlord token saved.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"vance.landlord@example.com\",\n  \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "1. Get Tenant Ledger & Monthly Statement",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Contains statement, escrow, autopay and history', function () {",
+              "    pm.expect(res.success).to.be.true;",
+              "    pm.expect(res.data).to.have.property('currentStatement');",
+              "    pm.expect(res.data).to.have.property('escrow');",
+              "    pm.expect(res.data).to.have.property('autoPay');",
+              "    pm.expect(res.data).to.have.property('history');",
+              "});",
+              "if (res.data && res.data.history && res.data.history.length > 0) {",
+              "  pm.collectionVariables.set('sample_payment_id', res.data.history[0].paymentId || res.data.history[0].id);",
+              "  pm.collectionVariables.set('paid_transaction_id', res.data.history[0].id);",
+              "  console.log('Saved sample transaction ID:', res.data.history[0].id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tenant_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/tenant/payments",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "payments"]
+        },
+        "description": "Returns full tenant payment dashboard including itemized statement breakdown (base rent, parking, utility), security escrow info, autopay status, and transaction history."
+      }
+    },
+    {
+      "name": "2. Pay Monthly Rent – Credit / Debit Card (Includes Fee)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Receipt generated with transactionId', function () {",
+              "    pm.expect(res.success).to.be.true;",
+              "    pm.expect(res.data).to.have.property('transactionId');",
+              "    pm.expect(res.data.status).to.equal('paid');",
+              "});",
+              "if (res.data && res.data.transactionId) {",
+              "  pm.collectionVariables.set('paid_transaction_id', res.data.transactionId);",
+              "  console.log('Saved paid_transaction_id:', res.data.transactionId);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tenant_token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"paymentMethod\": \"card\",\n  \"cardLast4\": \"4242\",\n  \"cardBrand\": \"Visa\",\n  \"period\": \"September 2026 Rent\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/tenant/payments/pay",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "payments", "pay"]
+        },
+        "description": "Simulates credit card checkout with card processing fee ($45.00), generates reference transaction ID, and marks payment cleared."
+      }
+    },
+    {
+      "name": "3. Pay Monthly Rent – Bank ACH (0% Fee)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Receipt generated for ACH transfer', function () {",
+              "    pm.expect(res.success).to.be.true;",
+              "    pm.expect(res.data.method).to.include('ACH');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tenant_token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"paymentMethod\": \"ach\",\n  \"period\": \"October 2026 Rent\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/tenant/payments/pay",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "payments", "pay"]
+        },
+        "description": "Simulates bank ACH checkout (0% processing fee)."
+      }
+    },
+    {
+      "name": "4. Get Official Tax Receipt by Transaction ID",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Receipt has itemized line items and company signature', function () {",
+              "    pm.expect(res.data).to.have.property('receiptId');",
+              "    pm.expect(res.data).to.have.property('amount');",
+              "    pm.expect(res.data).to.have.property('company');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tenant_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/tenant/payments/latest/receipt",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "payments", "latest", "receipt"]
+        },
+        "description": "Retrieves the printable and formal tax receipt for the latest or specified payment."
+      }
+    },
+    {
+      "name": "5. Toggle Auto-Pay Setting",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Auto-pay status toggled', function () {",
+              "    pm.expect(res.data.autoPayEnabled).to.be.a('boolean');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tenant_token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"enabled\": true\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/tenant/payments/autopay",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "payments", "autopay"]
+        },
+        "description": "Toggles auto-pay setting between active and disabled."
+      }
+    },
+    {
+      "name": "6. Get Saved Payment Methods",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Returns payment methods array', function () {",
+              "    pm.expect(res.data).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tenant_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/tenant/payments/methods",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "payments", "methods"]
+        },
+        "description": "Retrieves saved debit cards, credit cards, and ACH accounts for the tenant."
+      }
+    },
+    {
+      "name": "7. Add New Payment Method",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "if (res.data && res.data.id) {",
+              "  pm.collectionVariables.set('created_method_id', res.data.id);",
+              "  console.log('Saved created_method_id:', res.data.id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tenant_token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"brand\": \"Mastercard\",\n  \"last4\": \"8821\",\n  \"type\": \"card\",\n  \"expiry\": \"11/29\",\n  \"isDefault\": false\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/tenant/payments/methods",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "payments", "methods"]
+        },
+        "description": "Adds a new credit card or ACH payment instrument."
+      }
+    },
+    {
+      "name": "8. Delete Saved Payment Method",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Payment method removed', function () {",
+              "    pm.expect(res.success).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tenant_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/tenant/payments/methods/{{created_method_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "payments", "methods", "{{created_method_id}}"]
+        },
+        "description": "Removes a saved payment instrument from the tenant profile."
+      }
+    },
+    {
+      "name": "9. Security Guard – Landlord Forbidden from Tenant Payments",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 403 Forbidden', function () {",
+              "    pm.response.to.have.status(403);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/tenant/payments",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "payments"]
+        },
+        "description": "Ensures landlords cannot access tenant payment endpoints (403 Forbidden)."
+      }
+    },
+    {
+      "name": "10. Security Guard – Unauthenticated Request Blocked",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 401 Unauthorized', function () {",
+              "    pm.response.to.have.status(401);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/api/tenant/payments",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "payments"]
+        },
+        "description": "Ensures requests missing Authorization headers are rejected (401 Unauthorized)."
+      }
+    }
+  ]
+}

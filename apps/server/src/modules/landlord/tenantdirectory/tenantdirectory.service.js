@@ -1,5 +1,5 @@
 import User from '../../../shared/models/user.model.js';
-import TenantProfile from '../../../shared/models/tenatntProfile.model.js';
+import TenantProfile from '../../../shared/models/tenantProfile.model.js';
 import Unit from '../../../shared/models/unit.model.js';
 import Property from '../../../shared/models/property.model.js';
 import Ticket from '../../../shared/models/ticket.model.js';
