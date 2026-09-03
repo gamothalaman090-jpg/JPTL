@@ -22,7 +22,7 @@ This document tracks the implementation status of all platform modules across **
 | **`[x]`** | **Maintenance Ticketing** | `Created` | `Created` | Dedicated backend API (`/api/landlord/tickets`) for status transitions (`submitted` ➔ `acknowledged` ➔ `in_progress` ➔ `resolved`), technician dispatch, and queue filters. |
 | **`[x]`** | **Properties & Units Management** | `Created` | `Created` | Full CRUD for properties and units + **Delete Property** (`DELETE /api/landlord/properties/:id`) with safety & vacancy checks. |
 | **`[x]`** | **Tenants Directory** | `Created` | `Created` | Create tenant account (auto-hash password, assign unit, invite) via `/api/landlord/tenantdirectory`. |
-| **`[!]`** | **Resident Compliance Vault** | `Created (UI)` | `Missing (API)` | **Needs Backend Integration**: UI has document inspection & verification modal (`LandlordDocumentsTab`), but lacks backend endpoints (`/api/landlord/documents`). |
+| **`[x]`** | **Resident Compliance Vault** | `Created` | `Created` | Compliance queue with metrics, Cloudinary integration (`/api/landlord/documents`), and status verification/rejection workflow (`PATCH /api/landlord/documents/:id/verify`). |
 
 ---
 
@@ -34,7 +34,7 @@ This document tracks the implementation status of all platform modules across **
 | **`[x]`** | **Rent & Payments** | `Created` | `Created` | Full ledger, checkout modal, auto-pay toggle, saved payment methods (`/api/tenant/payments`). |
 | **`[x]`** | **Maintenance (Ticketing)** | `Created` | `Created` | Issue submission (`POST /api/tenant/tickets`), live status timeline, cancellation, and technician details. |
 | **`[x]`** | **Lease Management** | `Created` | `Created` | Digital contract inspection (`GET /api/tenant/lease`), renewal request submission (`POST /api/tenant/lease/extension`), and landlord approval workflow (`PATCH /api/landlord/lease/:id/extensions/:reqId/review`). |
-| **`[!]`** | **Documents & Verification** | `Created (UI)` | `Missing (API)` | **Needs Backend Integration**: Document submission modal (`SubmitDocumentModal`) needs Cloudinary upload & `/api/tenant/documents` API. |
+| **`[x]`** | **Documents & Verification** | `Created` | `Created` | Document submission (`POST /api/tenant/documents`) with Cloudinary upload integration / fallback, document query, and removal. |
 
 ---
 
@@ -50,13 +50,16 @@ This document tracks the implementation status of all platform modules across **
 
 ## 📋 Summary of Next Tasks
 
-### High Priority
-1. **Documents / Compliance Vault API**: Create `/api/tenant/documents` (upload/submit) and `/api/landlord/documents` (approve/reject compliance items with Cloudinary storage).
-2. **Superadmin Portal Dashboard & API**:
-   - Build `/api/superadmin/audit-logs` (platform-wide logs)
-   - Build `/api/superadmin/users` (suspend/reactivate users)
-   - Build `/api/superadmin/landlords` (platform landlord oversight)
-   - Build `SuperadminPage.jsx` in client
+### 🎯 Current Progress:
+- **Landlord Portal**: `7 / 7 Modules Completed (100%)`
+- **Tenant Portal**: `5 / 5 Modules Completed (100%)`
+- **Superadmin Portal**: `0 / 3 Modules Completed (Pending)`
+
+### Remaining Tasks (Superadmin Portal)
+1. **System & Audit Logs**: Build `/api/superadmin/audit-logs` (platform-wide audit trail & system logs).
+2. **User Management**: Build `/api/superadmin/users` (cross-role directory, account suspension/reactivation toggle).
+3. **Landlord Management**: Build `/api/superadmin/landlords` (platform-wide landlord oversight and portfolio metrics).
+4. **Superadmin Frontend**: Build `apps/client/src/pages/SuperadminPage.jsx` with tabs for Logs, Users, and Landlords.
 
 ---
 

@@ -17,25 +17,28 @@ Manages tenant compliance documents (renter's insurance, government photo ID, pr
 
 ### Backend (`apps/server/src`)
 - **Shared Model**: `shared/models/document.model.js`
-- **Planned Controller & Service**: `modules/landlord/documents/` and `modules/tenant/documents/`
-  - Integrated with Cloudinary for file storage persistence.
+- **Cloudinary Integration**: `shared/config/cloudinary.js`
+  - Uses `process.env.CLOUDINARY_CLOUD_NAME`, `process.env.CLOUDINARY_API_KEY`, and `process.env.CLOUDINARY_API_SECRET`.
+  - When environment variables are not yet populated, gracefully provides simulated secure asset URLs for testing and development.
+- **Tenant Module**: `modules/tenant/documents/` (`documents.service.js`, `documents.controller.js`, `documents.routes.js`)
+- **Landlord Module**: `modules/landlord/documents/` (`documents.service.js`, `documents.controller.js`, `documents.routes.js`)
 
 ---
 
-## 3. Planned API Endpoints Reference
+## 3. API Endpoints Reference
 
 ### Landlord Compliance Vault (`/api/landlord/documents`)
 | Method | Endpoint | Access | Description |
 |---|---|---|---|
-| `GET`   | `/api/landlord/documents` | Landlord | List all compliance records for all managed tenants |
-| `GET`   | `/api/landlord/documents/:id` | Landlord | View document details and secure Cloudinary URL |
-| `PATCH` | `/api/landlord/documents/:id/verify` | Landlord | Approve document or reject with required feedback note |
+| `GET`    | `/api/landlord/documents` | Landlord | List all compliance records for all managed tenants with filtering & metrics |
+| `PATCH`  | `/api/landlord/documents/:id/verify` | Landlord | Approve document (`Verified`) or reject with feedback note (`Rejected`) |
+| `DELETE` | `/api/landlord/documents/:id` | Landlord | Delete document record from compliance vault |
 
 ### Tenant Documents API (`/api/tenant/documents`)
 | Method | Endpoint | Access | Description |
 |---|---|---|---|
-| `GET`  | `/api/tenant/documents` | Tenant | List tenant's own uploaded documents and compliance status |
-| `POST` | `/api/tenant/documents` | Tenant | Upload new compliance document to Cloudinary and register in database |
+| `GET`    | `/api/tenant/documents` | Tenant | List tenant's own uploaded documents and compliance status |
+| `POST`   | `/api/tenant/documents` | Tenant | Upload new compliance document (insurance, ID, income) with Cloudinary persistence |
 | `DELETE` | `/api/tenant/documents/:id` | Tenant | Delete pending / unverified document |
 
 ---

@@ -11,11 +11,13 @@ import landlordRentRollRoutes from './src/modules/landlord/rentroll/rentroll.rou
 import landlordPropertyRoutes from './src/modules/landlord/properties/properties.routes.js';
 import landlordTicketRoutes from './src/modules/landlord/tickets/tickets.routes.js';
 import landlordLeaseRoutes from './src/modules/landlord/lease/lease.routes.js';
+import landlordDocumentRoutes from './src/modules/landlord/documents/documents.routes.js';
 import tenantAnnouncementRoutes from './src/modules/tenant/announcements/announcements.routes.js';
 import tenantDashRoutes from './src/modules/tenant/dash/dash.routers.js';
 import tenantPaymentsRoutes from './src/modules/tenant/payments/payments.routes.js';
 import tenantTicketRoutes from './src/modules/tenant/tickets/tickets.routes.js';
 import tenantLeaseRoutes from './src/modules/tenant/lease/lease.routes.js';
+import tenantDocumentRoutes from './src/modules/tenant/documents/documents.routes.js';
 
 const app = express();
 
@@ -38,6 +40,7 @@ app.use('/api/landlord/onboarding', landlordOnboardingRoutes);
 app.use('/api/landlord/properties', landlordPropertyRoutes);
 app.use('/api/landlord/tickets', landlordTicketRoutes);
 app.use('/api/landlord/lease', landlordLeaseRoutes);
+app.use('/api/landlord/documents', landlordDocumentRoutes);
 app.use('/api/landlord/announcements', landlordAnnouncementRoutes);
 app.use('/api/landlord/tenantdirectory', landlordTenantDirectoryRoutes);
 app.use('/api/landlord/rentroll', landlordRentRollRoutes);
@@ -48,5 +51,6 @@ app.use('/api/tenant/announcements', tenantAnnouncementRoutes);
 app.use('/api/tenant/payments', tenantPaymentsRoutes);
 app.use('/api/tenant/tickets', tenantTicketRoutes);
 app.use('/api/tenant/lease', tenantLeaseRoutes);
+app.use('/api/tenant/documents', tenantDocumentRoutes);
 
 export default app;
