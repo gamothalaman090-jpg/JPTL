@@ -202,6 +202,25 @@ Security tests verify Role-Based Access Control (RBAC), JWT authentication verif
 - **Unauthenticated requests** (No JWT cookie) ➔ **`401 Unauthorized`**.
 - **Cross-Landlord Data Isolation**: A landlord cannot query or delete properties belonging to another landlord ID ➔ **`403 Forbidden` / `404 Not Found`**.
 
+### 5.2 Rate Limiting & DoS Protection (`express-rate-limit`)
+- **Global API Limiter**: 300 requests per 15-minute window per IP (`/api/*`).
+- **Strict Auth Limiter**: 20 authentication attempts per 15-minute window (`/api/auth/*`) to prevent credential stuffing and brute-force attacks.
+- **Action Limiter**: 60 actions per 15 minutes for high-cost operations (payment transactions, document uploads).
+- When a client breaches the rate limit, the API returns:
+  `HTTP 429 Too Many Requests` with `{ success: false, message: "..." }`.
+
+---
+
+## ⚡ 6. Multi-Core Concurrency & Server Clustering (`node:cluster`)
+
+The HTTP backend automatically scales across available hardware CPU cores using Node.js's native `node:cluster` module:
+- **Primary Process (Master)**: Probes system cores (`os.availableParallelism()` / `os.cpus().length`) and spawns dedicated worker threads.
+- **Worker Processes**: Each worker thread maintains its own database connection and accepts incoming HTTP connections on the shared port (`PORT=8000`) via kernel round-robin distribution.
+- **Self-Healing / Zero Downtime**: If any worker crashes or receives a fatal signal, the Primary process immediately spawns a replacement worker (`cluster.fork()`).
+- **Environment Variables**:
+  - `ENABLE_CLUSTER=false` — Disables clustering (runs as a single process for local low-memory debugging).
+  - `WORKERS=N` — Explicitly defines the number of spawned worker processes (defaults to available CPU cores, capped at 4 for standard VPS sizing).
+
 ### 5.2 Dynamic Security Scan via OWASP ZAP CLI / Docker
 Run a baseline security scan against the running API:
 ```bash

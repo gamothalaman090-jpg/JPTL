@@ -18,6 +18,7 @@ import tenantPaymentsRoutes from './src/modules/tenant/payments/payments.routes.
 import tenantTicketRoutes from './src/modules/tenant/tickets/tickets.routes.js';
 import tenantLeaseRoutes from './src/modules/tenant/lease/lease.routes.js';
 import tenantDocumentRoutes from './src/modules/tenant/documents/documents.routes.js';
+import { generalLimiter, authLimiter } from './src/shared/middleware/rateLimiter.middleware.js';
 
 const app = express();
 
@@ -26,13 +27,16 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 
+// Apply global rate limiting for all API routes
+app.use('/api', generalLimiter);
+
 // Health check route
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
 
-// Authentication routes
-app.use('/api/auth', authRoutes);
+// Authentication routes with strict brute-force rate limiter
+app.use('/api/auth', authLimiter, authRoutes);
 
 // Landlord routes
 app.use('/api/landlord/dash', landlordDashRoutes);
