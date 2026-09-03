@@ -33,27 +33,31 @@ On every status transition:
 
 ### Backend (`apps/server/src`)
 - **Shared Model**: `shared/models/ticket.model.js`
-- **Planned Controller & Service**: `modules/landlord/tickets/` and `modules/tenant/tickets/`
-  - Routes: `GET /api/landlord/tickets`, `PATCH /api/landlord/tickets/:id/status`, `POST /api/tenant/tickets`.
+- **Landlord Module**: `modules/landlord/tickets/` (`tickets.routes.js`, `tickets.controller.js`, `tickets.service.js`)
+- **Tenant Module**: `modules/tenant/tickets/` (`tickets.routes.js`, `tickets.controller.js`, `tickets.service.js`)
 
 ---
 
-## 4. Planned API Endpoints Reference
+## 4. API Endpoints Reference
 
 ### Landlord Maintenance API (`/api/landlord/tickets`)
 | Method | Endpoint | Access | Description |
 |---|---|---|---|
-| `GET`   | `/api/landlord/tickets` | Landlord | List all tickets for landlord's properties with priority/status filters |
-| `GET`   | `/api/landlord/tickets/:id` | Landlord | Get ticket details, photos, and conversation history |
-| `PATCH` | `/api/landlord/tickets/:id/status` | Landlord | Transition ticket status (`acknowledged`, `in_progress`, `resolved`, `rejected`) |
-| `POST`  | `/api/landlord/tickets/:id/assign` | Landlord | Assign external technician and set estimated arrival |
+| `GET`    | `/api/landlord/tickets` | Landlord | List all tickets for landlord's properties with metrics & filters |
+| `POST`   | `/api/landlord/tickets` | Landlord | Create a maintenance ticket for any managed unit |
+| `GET`    | `/api/landlord/tickets/:id` | Landlord | Get ticket details, photos, and status history |
+| `PATCH`  | `/api/landlord/tickets/:id/status` | Landlord | Transition ticket status (`acknowledged`, `in_progress`, `resolved`, `rejected`) |
+| `PATCH`  | `/api/landlord/tickets/:id/assign` | Landlord | Assign external technician and transition status to `in_progress` |
+| `DELETE` | `/api/landlord/tickets/:id` | Landlord | Delete / remove a ticket |
 
 ### Tenant Maintenance API (`/api/tenant/tickets`)
 | Method | Endpoint | Access | Description |
 |---|---|---|---|
-| `GET`  | `/api/tenant/tickets` | Tenant | List all tickets submitted for the tenant's current unit |
-| `POST` | `/api/tenant/tickets` | Tenant | Submit a new maintenance ticket with photo attachments |
-| `POST` | `/api/tenant/tickets/:id/comments` | Tenant | Post comment or update on an open ticket |
+| `GET`    | `/api/tenant/tickets` | Tenant | List all tickets submitted for the tenant's unit |
+| `POST`   | `/api/tenant/tickets` | Tenant | Submit a new maintenance ticket with category and photo attachments |
+| `GET`    | `/api/tenant/tickets/:id` | Tenant | View specific ticket details |
+| `PATCH`  | `/api/tenant/tickets/:id/cancel` | Tenant | Cancel a submitted ticket |
+| `POST`   | `/api/tenant/tickets/:id/comments` | Tenant | Post comment / update note on a ticket |
 
 ---
 

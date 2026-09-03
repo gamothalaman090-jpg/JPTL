@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Building2, UserPlus, Users, Search, Home, LogOut, ShieldCheck, ArrowUpRight, 
   Sun, Moon, Sparkles, Megaphone, Wrench, DollarSign, X, Bell, ArrowRight,
-  TrendingUp, CheckCircle2, Clock, AlertCircle
+  TrendingUp, CheckCircle2, Clock, AlertCircle, Trash2, Layers, MapPin
 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { 
@@ -27,7 +27,7 @@ import { DashboardSidebar } from '../components/dashboard/DashboardSidebar';
 import { RightNotificationSidebar } from '../components/dashboard/RightNotificationSidebar';
 import { LandlordSettingsTab } from '../components/dashboard/LandlordSettingsTab';
 import { LandlordDocumentsTab } from '../components/dashboard/LandlordDocumentsTab';
-
+import { DeletePropertyModal } from '../components/dashboard/DeletePropertyModal';
 import { AddPropertyOrUnitModal } from '../components/dashboard/AddPropertyOrUnitModal';
 
 export const DashboardPage = ({ onNavigate = () => {} }) => {
@@ -118,9 +118,15 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
   const [isNewAnnouncementOpen, setIsNewAnnouncementOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
+  // Property / Unit Sub-Tab & Delete Property State
+  const [propSubTab, setPropSubTab] = useState('properties'); // 'properties' | 'units'
+  const [selectedPropertyForDelete, setSelectedPropertyForDelete] = useState(null);
+  const [toastNotification, setToastNotification] = useState(null);
+
   // Property / Unit Creation Modal
   const [isAddPropUnitOpen, setIsAddPropUnitOpen] = useState(false);
   const [addPropUnitTab, setAddPropUnitTab] = useState('unit');
+  const [addPropPreselectedPropertyId, setAddPropPreselectedPropertyId] = useState(null);
 
   const handleDashboardPropertyCreated = (newProp) => {
     setProperties((prev) => {
@@ -133,6 +139,8 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
       }
       return updated;
     });
+    setToastNotification(`Property "${newProp.name}" created successfully!`);
+    setTimeout(() => setToastNotification(null), 4000);
   };
 
   const handleDashboardUnitCreated = (newUnit) => {
@@ -146,6 +154,48 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
       }
       return updated;
     });
+    setToastNotification(`Unit "${newUnit.label}" created successfully!`);
+    setTimeout(() => setToastNotification(null), 4000);
+  };
+
+  const handleDeleteProperty = (propertyId) => {
+    const propToDelete = properties.find((p) => p.id === propertyId);
+    const propName = propToDelete ? propToDelete.name : 'Property';
+
+    // Remove property
+    setProperties((prev) => {
+      const updated = prev.filter((p) => p.id !== propertyId);
+      try {
+        const customOnly = updated.filter((p) => p.id.startsWith('prop-custom-'));
+        sessionStorage.setItem('jptl_custom_properties', JSON.stringify(customOnly));
+      } catch (e) {
+        console.error(e);
+      }
+      return updated;
+    });
+
+    // Remove vacant units belonging to this property
+    setUnits((prev) => {
+      const updated = prev.filter((u) => u.propertyId !== propertyId && u.property !== propertyId);
+      try {
+        const customOnly = updated.filter((u) => u.id.startsWith('unit-custom-'));
+        sessionStorage.setItem('jptl_custom_units', JSON.stringify(customOnly));
+      } catch (e) {
+        console.error(e);
+      }
+      return updated;
+    });
+
+    setToastNotification(`Property "${propName}" and its vacant units were deleted.`);
+    setTimeout(() => setToastNotification(null), 4500);
+  };
+
+  const handleUpdateTicketStatus = (ticketId, newStatus, updatedTicket) => {
+    setTickets((prev) =>
+      prev.map((t) => (t.id === ticketId ? (updatedTicket || { ...t, status: newStatus }) : t))
+    );
+    setToastNotification(`Ticket status updated to "${newStatus.replace('_', ' ')}"`);
+    setTimeout(() => setToastNotification(null), 3500);
   };
 
   // ⌘K shortcut
@@ -452,71 +502,245 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h1 className="text-2xl font-extrabold font-grotesk text-slate-900 dark:text-white">Properties & Units</h1>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Manage your real estate portfolio — {units.length} total units across {MOCK_PROPERTIES.length} properties.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Manage your real estate portfolio — {units.length} total units across {properties.length} properties.
+                  </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <button onClick={() => { setAddPropUnitTab('unit'); setIsAddPropUnitOpen(true); }} className="px-4 py-2.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 text-xs font-bold font-grotesk btn-press flex items-center gap-2">
+                  <button
+                    onClick={() => { setAddPropPreselectedPropertyId(null); setAddPropUnitTab('property'); setIsAddPropUnitOpen(true); }}
+                    className="px-4 py-2.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 text-xs font-bold font-grotesk btn-press flex items-center gap-2"
+                  >
                     <Building2 className="w-4 h-4 text-indigo-500" /> + Add Property / Unit
                   </button>
-                  <button onClick={() => onNavigate('/onboarding?step=2')} className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 text-xs font-semibold btn-press flex items-center gap-2">
+                  <button
+                    onClick={() => onNavigate('/onboarding?step=2')}
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 text-xs font-semibold btn-press flex items-center gap-2"
+                  >
                     <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Onboarding Wizard
                   </button>
-                  <button onClick={() => handleOpenAddTenant()} className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold font-grotesk btn-press flex items-center gap-2 shadow-md shadow-indigo-600/20">
+                  <button
+                    onClick={() => handleOpenAddTenant()}
+                    className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold font-grotesk btn-press flex items-center gap-2 shadow-md shadow-indigo-600/20"
+                  >
                     <UserPlus className="w-4 h-4" /> + Add Tenant
                   </button>
                 </div>
               </div>
 
-              {/* Search & Filter Bar */}
-              <div className="flex items-center gap-3">
-                <div className="relative flex-1 max-w-sm">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
-                  <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search units…"
-                    className="w-full bg-white dark:bg-[#10131F] border border-slate-300 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
+              {/* Sub-view Segmented Switcher */}
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div className="flex items-center gap-2 p-1 rounded-xl bg-slate-200/60 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                  <button
+                    onClick={() => setPropSubTab('properties')}
+                    className={`px-4 py-1.5 rounded-lg text-xs font-bold font-grotesk flex items-center gap-2 transition-all ${
+                      propSubTab === 'properties'
+                        ? 'bg-white dark:bg-indigo-600 text-slate-900 dark:text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <Building2 className="w-3.5 h-3.5" />
+                    Properties ({properties.length})
+                  </button>
+                  <button
+                    onClick={() => setPropSubTab('units')}
+                    className={`px-4 py-1.5 rounded-lg text-xs font-bold font-grotesk flex items-center gap-2 transition-all ${
+                      propSubTab === 'units'
+                        ? 'bg-white dark:bg-indigo-600 text-slate-900 dark:text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <Layers className="w-3.5 h-3.5" />
+                    All Units ({units.length})
+                  </button>
                 </div>
-                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
-                  className="bg-white dark:bg-[#10131F] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                  <option value="all">All status</option>
-                  <option value="vacant">Vacant ({vacantCount})</option>
-                  <option value="occupied">Occupied ({occupiedCount})</option>
-                </select>
+
+                {propSubTab === 'units' && (
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-64">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search units…"
+                        className="w-full bg-white dark:bg-[#10131F] border border-slate-300 dark:border-slate-800 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                    <select
+                      value={filterStatus}
+                      onChange={(e) => setFilterStatus(e.target.value)}
+                      className="bg-white dark:bg-[#10131F] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="all">All status</option>
+                      <option value="vacant">Vacant ({vacantCount})</option>
+                      <option value="occupied">Occupied ({occupiedCount})</option>
+                    </select>
+                  </div>
+                )}
               </div>
 
-              {/* Units Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {filteredUnits.map((u) => {
-                  const isVacant = u.status === 'vacant';
-                  return (
-                    <div key={u.id} className="top-shade apple-glass rounded-2xl border border-slate-200 dark:border-slate-800/80 p-5 hover:border-indigo-400 dark:hover:border-slate-700 transition-all flex flex-col justify-between space-y-4 shadow-xs">
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">{u.propertyName}</span>
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider font-mono ${isVacant ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20'}`}>
-                            {u.status}
-                          </span>
+              {/* ─── TAB 1: PROPERTIES GRID ─── */}
+              {propSubTab === 'properties' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                  {properties.map((p) => {
+                    const propUnits = units.filter((u) => u.propertyId === p.id || u.property === p.id);
+                    const occupiedUnits = propUnits.filter((u) => u.status === 'occupied').length;
+                    const occRate = propUnits.length > 0 ? Math.round((occupiedUnits / propUnits.length) * 100) : (p.occupancyRate || 0);
+                    const totalGrossRent = propUnits.reduce((sum, u) => sum + (Number(u.monthlyRent) || 0), 0);
+
+                    return (
+                      <div
+                        key={p.id}
+                        className="top-shade apple-glass rounded-3xl border border-slate-200 dark:border-slate-800/80 overflow-hidden hover:border-indigo-400 dark:hover:border-slate-700 transition-all flex flex-col justify-between shadow-sm group"
+                      >
+                        <div>
+                          {/* Property Image & Badge Header */}
+                          <div className="h-32 bg-slate-900 relative overflow-hidden flex items-center justify-center">
+                            <img
+                              src={p.image || '/images/property-1.jpg'}
+                              alt={p.name}
+                              className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-500"
+                              onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=600&q=80'; }}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+                            <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold font-mono uppercase tracking-wider bg-indigo-600/90 text-white backdrop-blur-md shadow-sm">
+                                {p.category || 'Residential'}
+                              </span>
+                              {p.featured && (
+                                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold font-mono bg-amber-500/90 text-white">
+                                  Featured
+                                </span>
+                              )}
+                            </div>
+                            
+                            {/* Delete Property Action Icon */}
+                            <div className="absolute top-3 right-3">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedPropertyForDelete(p);
+                                }}
+                                title="Delete Property"
+                                className="p-2 rounded-xl bg-slate-950/70 hover:bg-rose-600 text-slate-300 hover:text-white backdrop-blur-md transition-all btn-press border border-white/10 shadow-md"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+
+                            <div className="absolute bottom-3 left-3 right-3">
+                              <h3 className="text-base font-bold font-grotesk text-white truncate drop-shadow-sm">
+                                {p.name}
+                              </h3>
+                              <p className="text-[11px] text-slate-300 flex items-center gap-1 mt-0.5 truncate">
+                                <MapPin className="w-3 h-3 text-indigo-400 shrink-0" /> {p.address}, {p.city}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Stats Metrics Matrix */}
+                          <div className="p-4 space-y-3">
+                            <div className="grid grid-cols-3 gap-2 text-center">
+                              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#080B14] border border-slate-200/80 dark:border-slate-800/60">
+                                <span className="text-[10px] font-mono text-slate-500 block">Units</span>
+                                <span className="text-sm font-extrabold font-grotesk text-slate-900 dark:text-white">{propUnits.length}</span>
+                              </div>
+                              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#080B14] border border-slate-200/80 dark:border-slate-800/60">
+                                <span className="text-[10px] font-mono text-slate-500 block">Occupied</span>
+                                <span className="text-sm font-extrabold font-grotesk text-emerald-600 dark:text-emerald-400">{occupiedUnits}</span>
+                              </div>
+                              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#080B14] border border-slate-200/80 dark:border-slate-800/60">
+                                <span className="text-[10px] font-mono text-slate-500 block">Occupancy</span>
+                                <span className="text-sm font-extrabold font-grotesk text-indigo-600 dark:text-indigo-400">{occRate}%</span>
+                              </div>
+                            </div>
+
+                            {/* Occupancy Progress Bar */}
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-[10px] font-mono text-slate-500">
+                                <span>Occupancy status</span>
+                                <span className="font-bold text-slate-700 dark:text-slate-300">{occupiedUnits} / {propUnits.length} Units</span>
+                              </div>
+                              <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all duration-500"
+                                  style={{ width: `${occRate}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <h3 className="text-lg font-bold font-grotesk text-slate-900 dark:text-white mb-1">{u.label}</h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">{u.bedrooms} Bed &bull; {u.bathrooms} Bath &bull; {u.sqft} sqft</p>
-                      </div>
-                      <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#080B14] border border-slate-200/80 dark:border-slate-800/60 text-xs font-mono">
-                        <div className="flex justify-between mb-1"><span className="text-slate-500">Rent:</span><span className="font-bold text-slate-900 dark:text-white">${u.monthlyRent}/mo</span></div>
-                        <div className="flex justify-between"><span className="text-slate-500">Occupant:</span><span className={isVacant ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-900 dark:text-slate-200 font-semibold'}>{isVacant ? 'None (Vacant)' : u.tenantName}</span></div>
-                      </div>
-                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
-                        <button onClick={() => setSelectedUnitForDetail(u)} className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 btn-press flex items-center gap-1">
-                          Details <ArrowUpRight className="w-3.5 h-3.5" />
-                        </button>
-                        {isVacant && (
-                          <button onClick={() => handleOpenAddTenant(u.propertyId, u.id)} className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-grotesk btn-press flex items-center gap-1.5 shadow-sm">
-                            <UserPlus className="w-3.5 h-3.5" /> Add tenant
+
+                        {/* Footer Actions */}
+                        <div className="p-4 pt-0 flex items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-800/80 mt-2">
+                          <button
+                            onClick={() => {
+                              setSelectedPropertyForDelete(p);
+                            }}
+                            className="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-xs font-bold font-grotesk btn-press flex items-center gap-1.5"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Delete Property
                           </button>
-                        )}
+                          
+                          <button
+                            onClick={() => {
+                              setAddPropPreselectedPropertyId(p.id);
+                              setAddPropUnitTab('unit');
+                              setIsAddPropUnitOpen(true);
+                            }}
+                            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold font-grotesk btn-press flex items-center gap-1.5 shadow-sm"
+                          >
+                            <Layers className="w-3.5 h-3.5" /> + Add Unit
+                          </button>
+                        </div>
                       </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* ─── TAB 2: ALL UNITS GRID ─── */}
+              {propSubTab === 'units' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {filteredUnits.map((u) => {
+                    const isVacant = u.status === 'vacant';
+                    return (
+                      <div key={u.id} className="top-shade apple-glass rounded-2xl border border-slate-200 dark:border-slate-800/80 p-5 hover:border-indigo-400 dark:hover:border-slate-700 transition-all flex flex-col justify-between space-y-4 shadow-xs">
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">{u.propertyName}</span>
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider font-mono ${isVacant ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20'}`}>
+                              {u.status}
+                            </span>
+                          </div>
+                          <h3 className="text-lg font-bold font-grotesk text-slate-900 dark:text-white mb-1">{u.label}</h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">{u.bedrooms} Bed &bull; {u.bathrooms} Bath &bull; {u.sqft} sqft</p>
+                        </div>
+                        <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#080B14] border border-slate-200/80 dark:border-slate-800/60 text-xs font-mono">
+                          <div className="flex justify-between mb-1"><span className="text-slate-500">Rent:</span><span className="font-bold text-slate-900 dark:text-white">${u.monthlyRent}/mo</span></div>
+                          <div className="flex justify-between"><span className="text-slate-500">Occupant:</span><span className={isVacant ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-900 dark:text-slate-200 font-semibold'}>{isVacant ? 'None (Vacant)' : u.tenantName}</span></div>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                          <button onClick={() => setSelectedUnitForDetail(u)} className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 btn-press flex items-center gap-1">
+                            Details <ArrowUpRight className="w-3.5 h-3.5" />
+                          </button>
+                          {isVacant && (
+                            <button onClick={() => handleOpenAddTenant(u.propertyId, u.id)} className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-grotesk btn-press flex items-center gap-1.5 shadow-sm">
+                              <UserPlus className="w-3.5 h-3.5" /> Add tenant
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {filteredUnits.length === 0 && (
+                    <div className="col-span-full p-8 text-center bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-400">
+                      No units matching search criteria.
                     </div>
-                  );
-                })}
-              </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -588,7 +812,12 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
           {/* ─── VIEW 5: MAINTENANCE QUEUE (full CRUD) ─── */}
           {/* ═══════════════════════════════════════════ */}
           {activeView === 'tickets' && (
-            <TicketsTab tickets={tickets} searchQuery={searchQuery} onOpenNewTicket={() => setIsNewTicketOpen(true)} />
+            <TicketsTab
+              tickets={tickets}
+              searchQuery={searchQuery}
+              onOpenNewTicket={() => setIsNewTicketOpen(true)}
+              onUpdateStatus={handleUpdateTicketStatus}
+            />
           )}
 
           {/* ═════════════════════════════════════ */}
@@ -601,7 +830,7 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
           {/* ─── VIEW 7: DOCUMENTS & VERIFICATION ─── */}
           {activeView === 'documents' && (
             <LandlordDocumentsTab
-              properties={MOCK_PROPERTIES}
+              properties={properties}
               units={units}
               tenants={tenants}
               documents={documents}
@@ -612,7 +841,7 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
           {/* ─── VIEW 8: LANDLORD SETTINGS ─── */}
           {activeView === 'settings' && (
             <LandlordSettingsTab
-              properties={MOCK_PROPERTIES}
+              properties={properties}
               units={units}
               tenants={tenants}
             />
@@ -621,22 +850,42 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
         </main>
       </div>
 
+      {/* ─── TOAST NOTIFICATION ─── */}
+      {toastNotification && (
+        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-2xl bg-slate-900 dark:bg-slate-800 text-white border border-indigo-500/40 shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          <span className="text-xs font-semibold font-grotesk">{toastNotification}</span>
+        </div>
+      )}
+
       {/* ─── RIGHT SIDEBAR: NOTIFICATIONS ─── */}
       <RightNotificationSidebar isOpen={isNotificationOpen} onClose={() => setIsNotificationOpen(false)} />
 
       {/* ─── MODALS ─── */}
-      <CommandPaletteModal isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} properties={MOCK_PROPERTIES} units={units} tenants={tenants} tickets={tickets} onSelectResult={handleCommandPaletteSelect} />
-      <AddTenantModal isOpen={isAddTenantOpen} onClose={() => setIsAddTenantOpen(false)} properties={MOCK_PROPERTIES} units={units} initialPropertyId={addTenantPropertyId} initialUnitId={addTenantUnitId} onTenantAdded={handleTenantAdded} />
-      <UnitDetailModal isOpen={Boolean(selectedUnitForDetail)} unit={selectedUnitForDetail} property={MOCK_PROPERTIES.find((p) => p.id === selectedUnitForDetail?.propertyId)} onClose={() => setSelectedUnitForDetail(null)} onAddTenant={handleOpenAddTenant} />
-      <NewTicketModal isOpen={isNewTicketOpen} onClose={() => setIsNewTicketOpen(false)} properties={MOCK_PROPERTIES} units={units} onTicketCreated={handleTicketCreated} />
+      <CommandPaletteModal isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} properties={properties} units={units} tenants={tenants} tickets={tickets} onSelectResult={handleCommandPaletteSelect} />
+      <AddTenantModal isOpen={isAddTenantOpen} onClose={() => setIsAddTenantOpen(false)} properties={properties} units={units} initialPropertyId={addTenantPropertyId} initialUnitId={addTenantUnitId} onTenantAdded={handleTenantAdded} />
+      <UnitDetailModal isOpen={Boolean(selectedUnitForDetail)} unit={selectedUnitForDetail} property={properties.find((p) => p.id === selectedUnitForDetail?.propertyId)} onClose={() => setSelectedUnitForDetail(null)} onAddTenant={handleOpenAddTenant} />
+      <NewTicketModal isOpen={isNewTicketOpen} onClose={() => setIsNewTicketOpen(false)} properties={properties} units={units} onTicketCreated={handleTicketCreated} />
       <NewAnnouncementModal isOpen={isNewAnnouncementOpen} onClose={() => setIsNewAnnouncementOpen(false)} onAnnouncementCreated={handleAnnouncementCreated} />
+      
+      {/* Add Property / Unit Modal */}
       <AddPropertyOrUnitModal
         isOpen={isAddPropUnitOpen}
         onClose={() => setIsAddPropUnitOpen(false)}
         initialTab={addPropUnitTab}
         properties={properties}
+        initialPropertyId={addPropPreselectedPropertyId}
         onPropertyCreated={handleDashboardPropertyCreated}
         onUnitCreated={handleDashboardUnitCreated}
+      />
+
+      {/* Delete Property Modal */}
+      <DeletePropertyModal
+        isOpen={Boolean(selectedPropertyForDelete)}
+        onClose={() => setSelectedPropertyForDelete(null)}
+        property={selectedPropertyForDelete}
+        units={units}
+        onConfirmDelete={handleDeleteProperty}
       />
 
     </div>

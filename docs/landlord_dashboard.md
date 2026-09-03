@@ -35,6 +35,17 @@ Provides a centralized operations center for landlords to monitor key portfolio 
 | `GET`  | `/api/landlord/dash` | Landlord | Complete dashboard payload (KPI metrics, property breakdown, recent tickets, recent payments, pinned announcements) |
 | `GET`  | `/api/landlord/dash/kpi` | Landlord | Lightweight KPI numbers endpoint for header badge polling and quick refreshes |
 
+### Properties & Units Management (`/api/landlord/properties`)
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `GET`    | `/api/landlord/properties` | Landlord | List all landlord properties with unit counts, occupancy, and total rent values |
+| `POST`   | `/api/landlord/properties` | Landlord | Create a new property in the landlord portfolio |
+| `GET`    | `/api/landlord/properties/:id` | Landlord | Retrieve single property details along with all associated units |
+| `PUT`    | `/api/landlord/properties/:id` | Landlord | Update property metadata (name, address, category, image) |
+| `DELETE` | `/api/landlord/properties/:id` | Landlord | **Delete Property** (checks if units are occupied, cascades vacant units, writes to audit log) |
+| `POST`   | `/api/landlord/properties/:id/units` | Landlord | Add a new unit to an existing property |
+| `DELETE` | `/api/landlord/properties/:propertyId/units/:unitId` | Landlord | Delete a vacant unit |
+
 ---
 
 ## 4. Key Metrics Calculated

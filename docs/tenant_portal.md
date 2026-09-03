@@ -35,11 +35,18 @@ Provides a mobile-first, responsive resident experience (designed as an installa
 | `GET` | `/api/tenant/dash` | Tenant | Complete resident dashboard payload |
 | `GET` | `/api/tenant/dash/kpi` | Tenant | Quick counts (open tickets, overdue payments, days until next rent) |
 
-### Planned Tenant Lease API (`/api/tenant/lease`)
+### Tenant Lease API (`/api/tenant/lease`)
 | Method | Endpoint | Access | Description |
 |---|---|---|---|
-| `GET`  | `/api/tenant/lease` | Tenant | Fetch active lease details, covenants, and contract document |
-| `POST` | `/api/tenant/lease/extend` | Tenant | Submit a formal lease renewal / extension request |
+| `GET`  | `/api/tenant/lease` | Tenant | Fetch active lease details, covenants, financial terms, and days remaining |
+| `POST` | `/api/tenant/lease/extension` | Tenant | Submit formal lease renewal / extension request (`termMonths`, `proposedStartDate`, `notes`) |
+| `GET`  | `/api/tenant/lease/document` | Tenant | Retrieve signed digital lease contract metadata & download URL |
+
+### Landlord Lease Extension Review API (`/api/landlord/lease`)
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `GET`   | `/api/landlord/lease/extensions` | Landlord | List all pending/historical extension requests across managed properties |
+| `PATCH` | `/api/landlord/lease/:leaseId/extensions/:requestId/review` | Landlord | Approve or reject extension request (updates `Unit.leaseEnd` automatically on approval) |
 
 ---
 

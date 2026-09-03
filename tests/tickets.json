@@ -1,0 +1,291 @@
+{
+  "info": {
+    "name": "Maintenance Ticketing Module (Landlord & Tenant)",
+    "description": "Postman test collection for Maintenance Ticketing endpoints across Landlord and Tenant roles.\nIncludes issue reporting, dispatching technician, status transitions, comments, and role guards.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3000", "type": "string" },
+    { "key": "landlord_token", "value": "", "type": "string" },
+    { "key": "tenant_token", "value": "", "type": "string" },
+    { "key": "created_ticket_id", "value": "", "type": "string" },
+    { "key": "sample_unit_id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01. Auth – Login as Tenant",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "if (res.data && res.data.token) {",
+              "  pm.collectionVariables.set('tenant_token', res.data.token);",
+              "  console.log('Tenant token saved.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"sophia.lin@example.com\",\n  \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "02. Auth – Login as Landlord",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "if (res.data && res.data.token) {",
+              "  pm.collectionVariables.set('landlord_token', res.data.token);",
+              "  console.log('Landlord token saved.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"vance.landlord@example.com\",\n  \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "03. Tenant – Submit Maintenance Ticket",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 201 Created', () => pm.response.to.have.status(201));",
+              "pm.test('Ticket created with submitted status', () => pm.expect(res.data.status).to.equal('submitted'));",
+              "if (res.data) {",
+              "  pm.collectionVariables.set('created_ticket_id', res.data.id || res.data._id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Cookie", "value": "token={{tenant_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Kitchen Sink Drain Blocked\",\n  \"description\": \"Water is pooling in the basin and draining extremely slowly. Suspected grease trap block.\",\n  \"category\": \"Plumbing\",\n  \"priority\": \"high\",\n  \"photoUrls\": [\"https://example.com/photos/sink-drain.jpg\"]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/tenant/tickets",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "tickets"]
+        }
+      }
+    },
+    {
+      "name": "04. Tenant – List Own Tickets",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Returns ticket list & metrics', () => {",
+              "  pm.expect(Array.isArray(res.tickets)).to.be.true;",
+              "  pm.expect(res.metrics).to.have.property('open');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Cookie", "value": "token={{tenant_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/tenant/tickets",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "tickets"]
+        }
+      }
+    },
+    {
+      "name": "05. Tenant – Add Comment to Ticket",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Cookie", "value": "token={{tenant_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"note\": \"I will be working from home tomorrow between 9 AM and 5 PM for access.\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/tenant/tickets/{{created_ticket_id}}/comments",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "tickets", "{{created_ticket_id}}", "comments"]
+        }
+      }
+    },
+    {
+      "name": "06. Landlord – List Tickets with Queue Metrics",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Metrics object contains queue counts', () => {",
+              "  pm.expect(res.metrics).to.have.property('submitted');",
+              "  pm.expect(res.metrics).to.have.property('inProgress');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Cookie", "value": "token={{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/tickets",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "tickets"]
+        }
+      }
+    },
+    {
+      "name": "07. Landlord – Assign Technician to Ticket",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Status transitioned to in_progress', () => pm.expect(res.data.status).to.equal('in_progress'));",
+              "pm.test('Technician assigned', () => pm.expect(res.data.assignedTechnician.name).to.equal('Marco Rossi'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Cookie", "value": "token={{landlord_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Marco Rossi\",\n  \"phone\": \"+1 (555) 438-9201\",\n  \"company\": \"Apex Plumbing & Drain Solutions\",\n  \"eta\": \"Tomorrow, 10:30 AM - 1:00 PM\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/landlord/tickets/{{created_ticket_id}}/assign",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "tickets", "{{created_ticket_id}}", "assign"]
+        }
+      }
+    },
+    {
+      "name": "08. Landlord – Mark Ticket as Resolved",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Status is resolved', () => pm.expect(res.data.status).to.equal('resolved'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Cookie", "value": "token={{landlord_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"resolved\",\n  \"note\": \"Grease blockage cleared via hydrojet. Flow test verified with 100% drainage rate.\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/landlord/tickets/{{created_ticket_id}}/status",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "tickets", "{{created_ticket_id}}", "status"]
+        }
+      }
+    },
+    {
+      "name": "09. Error Handling – Invalid Status Value (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 400 Bad Request', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Cookie", "value": "token={{landlord_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"non_existent_status\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/landlord/tickets/{{created_ticket_id}}/status",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "tickets", "{{created_ticket_id}}", "status"]
+        }
+      }
+    }
+  ]
+}

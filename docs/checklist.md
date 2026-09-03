@@ -19,8 +19,8 @@ This document tracks the implementation status of all platform modules across **
 | **`[x]`** | **Dashboard with KPI** | `Created` | `Created` | KPI cards, occupancy rates, financial summaries (`/api/landlord/dash`). |
 | **`[x]`** | **Announcements Page** | `Created` | `Created` | Create, pin, and broadcast announcements to tenants (`/api/landlord/announcements`). |
 | **`[x]`** | **Rent Transactions (Rent Roll)** | `Created` | `Created` | Invoice creation, payment records, CSV export, mark-as-paid (`/api/landlord/rentroll`). |
-| **`[!]`** | **Maintenance Ticketing** | `Created (UI)` | `Missing (API)` | **Needs Redo / Backend**: UI has ticket filtering and technician assignment, but lacks dedicated server endpoints (`/api/landlord/tickets`) for status transitions. |
-| **`[!]`** | **Properties & Units Management** | `Partial` | `Partial` | **Needs Revision**: <br>1. **Add Delete Property action** in UI and server (`DELETE /api/landlord/properties/:id`).<br>2. Add full CRUD endpoints outside onboarding. |
+| **`[x]`** | **Maintenance Ticketing** | `Created` | `Created` | Dedicated backend API (`/api/landlord/tickets`) for status transitions (`submitted` ➔ `acknowledged` ➔ `in_progress` ➔ `resolved`), technician dispatch, and queue filters. |
+| **`[x]`** | **Properties & Units Management** | `Created` | `Created` | Full CRUD for properties and units + **Delete Property** (`DELETE /api/landlord/properties/:id`) with safety & vacancy checks. |
 | **`[x]`** | **Tenants Directory** | `Created` | `Created` | Create tenant account (auto-hash password, assign unit, invite) via `/api/landlord/tenantdirectory`. |
 | **`[!]`** | **Resident Compliance Vault** | `Created (UI)` | `Missing (API)` | **Needs Backend Integration**: UI has document inspection & verification modal (`LandlordDocumentsTab`), but lacks backend endpoints (`/api/landlord/documents`). |
 
@@ -32,8 +32,8 @@ This document tracks the implementation status of all platform modules across **
 | :---: | :--- | :---: | :---: | :--- |
 | **`[x]`** | **Tenant Dashboard** | `Created` | `Created` | Overview cards, upcoming dues, quick action shortcuts (`/api/tenant/dash`). |
 | **`[x]`** | **Rent & Payments** | `Created` | `Created` | Full ledger, checkout modal, auto-pay toggle, saved payment methods (`/api/tenant/payments`). |
-| **`[!]`** | **Maintenance (Ticketing)** | `Created (UI)` | `Missing (API)` | **Needs Backend Integration**: Ticket creation (`ReportIssueModal`) and history currently run on mock state. Needs `POST /api/tenant/tickets`. |
-| **`[!]`** | **Lease Management** | `Created (UI)` | `Missing (API)` | **Needs Backend Integration**: Digital lease agreement view & extension request modal (`TenantLeaseTab`) need backend API endpoints (`/api/tenant/lease`). |
+| **`[x]`** | **Maintenance (Ticketing)** | `Created` | `Created` | Issue submission (`POST /api/tenant/tickets`), live status timeline, cancellation, and technician details. |
+| **`[x]`** | **Lease Management** | `Created` | `Created` | Digital contract inspection (`GET /api/tenant/lease`), renewal request submission (`POST /api/tenant/lease/extension`), and landlord approval workflow (`PATCH /api/landlord/lease/:id/extensions/:reqId/review`). |
 | **`[!]`** | **Documents & Verification** | `Created (UI)` | `Missing (API)` | **Needs Backend Integration**: Document submission modal (`SubmitDocumentModal`) needs Cloudinary upload & `/api/tenant/documents` API. |
 
 ---
@@ -50,12 +50,15 @@ This document tracks the implementation status of all platform modules across **
 
 ## 📋 Summary of Next Tasks
 
-### High Priority (Needs Redo / Revisions)
-1. **Property Deletion**: Add Delete Property button in UI modal/cards and create `DELETE /api/landlord/properties/:id` with cascade handling (or unassigning units).
-2. **Maintenance Ticket Workflow API**: Create `/api/landlord/tickets` and `/api/tenant/tickets` with status transition lifecycle (`submitted` → `acknowledged` → `in_progress` → `resolved` / `rejected`).
-3. **Documents / Compliance Vault API**: Create `/api/tenant/documents` (upload/submit) and `/api/landlord/documents` (approve/reject compliance items).
-4. **Lease Extension API**: Wire `/api/tenant/lease` extension requests to Landlord notification/approval flow.
+### High Priority
+1. **Documents / Compliance Vault API**: Create `/api/tenant/documents` (upload/submit) and `/api/landlord/documents` (approve/reject compliance items with Cloudinary storage).
+2. **Superadmin Portal Dashboard & API**:
+   - Build `/api/superadmin/audit-logs` (platform-wide logs)
+   - Build `/api/superadmin/users` (suspend/reactivate users)
+   - Build `/api/superadmin/landlords` (platform landlord oversight)
+   - Build `SuperadminPage.jsx` in client
 
-### Medium Priority (Missing Modules)
-1. **Superadmin Portal Dashboard & Navigation**: Build `/admin` route or superadmin layout in client.
-2. **Superadmin API**: Build `/api/superadmin/users`, `/api/superadmin/audit-logs`, and `/api/superadmin/landlords`.
+---
+
+## 🧪 Testing Documentation
+Full instructions for running all 6 testing categories (Functional, Integration, Postman Error-Handling, Security RBAC, End-to-End, and ApacheBench Load Testing) are documented in [docs/testing_guide.md](file:///home/ian/Desktop/Work/JPTL/docs/testing_guide.md).

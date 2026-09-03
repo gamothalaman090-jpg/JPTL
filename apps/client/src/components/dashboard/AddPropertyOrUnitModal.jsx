@@ -6,6 +6,7 @@ export const AddPropertyOrUnitModal = ({
   onClose,
   initialTab = 'unit', // 'property' | 'unit'
   properties = [],
+  initialPropertyId = null,
   targetMemberId = null,
   onPropertyCreated = () => {},
   onUnitCreated = () => {},
@@ -47,11 +48,13 @@ export const AddPropertyOrUnitModal = ({
       setBathrooms('2');
       setSqft('1000');
 
-      if (properties.length > 0) {
+      if (initialPropertyId) {
+        setSelectedPropertyId(initialPropertyId);
+      } else if (properties.length > 0) {
         setSelectedPropertyId(properties[0].id);
       }
     }
-  }, [isOpen, initialTab, properties]);
+  }, [isOpen, initialTab, properties, initialPropertyId]);
 
   if (!isOpen) return null;
 

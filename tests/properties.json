@@ -1,0 +1,276 @@
+{
+  "info": {
+    "name": "Landlord – Properties & Units Management Module",
+    "description": "Postman test collection for Landlord Properties & Units endpoints.\nIncludes property creation, listing, updating, deleting property with safety checks, adding units, and deleting vacant units.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3000", "type": "string" },
+    { "key": "landlord_token", "value": "", "type": "string" },
+    { "key": "tenant_token", "value": "", "type": "string" },
+    { "key": "created_property_id", "value": "", "type": "string" },
+    { "key": "created_unit_id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01. Auth – Login as Landlord",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "if (res.data && res.data.token) {",
+              "  pm.collectionVariables.set('landlord_token', res.data.token);",
+              "  console.log('Landlord token saved.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"vance.landlord@example.com\",\n  \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "02. Properties – Create New Property",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 201 Created', () => pm.response.to.have.status(201));",
+              "pm.test('Property has id', () => pm.expect(res.data.id || res.data._id).to.be.ok);",
+              "if (res.data) {",
+              "  pm.collectionVariables.set('created_property_id', res.data.id || res.data._id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Cookie", "value": "token={{landlord_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Apex Horizon Residences\",\n  \"address\": \"500 Skyline Drive\",\n  \"city\": \"Downtown Metro\",\n  \"category\": \"Luxury\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/landlord/properties",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "properties"]
+        }
+      }
+    },
+    {
+      "name": "03. Properties – List All Properties",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array of properties', () => pm.expect(Array.isArray(res.data)).to.be.true);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Cookie", "value": "token={{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/properties",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "properties"]
+        }
+      }
+    },
+    {
+      "name": "04. Properties – Get Property By ID",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Property details match', () => pm.expect(res.data.name).to.include('Apex Horizon'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Cookie", "value": "token={{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/properties/{{created_property_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "properties", "{{created_property_id}}"]
+        }
+      }
+    },
+    {
+      "name": "05. Properties – Update Property",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Category updated', () => pm.expect(res.data.category).to.equal('Penthouse'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Cookie", "value": "token={{landlord_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Apex Horizon Ultra Residences\",\n  \"category\": \"Penthouse\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/landlord/properties/{{created_property_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "properties", "{{created_property_id}}"]
+        }
+      }
+    },
+    {
+      "name": "06. Units – Add Unit to Property",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 201 Created', () => pm.response.to.have.status(201));",
+              "if (res.data) {",
+              "  pm.collectionVariables.set('created_unit_id', res.data.id || res.data._id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Cookie", "value": "token={{landlord_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"label\": \"Unit 30A\",\n  \"monthlyRent\": 2850,\n  \"bedrooms\": 2,\n  \"bathrooms\": 2,\n  \"sqft\": 1200\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/landlord/properties/{{created_property_id}}/units",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "properties", "{{created_property_id}}", "units"]
+        }
+      }
+    },
+    {
+      "name": "07. Units – Delete Vacant Unit",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Cookie", "value": "token={{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/properties/{{created_property_id}}/units/{{created_unit_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "properties", "{{created_property_id}}", "units", "{{created_unit_id}}"]
+        }
+      }
+    },
+    {
+      "name": "08. Properties – Delete Property",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Success message returned', () => pm.expect(res.success).to.be.true);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Cookie", "value": "token={{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/properties/{{created_property_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "properties", "{{created_property_id}}"]
+        }
+      }
+    },
+    {
+      "name": "09. Error Handling – Create Property without Required Name (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 400 Bad Request', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Cookie", "value": "token={{landlord_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"\",\n  \"address\": \"\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/landlord/properties",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "properties"]
+        }
+      }
+    }
+  ]
+}
