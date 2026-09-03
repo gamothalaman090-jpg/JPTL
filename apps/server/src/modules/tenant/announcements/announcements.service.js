@@ -42,3 +42,11 @@ export async function getTenantFeed(tenantId, { category, search, page = 1, limi
     },
   };
 }
+
+export async function getAnnouncementById(announcementId) {
+  const notice = await Announcement.findById(announcementId).populate('author', 'firstName lastName role');
+  if (!notice) {
+    throw new Error('Notice not found');
+  }
+  return notice;
+}

@@ -80,18 +80,57 @@ npm run test:integration
 cd apps/server
 npm run test:integration
 
-# Run a specific test suite
+# Run specific module test suites
+npm run test:integration src/modules/auth/auth.test.js
+
+# Landlord Test Suites:
 npm run test:integration src/modules/landlord/properties/properties.test.js
 npm run test:integration src/modules/landlord/tickets/tickets.test.js
+npm run test:integration src/modules/landlord/rentroll/rentroll.test.js
+npm run test:integration src/modules/landlord/tenantdirectory/tenantdirectory.test.js
+npm run test:integration src/modules/landlord/announcements/announcements.test.js
+npm run test:integration src/modules/landlord/dash/dash.test.js
+npm run test:integration src/modules/landlord/onboarding/onboarding.test.js
+npm run test:integration src/modules/landlord/documents/documents.test.js
+npm run test:integration src/modules/landlord/lease/lease.test.js
+
+# Tenant Test Suites:
 npm run test:integration src/modules/tenant/lease/lease.test.js
+npm run test:integration src/modules/tenant/documents/documents.test.js
+npm run test:integration src/modules/tenant/payments/payments.test.js
+npm run test:integration src/modules/tenant/tickets/tickets.test.js
+npm run test:integration src/modules/tenant/dash/dash.test.js
+npm run test:integration src/modules/tenant/announcements/announcements.test.js
 ```
 
 ### Available Test Suites:
+#### 🔐 Authentication
 | Test Suite File | Tested Endpoints / Features |
 | :--- | :--- |
-| [`properties.test.js`](file:///home/ian/Desktop/Work/JPTL/apps/server/src/modules/landlord/properties/properties.test.js) | Property CRUD, unit additions, and cascade deletion of vacant units (`DELETE /api/landlord/properties/:id`). |
-| [`tickets.test.js`](file:///home/ian/Desktop/Work/JPTL/apps/server/src/modules/landlord/tickets/tickets.test.js) | Tenant ticket submission, landlord queue listing, technician assignment, status transitions, and audit logging. |
-| [`lease.test.js`](file:///home/ian/Desktop/Work/JPTL/apps/server/src/modules/tenant/lease/lease.test.js) | Digital lease contract query, renewal request submission (`POST /api/tenant/lease/extension`), and landlord approval workflow. |
+| [`auth.test.js`](file:///home/ian/Desktop/Work/JPTL/apps/server/src/modules/auth/auth.test.js) | Landlord registration, duplicate validation, password strength, login JWT cookie, password change, logout. |
+
+#### 🏢 Landlord Suites
+| Test Suite File | Tested Endpoints / Features |
+| :--- | :--- |
+| [`landlord/properties.test.js`](file:///home/ian/Desktop/Work/JPTL/apps/server/src/modules/landlord/properties/properties.test.js) | Property CRUD, unit additions, and cascade deletion of vacant units (`DELETE /api/landlord/properties/:id`). |
+| [`landlord/tickets.test.js`](file:///home/ian/Desktop/Work/JPTL/apps/server/src/modules/landlord/tickets/tickets.test.js) | Landlord queue listing, technician assignment, status transitions, and audit logging. |
+| [`landlord/rentroll.test.js`](file:///home/ian/Desktop/Work/JPTL/apps/server/src/modules/landlord/rentroll/rentroll.test.js) | Payment invoice generation, financial roll summary, mark-as-paid, export data, and voiding. |
+| [`landlord/tenantdirectory.test.js`](file:///home/ian/Desktop/Work/JPTL/apps/server/src/modules/landlord/tenantdirectory/tenantdirectory.test.js) | Tenant account creation with auto-hashed temporary credentials, unit binding/release, update, and deletion. |
+| [`landlord/announcements.test.js`](file:///home/ian/Desktop/Work/JPTL/apps/server/src/modules/landlord/announcements/announcements.test.js) | Landlord broadcast creation, tenant feed aggregation, single notice retrieval, and 403 role guard. |
+| [`landlord/dash.test.js`](file:///home/ian/Desktop/Work/JPTL/apps/server/src/modules/landlord/dash/dash.test.js) | Landlord portfolio metrics & KPI badges, tenant overview cards, and quick refresh counts. |
+| [`landlord/onboarding.test.js`](file:///home/ian/Desktop/Work/JPTL/apps/server/src/modules/landlord/onboarding/onboarding.test.js) | Landlord setup status, tier selection, initial property creation, unit setup, and welcome broadcast. |
+| [`landlord/documents.test.js`](file:///home/ian/Desktop/Work/JPTL/apps/server/src/modules/landlord/documents/documents.test.js) | Compliance vault queue inspection, document status verification (`Verified`), and deletion. |
+| [`landlord/lease.test.js`](file:///home/ian/Desktop/Work/JPTL/apps/server/src/modules/landlord/lease/lease.test.js) | Reviewing lease extension requests, status approval, and automatic unit term extension. |
+
+#### 👤 Tenant Suites
+| Test Suite File | Tested Endpoints / Features |
+| :--- | :--- |
+| [`tenant/lease.test.js`](file:///home/ian/Desktop/Work/JPTL/apps/server/src/modules/tenant/lease/lease.test.js) | Digital lease contract query, renewal request submission (`POST /api/tenant/lease/extension`), and PDF contract download. |
+| [`tenant/documents.test.js`](file:///home/ian/Desktop/Work/JPTL/apps/server/src/modules/tenant/documents/documents.test.js) | Tenant compliance document upload (insurance, ID, income), Cloudinary attachment, and document query. |
+| [`tenant/payments.test.js`](file:///home/ian/Desktop/Work/JPTL/apps/server/src/modules/tenant/payments/payments.test.js) | Tenant ledger & statement query, rent checkout/payment with receipt generation, auto-pay toggle, saved methods. |
+| [`tenant/tickets.test.js`](file:///home/ian/Desktop/Work/JPTL/apps/server/src/modules/tenant/tickets/tickets.test.js) | Tenant maintenance issue submission, status tracking, technician update comments, and cancellation. |
+| [`tenant/dash.test.js`](file:///home/ian/Desktop/Work/JPTL/apps/server/src/modules/tenant/dash/dash.test.js) | Tenant dashboard overview payload, upcoming dues summary, and quick KPI metrics. |
+| [`tenant/announcements.test.js`](file:///home/ian/Desktop/Work/JPTL/apps/server/src/modules/tenant/announcements/announcements.test.js) | Tenant notice feed query and single announcement inspection. |
 
 ---
 
@@ -101,14 +140,21 @@ Error-handling tests verify that invalid payloads, malformed JSON, missing requi
 
 ### How to Run:
 ```bash
-# Start the local development server first
+# 1. Start the server (if not already running)
 npm --prefix apps/server run dev
 
-# In another terminal, run all Postman collections via Newman:
+# 2. Run ALL 11 collections sequentially via Newman
 npm run test:postman
+
+# Or run any single collection individually:
+npx newman run tests/announcements.json
+npx newman run tests/documents.json
+npx newman run tests/lease.json
+npx newman run tests/tickets.json
+npx newman run tests/properties.json
 ```
 
-### Individual Collection Execution:
+### All Individual Collection Commands:
 ```bash
 # Test Auth Error-Handling (Invalid credentials, duplicate email)
 npx newman run tests/auth.json
@@ -122,8 +168,26 @@ npx newman run tests/tickets.json
 # Test Lease Error-Handling (Invalid term parameter <= 0)
 npx newman run tests/lease.json
 
+# Test Documents & Resident Compliance Vault Error-Handling
+npx newman run tests/documents.json
+
+# Test Announcements Error-Handling (Tenant broadcast attempt, missing title)
+npx newman run tests/announcements.json
+
 # Test Rent Roll & Payment Invoicing Error-Handling
 npx newman run tests/rentroll.json
+
+# Test Tenant Directory Error-Handling
+npx newman run tests/tenantdirectory.json
+
+# Test Tenant Payments & Checkout Error-Handling
+npx newman run tests/tenantpayments.json
+
+# Test Onboarding Checklist Error-Handling
+npx newman run tests/onboarding.json
+
+# Test Dashboard & KPI Error-Handling
+npx newman run tests/dashboard.json
 ```
 
 ---
