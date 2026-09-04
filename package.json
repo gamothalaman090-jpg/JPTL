@@ -13,7 +13,10 @@
     "test:postman": "newman run tests/auth.json && newman run tests/dashboard.json && newman run tests/onboarding.json && newman run tests/properties.json && newman run tests/tickets.json && newman run tests/lease.json && newman run tests/documents.json && newman run tests/rentroll.json && newman run tests/tenantdirectory.json && newman run tests/tenantpayments.json && newman run tests/announcements.json",
     "test:integration": "npm run test:integration --prefix apps/server",
     "test:load": "./scripts/load-test.sh",
-    "test:all": "npm run test:integration && npm run test:postman"
+    "test:all": "npm run test:integration && npm run test:postman",
+    "db:seed": "npm --prefix apps/server run db:seed",
+    "db:purge": "npm --prefix apps/server run db:purge",
+    "db:reset": "npm --prefix apps/server run db:reset"
   },
   "repository": {
     "type": "git",

@@ -101,7 +101,7 @@ async function signupLandlord({ firstName, middleName, lastName, email, phone, p
 }
 
 async function login({ email, password }) {
-  if (!email?.trim() || !password) {
+  if (typeof email !== 'string' || !email.trim() || !password) {
     throw new AuthError('Email and password are required', 400);
   }
 

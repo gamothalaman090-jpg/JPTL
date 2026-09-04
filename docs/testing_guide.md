@@ -40,6 +40,25 @@ npx playwright install chromium
   brew install httpd
   ```
 
+### 1.4 Database Seeder & Purger Scripts
+Easily populate demo relational records or wipe data clean for fresh test runs:
+```bash
+# Seed all 10 platform models with rich relational data & demo credentials
+npm run db:seed
+# Or via dedicated runner script:
+./scripts/db.sh seed
+
+# Purge (wipe) all collections in MongoDB
+npm run db:purge
+# Or via dedicated runner script:
+./scripts/db.sh purge
+
+# Reset (purge + re-seed from scratch)
+npm run db:reset
+# Or via dedicated runner script:
+./scripts/db.sh reset
+```
+
 ---
 
 ## 🧩 2. Functional Test Cases (Playwright)
@@ -202,12 +221,31 @@ Security tests verify Role-Based Access Control (RBAC), JWT authentication verif
 - **Unauthenticated requests** (No JWT cookie) ➔ **`401 Unauthorized`**.
 - **Cross-Landlord Data Isolation**: A landlord cannot query or delete properties belonging to another landlord ID ➔ **`403 Forbidden` / `404 Not Found`**.
 
-### 5.2 Rate Limiting & DoS Protection (`express-rate-limit`)
-- **Global API Limiter**: 300 requests per 15-minute window per IP (`/api/*`).
-- **Strict Auth Limiter**: 20 authentication attempts per 15-minute window (`/api/auth/*`) to prevent credential stuffing and brute-force attacks.
-- **Action Limiter**: 60 actions per 15 minutes for high-cost operations (payment transactions, document uploads).
-- When a client breaches the rate limit, the API returns:
-  `HTTP 429 Too Many Requests` with `{ success: false, message: "..." }`.
+### 5.2 Enterprise Middleware Architecture
+The Express API incorporates a multi-layer middleware stack hardening performance, observability, and security:
+
+1. **Request ID / Correlation Tracing (`requestId.middleware.js`)**:
+   - Generates a UUID v4 (`crypto.randomUUID()`) for each request or preserves incoming `X-Request-ID`.
+   - Injects `X-Request-ID` into response headers to correlate logs with client-side traces.
+2. **HTTP Security Headers (`securityHeaders.middleware.js`)**:
+   - Configures `helmet` with strict Content-Security-Policy (CSP), HSTS (max-age 1 year), `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, and removes `X-Powered-By`.
+   - Cross-Origin Resource Policy (CORP) and CORS configured to allow seamless Cloudinary media streaming.
+3. **Response Compression (`compression.middleware.js`)**:
+   - Applies Gzip and Brotli compression for all JSON and static payloads exceeding 1KB (`threshold: 1024`).
+   - Honors `x-no-compression` bypass header for raw benchmarking.
+4. **NoSQL Injection & Input Sanitizer (`sanitize.middleware.js`)**:
+   - Recursively scrubs incoming `req.body`, `req.query`, and `req.params` against MongoDB operator injection attacks (`$gt`, `$ne`, `$where`, etc.).
+   - Express 5 getter-safe in-place mutation.
+5. **High-Precision Request Profiler (`requestLogger.middleware.js`)**:
+   - Uses `process.hrtime()` for nanosecond-precision request latency measurement.
+   - Logs timestamp, correlation ID, method, path, colorized status code, and duration in ms (automatically silenced in `test` environment).
+6. **Rate Limiting & DoS Protection (`rateLimiter.middleware.js`)**:
+   - **Global API Limiter**: 300 requests per 15-minute window per IP (`/api/*`).
+   - **Strict Auth Limiter**: 20 authentication attempts per 15-minute window (`/api/auth/*`) to prevent credential stuffing and brute-force attacks.
+   - **Action Limiter**: 60 actions per 15 minutes for high-cost operations (payment transactions, document uploads).
+7. **Centralized Error & 404 Handlers (`errorHandler.middleware.js`)**:
+   - Unmatched endpoints return standardized `404 Not Found` with `{ success: false, message: "Route [METHOD] [PATH] not found" }`.
+   - Translates Mongoose `ValidationError`, `CastError`, and JWT `TokenExpiredError` / `JsonWebTokenError` into clean HTTP status codes (400/401) without leaking internal stacks in production.
 
 ---
 
