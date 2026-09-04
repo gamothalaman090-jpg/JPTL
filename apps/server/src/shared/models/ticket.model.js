@@ -32,6 +32,22 @@ const ticketSchema = new mongoose.Schema(
     description: { type: String, required: true },
     category: {
       type: String,
+      set: (val) => {
+        if (!val) return 'General';
+        const v = String(val).trim().toLowerCase();
+        const map = {
+          hvac: 'HVAC',
+          plumbing: 'Plumbing',
+          electrical: 'Electrical',
+          appliance: 'Appliance',
+          general: 'General',
+          structural: 'Structural',
+          pest: 'Pest',
+          other: 'Other',
+          lock: 'General',
+        };
+        return map[v] || val;
+      },
       enum: ['HVAC', 'Plumbing', 'Electrical', 'Appliance', 'General', 'Structural', 'Pest', 'Other'],
       default: 'General',
     },

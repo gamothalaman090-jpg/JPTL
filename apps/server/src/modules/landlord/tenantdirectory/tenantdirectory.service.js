@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import User from '../../../shared/models/user.model.js';
 import TenantProfile from '../../../shared/models/tenantProfile.model.js';
 import Unit from '../../../shared/models/unit.model.js';
@@ -142,6 +143,7 @@ async function getTenantDirectory(landlordId, query = {}) {
           }
         : null,
       monthlyRent: profile?.monthlyRent ?? unitDoc?.monthlyRent ?? 0,
+      securityDeposit: profile?.securityDeposit ?? (profile?.monthlyRent ? profile.monthlyRent * 1.5 : 0),
       leaseStart: profile?.leaseStart ?? unitDoc?.leaseStart ?? null,
       leaseEnd: profile?.leaseEnd ?? unitDoc?.leaseEnd ?? null,
       memberSince: u.createdAt,
@@ -227,6 +229,7 @@ async function getTenantDetails(landlordId, tenantId) {
     leaseStart: profile?.leaseStart || profile?.unit?.leaseStart || null,
     leaseEnd: profile?.leaseEnd || profile?.unit?.leaseEnd || null,
     monthlyRent: profile?.monthlyRent || profile?.unit?.monthlyRent || 0,
+    securityDeposit: profile?.securityDeposit ?? (profile?.monthlyRent ? profile.monthlyRent * 1.5 : 0),
     unit: profile?.unit || null,
     property: profile?.property || null,
     memberSince: tenantUser.createdAt,
@@ -252,6 +255,7 @@ async function createTenant(landlordId, data, ipAddress = '') {
     phone = '',
     unitId,
     monthlyRent,
+    securityDeposit,
     leaseStart,
     leaseEnd,
     tempPassword,
@@ -268,7 +272,11 @@ async function createTenant(landlordId, data, ipAddress = '') {
     throw new TenantDirectoryError('A user with this email address already exists', 409);
   }
 
+<<<<<<< Updated upstream
   const generatedPassword = tempPassword || generateTemporaryPassword();
+=======
+  const initialPassword = tempPassword || 'jptl2026';
+>>>>>>> Stashed changes
 
   // Create user
   const tenantUser = await User.create({
@@ -311,12 +319,14 @@ async function createTenant(landlordId, data, ipAddress = '') {
 
   const profileStatus = assignedUnit ? 'active' : 'pre_added';
   const profileRent = monthlyRent ? Number(monthlyRent) : assignedUnit ? assignedUnit.monthlyRent : 0;
+  const depositAmount = securityDeposit !== undefined ? Number(securityDeposit) : (profileRent ? profileRent * 1.5 : 0);
 
   const profile = await TenantProfile.create({
     user: tenantUser._id,
     property: assignedProperty ? assignedProperty._id : null,
     unit: assignedUnit ? assignedUnit._id : null,
     monthlyRent: profileRent,
+    securityDeposit: depositAmount,
     leaseStart: leaseStart ? new Date(leaseStart) : null,
     leaseEnd: leaseEnd ? new Date(leaseEnd) : null,
     status: profileStatus,
@@ -332,6 +342,22 @@ async function createTenant(landlordId, data, ipAddress = '') {
 
   const fullName = [tenantUser.firstName, tenantUser.middleName, tenantUser.lastName].filter(Boolean).join(' ');
 
+<<<<<<< Updated upstream
+=======
+  // Dispatch welcome email asynchronously
+  const landlordUser = await User.findById(landlordId).select('firstName lastName company').lean();
+  const landlordName = landlordUser ? [landlordUser.firstName, landlordUser.lastName].filter(Boolean).join(' ') : 'Your Landlord';
+  const propertyName = assignedProperty ? assignedProperty.name : 'Your Residence';
+
+  sendTenantWelcomeEmail({
+    email: tenantUser.email,
+    name: fullName,
+    landlordName,
+    propertyName,
+    password: initialPassword,
+  }).catch((err) => console.error('Error sending welcome email:', err.message));
+
+>>>>>>> Stashed changes
   return {
     id: tenantUser._id,
     firstName: tenantUser.firstName,
@@ -371,18 +397,55 @@ async function updateTenant(landlordId, tenantId, data, ipAddress = '') {
     phone,
     unitId,
     monthlyRent,
+    securityDeposit,
     leaseStart,
     leaseEnd,
     status,
   } = data;
 
-  const tenantUser = await User.findOne({
-    _id: tenantId,
-    landlord: landlordId,
-    role: 'tenant',
-  });
+  let tenantUser = null;
 
-  if (!tenantUser) throw new TenantDirectoryError('Tenant not found or unauthorized', 404);
+  if (tenantId && mongoose.Types.ObjectId.isValid(tenantId)) {
+    tenantUser = await User.findOne({
+      _id: tenantId,
+      landlord: landlordId,
+      role: 'tenant',
+    });
+  }
+
+  // If not found by ObjectId or tenantId was synthetic (e.g. usr-tenant-...), try searching by email
+  if (!tenantUser && email) {
+    tenantUser = await User.findOne({
+      email: email.trim().toLowerCase(),
+      landlord: landlordId,
+      role: 'tenant',
+    });
+  }
+
+  // If still not found and we have an email, auto-create the tenant
+  if (!tenantUser) {
+    if (email) {
+      return await createTenant(
+        landlordId,
+        {
+          firstName: firstName || 'Resident',
+          middleName: middleName || '',
+          lastName: lastName || 'Tenant',
+          email,
+          phone: phone || '',
+          unitId,
+          monthlyRent,
+          leaseStart,
+          leaseEnd,
+          tempPassword: 'jptl2026',
+        },
+        ipAddress
+      );
+    }
+    throw new TenantDirectoryError('Tenant not found or unauthorized', 404);
+  }
+
+  const effectiveTenantId = tenantUser._id.toString();
 
   if (email && email.trim().toLowerCase() !== tenantUser.email) {
     const normalizedEmail = email.trim().toLowerCase();
@@ -398,10 +461,12 @@ async function updateTenant(landlordId, tenantId, data, ipAddress = '') {
   if (phone !== undefined) tenantUser.phone = phone.trim();
   await tenantUser.save();
 
-  let profile = await TenantProfile.findOne({ user: tenantId });
+  let profile = await TenantProfile.findOne({ user: effectiveTenantId });
   if (!profile) {
-    profile = new TenantProfile({ user: tenantId });
+    profile = new TenantProfile({ user: effectiveTenantId });
   }
+
+  const wasPreviouslyUnassigned = !profile.unit;
 
   // Handle unit reassignment if unitId provided
   if (unitId !== undefined) {
@@ -428,7 +493,7 @@ async function updateTenant(landlordId, tenantId, data, ipAddress = '') {
 
       const prop = await Property.findOne({ _id: newUnit.property, landlord: landlordId });
       if (!prop) throw new TenantDirectoryError('New unit does not belong to your properties', 403);
-      if (newUnit.status === 'occupied' && newUnit.tenant?.toString() !== tenantId) {
+      if (newUnit.status === 'occupied' && newUnit.tenant?.toString() !== effectiveTenantId) {
         throw new TenantDirectoryError('Selected unit is already occupied by another tenant', 400);
       }
 
@@ -444,7 +509,7 @@ async function updateTenant(landlordId, tenantId, data, ipAddress = '') {
       }
 
       // Occupy new unit
-      newUnit.tenant = tenantId;
+      newUnit.tenant = effectiveTenantId;
       newUnit.status = 'occupied';
       if (monthlyRent !== undefined) newUnit.monthlyRent = Number(monthlyRent);
       if (leaseStart !== undefined) newUnit.leaseStart = leaseStart ? new Date(leaseStart) : null;
@@ -455,10 +520,25 @@ async function updateTenant(landlordId, tenantId, data, ipAddress = '') {
       profile.unit = newUnit._id;
       profile.property = prop._id;
       profile.status = status || 'active';
+
+      // If tenant was unassigned before, send welcome credentials email
+      if (wasPreviouslyUnassigned) {
+        const landlordUser = await User.findById(landlordId).select('firstName lastName company').lean();
+        const landlordName = landlordUser ? [landlordUser.firstName, landlordUser.lastName].filter(Boolean).join(' ') : 'Your Landlord';
+        const fullName = [tenantUser.firstName, tenantUser.middleName, tenantUser.lastName].filter(Boolean).join(' ');
+        sendTenantWelcomeEmail({
+          email: tenantUser.email,
+          name: fullName,
+          landlordName,
+          propertyName: prop.name,
+          password: 'jptl2026',
+        }).catch((err) => console.error('Error sending welcome email on lease assignment:', err.message));
+      }
     }
   }
 
   if (monthlyRent !== undefined) profile.monthlyRent = Number(monthlyRent);
+  if (securityDeposit !== undefined) profile.securityDeposit = Number(securityDeposit);
   if (leaseStart !== undefined) profile.leaseStart = leaseStart ? new Date(leaseStart) : null;
   if (leaseEnd !== undefined) profile.leaseEnd = leaseEnd ? new Date(leaseEnd) : null;
   if (status !== undefined) profile.status = status;
@@ -473,7 +553,7 @@ async function updateTenant(landlordId, tenantId, data, ipAddress = '') {
     ipAddress,
   });
 
-  return getTenantDetails(landlordId, tenantId);
+  return getTenantDetails(landlordId, effectiveTenantId);
 }
 
 /**

@@ -1,53 +1,64 @@
-import React, { useState } from 'react';
-import { Bell, CheckCircle2, Clock, AlertTriangle, ShieldAlert, X, Check } from 'lucide-react';
-
-const MOCK_NOTIFICATIONS = [
-  {
-    id: 'notif-1',
-    title: 'Maintenance Update',
-    body: 'HVAC Air Conditioning pressure ticket updated to In Dispatch.',
-    time: '10m ago',
-    type: 'maintenance',
-    unread: true,
-  },
-  {
-    id: 'notif-2',
-    title: 'Payment Received',
-    body: 'Liam Carter paid $1,950 rent for Loft 304 via Stripe.',
-    time: '1h ago',
-    type: 'payment',
-    unread: true,
-  },
-  {
-    id: 'notif-3',
-    title: 'Lease Renewal Alert',
-    body: 'Sophia Lin lease for Unit 14B ends in 120 days.',
-    time: '3h ago',
-    type: 'lease',
-    unread: false,
-  },
-  {
-    id: 'notif-4',
-    title: 'New Tenant Registered',
-    body: 'David K. Miller pre-added profile verified.',
-    time: '1d ago',
-    type: 'tenant',
-    unread: false,
-  },
-];
+import React, { useState, useEffect } from 'react';
+import { Bell, CheckCircle2, Clock, AlertTriangle, ShieldAlert, X, Check, Sparkles, Loader2 } from 'lucide-react';
+import { notificationApi } from '../../services/api';
 
 export const RightNotificationSidebar = ({
   isOpen,
   onClose,
-  notifications: initialNotifs = MOCK_NOTIFICATIONS,
 }) => {
-  const [notifs, setNotifs] = useState(initialNotifs);
+  const [notifs, setNotifs] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState('all');
+
+  const fetchNotifs = async () => {
+    try {
+      setLoading(true);
+      const res = await notificationApi.getNotifications();
+      const rawList = res.data || res.notifications || [];
+      const formatted = rawList.map((n) => ({
+        id: n._id || n.id,
+        title: n.title,
+        body: n.body,
+        type: n.type || 'system',
+        unread: n.unread !== undefined ? n.unread : !n.read,
+        time: n.createdAt
+          ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : n.time || 'Recent',
+      }));
+      setNotifs(formatted);
+    } catch (e) {
+      console.warn('Could not fetch notifications from server:', e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchNotifs();
+    }
+  }, [isOpen]);
 
   const unreadCount = notifs.filter((n) => n.unread).length;
 
-  const markAllRead = () => {
+  const markAllRead = async () => {
+    try {
+      await notificationApi.markAllAsRead();
+    } catch (e) {
+      console.warn('Failed to mark all as read:', e.message);
+    }
     setNotifs((prev) => prev.map((n) => ({ ...n, unread: false })));
+  };
+
+  const markSingleRead = async (id) => {
+    try {
+      await notificationApi.markAsRead(id);
+    } catch (e) {
+      console.warn('Failed to mark notification as read:', e.message);
+    }
+    setNotifs((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, unread: false } : n))
+    );
   };
 
   const filtered = notifs.filter((n) => {
@@ -65,8 +76,8 @@ export const RightNotificationSidebar = ({
         onClick={onClose}
       />
 
-      {/* Sliding Drawer (Emil Kowalski principle: interruptible translateX(100%) -> translateX(0) with ease-out under 200ms) */}
-      <aside className="relative w-full max-w-sm h-full bg-white/90 dark:bg-[#0A0D18]/90 apple-glass border-l border-slate-200 dark:border-slate-800/80 shadow-2xl z-10 flex flex-col drawer-slide-in top-shade">
+      {/* Sliding Drawer */}
+      <aside className="relative w-full max-w-sm h-full bg-white/95 dark:bg-[#0A0D18]/95 apple-glass border-l border-slate-200 dark:border-slate-800/80 shadow-2xl z-10 flex flex-col drawer-slide-in top-shade">
         
         {/* Header */}
         <div className="p-4 border-b border-slate-200 dark:border-slate-800/80 flex items-center justify-between">
@@ -116,25 +127,37 @@ export const RightNotificationSidebar = ({
                 onClick={markAllRead}
                 className="text-[10px] font-mono text-indigo-500 hover:underline flex items-center gap-1 btn-press"
               >
-                <Check className="w-3 h-3" /> Mark read
+                <Check className="w-3 h-3" /> Mark all read
               </button>
             )}
           </div>
 
           {/* Notifications Feed */}
           <div className="space-y-2">
-            {filtered.length === 0 ? (
-              <div className="p-8 text-center text-xs text-slate-400 font-mono">
-                No notifications to display.
+            {loading ? (
+              <div className="p-8 text-center text-xs text-slate-400 font-mono flex items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
+                <span>Loading notifications...</span>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="p-8 text-center rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 space-y-2">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-500 mx-auto flex items-center justify-center">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <h4 className="text-xs font-bold font-grotesk text-slate-800 dark:text-slate-200">All caught up!</h4>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-sans">
+                  No notifications to display right now.
+                </p>
               </div>
             ) : (
               filtered.map((n) => (
                 <div
                   key={n.id}
-                  className={`p-3.5 rounded-2xl apple-glass top-shade border transition-all space-y-1 relative ${
+                  onClick={() => n.unread && markSingleRead(n.id)}
+                  className={`p-3.5 rounded-2xl apple-glass top-shade border transition-all space-y-1 relative cursor-pointer ${
                     n.unread
-                      ? 'border-indigo-500/30 bg-indigo-500/5'
-                      : 'border-slate-200 dark:border-slate-800/80 opacity-80'
+                      ? 'border-indigo-500/40 bg-indigo-500/5 hover:border-indigo-500/60'
+                      : 'border-slate-200 dark:border-slate-800/80 opacity-75 hover:opacity-100'
                   }`}
                 >
                   <div className="flex items-center justify-between text-[10px] font-mono">

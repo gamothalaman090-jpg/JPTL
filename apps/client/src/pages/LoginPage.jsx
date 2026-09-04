@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
 import { Building2, Eye, EyeOff, AlertCircle, Loader2, ArrowRight, Sun, Moon, CheckCircle2, Lock } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
+import { useAuth } from '../context/AuthContext';
 
 export const LoginPage = ({ onNavigate = () => {} }) => {
   const { theme, toggleTheme } = useTheme();
+  const { login, logout } = useAuth();
 
   const [role, setRole] = useState('landlord'); // 'landlord' | 'tenant'
-  const [email, setEmail] = useState('vance.landlord@horizonliving.io');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   const [touched, setTouched] = useState({});
   const [errors, setErrors] = useState({});
+  const [apiError, setApiError] = useState(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -20,16 +23,9 @@ export const LoginPage = ({ onNavigate = () => {} }) => {
     setRole(newRole);
     setTouched({});
     setErrors({});
-    if (newRole === 'landlord') {
-      setEmail('vance.landlord@horizonliving.io');
-    } else {
-      setEmail('sophia.lin@example.com');
-    }
-  };
-
-  const handleQuickFill = (demoEmail) => {
-    setEmail(demoEmail);
-    setPassword('password123');
+    setApiError(null);
+    setEmail('');
+    setPassword('');
   };
 
   const validateField = (name, value) => {
@@ -41,11 +37,11 @@ export const LoginPage = ({ onNavigate = () => {} }) => {
       } else if (!emailRegex.test(value.trim())) {
         error = 'Enter a valid email address';
       }
-    }
-
-    if (name === 'password') {
+    } else if (name === 'password') {
       if (!value) {
         error = 'Password is required';
+      } else if (value.length < 6) {
+        error = 'Password must be at least 6 characters';
       }
     }
 
@@ -54,46 +50,68 @@ export const LoginPage = ({ onNavigate = () => {} }) => {
 
   const handleBlur = (field) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
-    let val = field === 'email' ? email : password;
+    const val = field === 'email' ? email : password;
     setErrors((prev) => ({ ...prev, [field]: validateField(field, val) }));
   };
 
   const handleChange = (field, val) => {
-    if (field === 'email') {
-      setEmail(val);
-      if (touched.email) setErrors((prev) => ({ ...prev, email: validateField('email', val) }));
-    }
-    if (field === 'password') {
-      setPassword(val);
-      if (touched.password) setErrors((prev) => ({ ...prev, password: validateField('password', val) }));
+    if (field === 'email') setEmail(val);
+    if (field === 'password') setPassword(val);
+    setApiError(null);
+
+    if (touched[field]) {
+      setErrors((prev) => ({ ...prev, [field]: validateField(field, val) }));
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setApiError(null);
 
     const emailErr = validateField('email', email);
     const passErr = validateField('password', password);
 
-    setTouched({ email: true, password: true });
-    setErrors({ email: emailErr, password: passErr });
-
-    if (emailErr || passErr) return;
+    if (emailErr || passErr) {
+      setErrors({ email: emailErr, password: passErr });
+      setTouched({ email: true, password: true });
+      return;
+    }
 
     setIsSubmitting(true);
 
-    setTimeout(() => {
+    try {
+      const res = await login(email, password);
+      const userRole = res?.user?.role || res?.role;
+
+      // Enforce tab role alignment
+      if (role === 'tenant' && userRole !== 'tenant') {
+        await logout();
+        setIsSubmitting(false);
+        setApiError('This account has landlord credentials. Please switch to the Landlord tab to sign in.');
+        return;
+      }
+
+      if (role === 'landlord' && userRole === 'tenant') {
+        await logout();
+        setIsSubmitting(false);
+        setApiError('This account has resident credentials. Please switch to the Resident tab to sign in.');
+        return;
+      }
+
       setIsSubmitting(false);
       setIsSuccess(true);
 
       setTimeout(() => {
-        if (role === 'landlord') {
+        if (userRole === 'landlord' || userRole === 'superadmin') {
           onNavigate('/dashboard');
         } else {
           onNavigate('/tenant');
         }
-      }, 700);
-    }, 1000);
+      }, 500);
+    } catch (err) {
+      setIsSubmitting(false);
+      setApiError(err.message || 'Invalid email or password. Please check your credentials.');
+    }
   };
 
   return (
@@ -211,38 +229,16 @@ export const LoginPage = ({ onNavigate = () => {} }) => {
             </p>
           </div>
 
-          {/* Quick Fill Demo Chips */}
-          <div className="mb-6 space-y-1.5">
-            <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">
-              1-Click Demo Accounts:
-            </span>
-            {role === 'landlord' ? (
-              <button
-                type="button"
-                onClick={() => handleQuickFill('vance.landlord@horizonliving.io')}
-                className="px-3 py-1.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-xs font-mono btn-press"
-              >
-                🏢 Alexander Vance (Landlord)
-              </button>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill('sophia.lin@example.com')}
-                  className="px-2.5 py-1 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-xs font-mono btn-press"
-                >
-                  🏠 Sophia Lin (Unit 14B)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill('liam.carter@example.com')}
-                  className="px-2.5 py-1 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-xs font-mono btn-press"
-                >
-                  🏠 Liam Carter (Loft 304)
-                </button>
+          {/* Error Alert Banner */}
+          {apiError && (
+            <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-3 animate-in fade-in">
+              <AlertCircle className="w-5 h-5 shrink-0 text-rose-500" />
+              <div className="flex-1 font-sans">
+                <span className="font-bold block">Authentication Failed</span>
+                <span>{apiError}</span>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Success Banner */}
           {isSuccess && (

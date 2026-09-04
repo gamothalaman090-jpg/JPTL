@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { MOCK_DOCUMENTS } from '../../data/mockData';
 import { DocumentInspectionModal } from './DocumentInspectionModal';
+import { useAuth } from '../../context/AuthContext';
+import { landlordApi, authApi } from '../../services/api';
 
 const INITIAL_VENDORS = [
   { category: 'Plumbing', vendor: 'Apex Plumbing Services', autoAssign: true, contact: '+1 (555) 991-0022' },
@@ -30,6 +32,7 @@ export const LandlordSettingsTab = ({
   onUpdateDocumentStatus,
   initialSubTab = 'account',
 }) => {
+  const { user, updateUser } = useAuth();
   const [activeSubTab, setActiveSubTab] = useState(initialSubTab);
 
   useEffect(() => {
@@ -39,15 +42,38 @@ export const LandlordSettingsTab = ({
 
   // 1. Landlord Account & Profile state
   const [landlordProfile, setLandlordProfile] = useState({
-    firstName: 'Alexander',
-    middleName: 'J.',
-    lastName: 'Vance',
-    name: 'Alexander Vance',
-    email: 'alexander.vance@horizon.com',
-    phone: '+1 (555) 019-2831',
-    company: 'Horizon Property Holdings Group',
-    officePhone: '+1 (555) 990-1100',
+    firstName: user?.firstName || 'Julian',
+    middleName: user?.middleName || '',
+    lastName: user?.lastName || 'Thorne',
+    name: user?.name || 'Julian Thorne',
+    email: user?.email || 'landlord@jptl.com',
+    phone: user?.phone || '+1 (555) 100-0001',
+    company: user?.company || 'JPTL Portfolio Group',
+    officePhone: user?.officePhone || '+1 (555) 100-0002',
   });
+
+  useEffect(() => {
+    if (user) {
+      setLandlordProfile((prev) => ({
+        ...prev,
+        firstName: user.firstName || prev.firstName,
+        middleName: user.middleName || prev.middleName,
+        lastName: user.lastName || prev.lastName,
+        name: user.name || prev.name,
+        email: user.email || prev.email,
+        phone: user.phone || prev.phone,
+        company: user.company || prev.company,
+        officePhone: user.officePhone || prev.officePhone,
+      }));
+    }
+    landlordApi.getVendors().then((res) => {
+      if (res.data?.length > 0) setVendors(res.data);
+    }).catch(() => {});
+
+    landlordApi.getAuditLogs().then((res) => {
+      if (res.data?.length > 0) setAuditLogs(res.data);
+    }).catch(() => {});
+  }, [user]);
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [passwordForm, setPasswordForm] = useState({ current: '', newPass: '', confirm: '' });
   const [showPassword, setShowPassword] = useState(false);
@@ -226,7 +252,29 @@ export const LandlordSettingsTab = ({
   const [lastBackupTime, setLastBackupTime] = useState('2026-08-27 04:00 AM');
   const [isBackingUp, setIsBackingUp] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    try {
+      await authApi.updateProfile({
+        name: [landlordProfile.firstName, landlordProfile.middleName, landlordProfile.lastName].filter(Boolean).join(' '),
+        phone: landlordProfile.phone,
+        company: landlordProfile.company,
+        officePhone: landlordProfile.officePhone,
+        preferences: {
+          currency: defaultCurrency,
+          timezone: defaultTimezone,
+        },
+      });
+      updateUser({
+        name: [landlordProfile.firstName, landlordProfile.middleName, landlordProfile.lastName].filter(Boolean).join(' '),
+        firstName: landlordProfile.firstName,
+        lastName: landlordProfile.lastName,
+        phone: landlordProfile.phone,
+        company: landlordProfile.company,
+        officePhone: landlordProfile.officePhone,
+      });
+    } catch (err) {
+      console.warn('Profile save notice:', err.message);
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };

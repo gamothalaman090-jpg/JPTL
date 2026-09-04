@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Building2, Eye, EyeOff, AlertCircle, Loader2, ArrowRight, ShieldCheck, X, Sun, Moon, Check, Circle, Phone } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
+import { useAuth } from '../context/AuthContext';
 
 export const RegisterPage = ({ onNavigate = () => {} }) => {
   const { theme, toggleTheme } = useTheme();
+  const { signup, login } = useAuth();
 
   const [firstName, setFirstName] = useState('');
   const [middleName, setMiddleName] = useState('');
@@ -159,7 +161,7 @@ export const RegisterPage = ({ onNavigate = () => {} }) => {
     hasDigit &&
     confirmPassword === password;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError(null);
 
@@ -178,8 +180,18 @@ export const RegisterPage = ({ onNavigate = () => {} }) => {
 
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      await signup({
+        firstName: firstName.trim(),
+        middleName: middleName.trim() || undefined,
+        lastName: lastName.trim(),
+        email: email.trim(),
+        phone: phone.trim() || undefined,
+        password,
+      });
+
+      // Automatically authenticate the newly registered landlord
+      await login(email.trim(), password);
 
       const fullName = [firstName.trim(), middleName.trim(), lastName.trim()].filter(Boolean).join(' ');
       sessionStorage.setItem(
@@ -193,8 +205,13 @@ export const RegisterPage = ({ onNavigate = () => {} }) => {
           phone: phone.trim(),
         })
       );
+
+      setIsSubmitting(false);
       onNavigate('/onboarding?step=1');
-    }, 1000);
+    } catch (err) {
+      setIsSubmitting(false);
+      setSubmitError(err.message || 'Registration failed. Please check your information and try again.');
+    }
   };
 
   return (

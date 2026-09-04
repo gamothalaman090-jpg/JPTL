@@ -3,6 +3,7 @@ import { Building2, Layers, Users, Megaphone, Rocket, Check, ArrowRight, ArrowLe
 import { useTheme } from '../hooks/useTheme';
 import { MOCK_PROPERTIES, MOCK_UNITS } from '../data/mockData';
 import { AddPropertyOrUnitModal } from '../components/dashboard/AddPropertyOrUnitModal';
+import { landlordApi } from '../services/api';
 
 export const OnboardingPage = ({ onNavigate = () => {} }) => {
   const { theme, toggleTheme } = useTheme();
@@ -15,18 +16,18 @@ export const OnboardingPage = ({ onNavigate = () => {} }) => {
   // Step 1: Default selected tier to 'pro' (the RECOMMENDED tier)
   const [selectedTier, setSelectedTier] = useState('pro');
 
-  // Properties & Units State (with custom created items stored in sessionStorage)
+  // Properties & Units State (strictly real created/live items, no mock units for new users)
   const [propertiesList, setPropertiesList] = useState(() => {
     try {
       const savedProps = sessionStorage.getItem('jptl_custom_properties');
       if (savedProps) {
         const parsed = JSON.parse(savedProps);
-        if (Array.isArray(parsed) && parsed.length > 0) return [...MOCK_PROPERTIES, ...parsed];
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) {
       console.error(e);
     }
-    return MOCK_PROPERTIES;
+    return [];
   });
 
   const [unitsList, setUnitsList] = useState(() => {
@@ -34,24 +35,46 @@ export const OnboardingPage = ({ onNavigate = () => {} }) => {
       const savedUnits = sessionStorage.getItem('jptl_custom_units');
       if (savedUnits) {
         const parsed = JSON.parse(savedUnits);
-        if (Array.isArray(parsed) && parsed.length > 0) return [...MOCK_UNITS, ...parsed];
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) {
       console.error(e);
     }
-    return MOCK_UNITS;
+    return [];
   });
+
+  // Load existing properties if already in backend
+  React.useEffect(() => {
+    async function loadPortfolio() {
+      try {
+        const res = await landlordApi.getProperties();
+        if (res?.data?.length > 0) {
+          setPropertiesList(res.data);
+          const uList = res.data.flatMap((p) =>
+            (p.units || []).map((u) => ({
+              ...u,
+              id: u._id || u.id,
+              propertyId: p._id || p.id,
+              propertyName: p.name,
+              propertyAddress: p.address,
+            }))
+          );
+          if (uList.length > 0) setUnitsList(uList);
+        }
+      } catch (err) {
+        // quiet fallback
+      }
+    }
+    loadPortfolio();
+  }, []);
 
   // Modal State for Property / Unit Creation
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [addModalTab, setAddModalTab] = useState('unit'); // 'unit' | 'property'
   const [activeMemberRowId, setActiveMemberRowId] = useState(null);
 
-  // Step 2: Tenant list state
-  const [tenantMembers, setTenantMembers] = useState([
-    { id: '1', firstName: 'Sophia', middleName: '', lastName: 'Lin', name: 'Sophia Lin', email: 'sophia.lin@example.com', unitId: 'unit-102' },
-    { id: '2', firstName: 'Liam', middleName: '', lastName: 'Carter', name: 'Liam Carter', email: 'liam.carter@example.com', unitId: 'pre_add_unassigned' },
-  ]);
+  // Step 2: Tenant list state — empty by default for new landlord
+  const [tenantMembers, setTenantMembers] = useState([]);
 
   // Step 3: Announcement draft
   const [announcementSubject, setAnnouncementSubject] = useState('Welcome to our new Property Portal! 🚀');
@@ -73,25 +96,63 @@ export const OnboardingPage = ({ onNavigate = () => {} }) => {
   };
 
   // Callback when a new property is created
-  const handlePropertyCreated = (newProp) => {
-    setPropertiesList((prev) => {
-      const updated = [...prev, newProp];
-      try {
-        const customOnly = updated.filter((p) => p.id.startsWith('prop-custom-'));
-        sessionStorage.setItem('jptl_custom_properties', JSON.stringify(customOnly));
-      } catch (e) {
-        console.error(e);
-      }
-      return updated;
-    });
+  const handlePropertyCreated = async (newProp) => {
+    try {
+      const res = await landlordApi.createProperty({
+        name: newProp.name,
+        address: newProp.address,
+        city: newProp.city,
+        category: newProp.category,
+        image: newProp.image,
+      });
+      const created = res.data || newProp;
+      const finalProp = { ...created, id: created._id || created.id };
+      setPropertiesList((prev) => [...prev, finalProp]);
+      return finalProp;
+    } catch (e) {
+      console.warn('Property created locally:', e.message);
+      setPropertiesList((prev) => {
+        const updated = [...prev, newProp];
+        try {
+          const customOnly = updated.filter((p) => String(p.id).startsWith('prop-custom-'));
+          sessionStorage.setItem('jptl_custom_properties', JSON.stringify(customOnly));
+        } catch (err) {
+          console.error(err);
+        }
+        return updated;
+      });
+      return newProp;
+    }
   };
 
   // Callback when a new unit is created
-  const handleUnitCreated = (newUnit, targetMemberId) => {
-    setUnitsList((prev) => {
-      const updated = [...prev, newUnit];
+  const handleUnitCreated = async (newUnit, targetMemberId) => {
+    let finalUnit = newUnit;
+    const targetPropId = newUnit.propertyId || newUnit.property;
+    const isMongoId = /^[0-9a-fA-F]{24}$/.test(String(targetPropId));
+    if (isMongoId) {
       try {
-        const customOnly = updated.filter((u) => u.id.startsWith('unit-custom-'));
+        const res = await landlordApi.createUnit(targetPropId, {
+          label: newUnit.label,
+          monthlyRent: newUnit.monthlyRent,
+          bedrooms: newUnit.bedrooms,
+          bathrooms: newUnit.bathrooms,
+          sqft: newUnit.sqft,
+        });
+        const created = res.data || newUnit;
+        finalUnit = {
+          ...created,
+          id: created._id || created.id,
+          propertyId: targetPropId,
+        };
+      } catch (err) {
+        console.warn('Unit created locally:', err.message);
+      }
+    }
+    setUnitsList((prev) => {
+      const updated = [...prev, finalUnit];
+      try {
+        const customOnly = updated.filter((u) => String(u.id).startsWith('unit-custom-'));
         sessionStorage.setItem('jptl_custom_units', JSON.stringify(customOnly));
       } catch (e) {
         console.error(e);
@@ -100,8 +161,9 @@ export const OnboardingPage = ({ onNavigate = () => {} }) => {
     });
 
     if (targetMemberId) {
-      handleUpdateMember(targetMemberId, 'unitId', newUnit.id);
+      handleUpdateMember(targetMemberId, 'unitId', finalUnit.id);
     }
+    return finalUnit;
   };
 
   // Add new tenant row in Step 2
@@ -139,12 +201,11 @@ export const OnboardingPage = ({ onNavigate = () => {} }) => {
   };
 
   const handleRemoveMember = (id) => {
-    if (tenantMembers.length === 1) return;
     setTenantMembers((prev) => prev.filter((m) => m.id !== id));
   };
 
   // Progress to next step or complete onboarding
-  const handleNextStep = () => {
+  const handleNextStep = async () => {
     if (step < 4) {
       const nextStep = step + 1;
       setStep(nextStep);
@@ -171,6 +232,26 @@ export const OnboardingPage = ({ onNavigate = () => {} }) => {
             status: matchedUnit ? 'active' : 'pre_added',
           };
         });
+
+      try {
+        await landlordApi.completeOnboarding({
+          plan: selectedTier,
+          tenants: validNewTenants.map((t) => ({
+            firstName: t.firstName,
+            middleName: t.middleName,
+            lastName: t.lastName,
+            email: t.email,
+            unitId: t.unitId,
+            tempPassword: 'jptl2026',
+          })),
+          announcement: {
+            title: announcementSubject,
+            content: announcementBody,
+          },
+        });
+      } catch (err) {
+        console.warn('Onboarding server persistence notice:', err.message);
+      }
 
       sessionStorage.setItem('jptl_onboarding_tenants', JSON.stringify(validNewTenants));
       sessionStorage.setItem(
@@ -290,17 +371,21 @@ export const OnboardingPage = ({ onNavigate = () => {} }) => {
               </div>
 
               <div className="space-y-1.5 pt-1">
-                {tenantMembers.map((m, idx) => (
-                  <div key={m.id || idx} className="flex items-center justify-between p-2 rounded-xl bg-slate-900/60 border border-white/5 text-[11px]">
-                    <div className="truncate pr-2">
-                      <strong className="text-white block truncate">{m.name || 'Unnamed Tenant'}</strong>
-                      <span className="text-slate-400 truncate block text-[10px]">{m.email || 'No email entered'}</span>
+                {tenantMembers.length === 0 ? (
+                  <p className="text-slate-400 text-[11px] italic py-2">No members added yet.</p>
+                ) : (
+                  tenantMembers.map((m, idx) => (
+                    <div key={m.id || idx} className="flex items-center justify-between p-2 rounded-xl bg-slate-900/60 border border-white/5 text-[11px]">
+                      <div className="truncate pr-2">
+                        <strong className="text-white block truncate">{m.name || [m.firstName, m.lastName].filter(Boolean).join(' ') || 'Unnamed Tenant'}</strong>
+                        <span className="text-slate-400 truncate block text-[10px]">{m.email || 'No email entered'}</span>
+                      </div>
+                      <span className="text-indigo-300 font-mono text-[10px] shrink-0">
+                        {m.unitId === 'pre_add_unassigned' ? 'Unassigned' : 'Assigned'}
+                      </span>
                     </div>
-                    <span className="text-indigo-300 font-mono text-[10px] shrink-0">
-                      {m.unitId === 'pre_add_unassigned' ? 'Unassigned' : 'Assigned'}
-                    </span>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -488,95 +573,113 @@ export const OnboardingPage = ({ onNavigate = () => {} }) => {
               </div>
             </div>
 
-            {/* Column Headers */}
-            <div className="hidden lg:grid grid-cols-[1.1fr_0.9fr_1.1fr_1.4fr_1.4fr_auto] gap-2.5 px-3 text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-              <span>First Name</span>
-              <span>Middle Name</span>
-              <span>Last Name</span>
-              <span>Email Address</span>
-              <span>Property / Unit</span>
-              <span className="w-8"></span>
-            </div>
-
-            {/* Dynamic Member Rows */}
-            <div className="space-y-3">
-              {tenantMembers.map((member) => (
-                <div
-                  key={member.id}
-                  className="p-3.5 rounded-2xl bg-white dark:bg-[#111625] border border-slate-200 dark:border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-[1.1fr_0.9fr_1.1fr_1.4fr_1.4fr_auto] items-center gap-2.5 w-full overflow-hidden shadow-sm"
+            {tenantMembers.length === 0 ? (
+              <div className="p-8 rounded-2xl bg-white dark:bg-[#111625] border border-dashed border-slate-300 dark:border-slate-800 text-center space-y-3">
+                <Users className="w-8 h-8 text-indigo-500/60 mx-auto" />
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-sans">
+                  No tenant members added yet. You can add them now or invite them later from your dashboard.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleAddMember}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold font-grotesk inline-flex items-center gap-1.5 shadow-md shadow-indigo-600/20 active:scale-95 transition-all"
                 >
-                  <input
-                    type="text"
-                    value={member.firstName || ''}
-                    onChange={(e) => handleUpdateMember(member.id, 'firstName', e.target.value)}
-                    placeholder="First Name"
-                    className="w-full min-w-0 bg-slate-50 dark:bg-[#090C16] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                  <input
-                    type="text"
-                    value={member.middleName || ''}
-                    onChange={(e) => handleUpdateMember(member.id, 'middleName', e.target.value)}
-                    placeholder="Middle Name (Opt)"
-                    className="w-full min-w-0 bg-slate-50 dark:bg-[#090C16] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                  <input
-                    type="text"
-                    value={member.lastName || ''}
-                    onChange={(e) => handleUpdateMember(member.id, 'lastName', e.target.value)}
-                    placeholder="Last Name"
-                    className="w-full min-w-0 bg-slate-50 dark:bg-[#090C16] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                  <input
-                    type="email"
-                    value={member.email}
-                    onChange={(e) => handleUpdateMember(member.id, 'email', e.target.value)}
-                    placeholder="Email Address"
-                    className="w-full min-w-0 bg-slate-50 dark:bg-[#090C16] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:col-span-3 lg:col-span-1"
-                  />
-                  
-                  {/* Select Dropdown with Vacant Units + Quick Creation */}
-                  <select
-                    value={member.unitId}
-                    onChange={(e) => handleSelectUnitChange(member.id, e.target.value)}
-                    className="w-full min-w-0 bg-slate-50 dark:bg-[#090C16] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate font-sans sm:col-span-2 lg:col-span-1"
-                  >
-                    <option value="pre_add_unassigned">Unassigned (Pre-add)</option>
-                    <optgroup label="Available Vacant Units">
-                      {vacantUnits.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          ${u.monthlyRent}/mo &mdash; {u.label} ({u.propertyName})
-                        </option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="Quick Create">
-                      <option value="CREATE_NEW_UNIT">+ Create New Unit...</option>
-                      <option value="CREATE_NEW_PROPERTY">+ Create New Property...</option>
-                    </optgroup>
-                  </select>
-
-                  {tenantMembers.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveMember(member.id)}
-                      className="p-2 text-slate-400 hover:text-rose-500 rounded-lg shrink-0 flex items-center justify-center justify-self-center sm:col-span-1 lg:col-span-1"
-                      title="Remove row"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
+                  <Plus className="w-4 h-4" /> Add Tenant Member
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* Column Headers */}
+                <div className="hidden lg:grid grid-cols-[1.1fr_0.9fr_1.1fr_1.4fr_1.4fr_auto] gap-2.5 px-3 text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                  <span>First Name</span>
+                  <span>Middle Name</span>
+                  <span>Last Name</span>
+                  <span>Email Address</span>
+                  <span>Property / Unit</span>
+                  <span className="w-8"></span>
                 </div>
-              ))}
-            </div>
 
-            {/* + Add Another Member Button */}
-            <button
-              type="button"
-              onClick={handleAddMember}
-              className="w-full py-3 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white hover:border-indigo-500 text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add another member</span>
-            </button>
+                {/* Dynamic Member Rows */}
+                <div className="space-y-3">
+                  {tenantMembers.map((member) => (
+                    <div
+                      key={member.id}
+                      className="p-3.5 rounded-2xl bg-white dark:bg-[#111625] border border-slate-200 dark:border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-[1.1fr_0.9fr_1.1fr_1.4fr_1.4fr_auto] items-center gap-2.5 w-full overflow-hidden shadow-sm"
+                    >
+                      <input
+                        type="text"
+                        value={member.firstName || ''}
+                        onChange={(e) => handleUpdateMember(member.id, 'firstName', e.target.value)}
+                        placeholder="First Name"
+                        className="w-full min-w-0 bg-slate-50 dark:bg-[#090C16] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                      <input
+                        type="text"
+                        value={member.middleName || ''}
+                        onChange={(e) => handleUpdateMember(member.id, 'middleName', e.target.value)}
+                        placeholder="Middle Name (Opt)"
+                        className="w-full min-w-0 bg-slate-50 dark:bg-[#090C16] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                      <input
+                        type="text"
+                        value={member.lastName || ''}
+                        onChange={(e) => handleUpdateMember(member.id, 'lastName', e.target.value)}
+                        placeholder="Last Name"
+                        className="w-full min-w-0 bg-slate-50 dark:bg-[#090C16] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                      <input
+                        type="email"
+                        value={member.email}
+                        onChange={(e) => handleUpdateMember(member.id, 'email', e.target.value)}
+                        placeholder="Email Address"
+                        className="w-full min-w-0 bg-slate-50 dark:bg-[#090C16] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:col-span-3 lg:col-span-1"
+                      />
+                      
+                      {/* Select Dropdown with Vacant Units + Quick Creation */}
+                      <select
+                        value={member.unitId}
+                        onChange={(e) => handleSelectUnitChange(member.id, e.target.value)}
+                        className="w-full min-w-0 bg-slate-50 dark:bg-[#090C16] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate font-sans sm:col-span-2 lg:col-span-1"
+                      >
+                        <option value="pre_add_unassigned">Unassigned (Pre-add)</option>
+                        {vacantUnits.length > 0 && (
+                          <optgroup label="Available Vacant Units">
+                            {vacantUnits.map((u) => (
+                              <option key={u.id} value={u.id}>
+                                ${u.monthlyRent}/mo &mdash; {u.label} ({u.propertyName})
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                        <optgroup label="Quick Create">
+                          <option value="CREATE_NEW_UNIT">+ Create New Unit...</option>
+                          <option value="CREATE_NEW_PROPERTY">+ Create New Property...</option>
+                        </optgroup>
+                      </select>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveMember(member.id)}
+                        className="p-2 text-slate-400 hover:text-rose-500 rounded-lg shrink-0 flex items-center justify-center justify-self-center sm:col-span-1 lg:col-span-1"
+                        title="Remove row"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* + Add Another Member Button */}
+                <button
+                  type="button"
+                  onClick={handleAddMember}
+                  className="w-full py-3 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white hover:border-indigo-500 text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add another member</span>
+                </button>
+              </>
+            )}
 
           </div>
         )}
@@ -656,27 +759,34 @@ export const OnboardingPage = ({ onNavigate = () => {} }) => {
               <div className="space-y-2">
                 <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">Configured Roster</span>
                 <div className="divide-y divide-slate-200 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-slate-50 dark:bg-[#090C16]">
-                  {tenantMembers.filter((m) => m.name.trim()).map((m) => {
-                    const unit = MOCK_UNITS.find((u) => u.id === m.unitId);
-                    return (
-                      <div key={m.id} className="p-3 flex items-center justify-between text-xs">
-                        <div>
-                          <strong className="text-slate-900 dark:text-white block font-bold">{m.name}</strong>
-                          <span className="text-slate-500 dark:text-slate-400 text-[11px]">{m.email}</span>
+                  {tenantMembers.filter((m) => (m.name?.trim() || m.firstName?.trim() || m.email?.trim())).length === 0 ? (
+                    <div className="p-4 text-center text-xs text-slate-500 font-sans">
+                      No tenants pre-registered. You can invite residents anytime from your dashboard.
+                    </div>
+                  ) : (
+                    tenantMembers.filter((m) => (m.name?.trim() || m.firstName?.trim() || m.email?.trim())).map((m) => {
+                      const unit = unitsList.find((u) => u.id === m.unitId);
+                      const displayName = m.name?.trim() || [m.firstName?.trim(), m.lastName?.trim()].filter(Boolean).join(' ') || 'Unnamed Tenant';
+                      return (
+                        <div key={m.id} className="p-3 flex items-center justify-between text-xs">
+                          <div>
+                            <strong className="text-slate-900 dark:text-white block font-bold">{displayName}</strong>
+                            <span className="text-slate-500 dark:text-slate-400 text-[11px]">{m.email}</span>
+                          </div>
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 border border-indigo-500/30">
+                            {unit ? `${unit.label} ($${unit.monthlyRent}/mo)` : 'Pre-added (Unassigned)'}
+                          </span>
                         </div>
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 border border-indigo-500/30">
-                          {unit ? `${unit.label} ($${unit.monthlyRent}/mo)` : 'Pre-added (Unassigned)'}
-                        </span>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                 </div>
               </div>
 
               {/* Temporary Passwords Auto-Generated Notice */}
               <div className="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-xs flex items-center gap-2.5 text-indigo-900 dark:text-indigo-200">
                 <Key className="w-4 h-4 text-indigo-500 shrink-0" />
-                <span>Auto-generated temporary credentials are ready for tenant dispatch in your dashboard.</span>
+                <span>Default initial tenant password is set to 'jptl2026'. Tenants can update their password anytime upon sign-in.</span>
               </div>
 
             </div>

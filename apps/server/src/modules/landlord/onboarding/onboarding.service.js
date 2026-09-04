@@ -5,6 +5,7 @@ import Unit from '../../../shared/models/unit.model.js';
 import TenantProfile from '../../../shared/models/tenantProfile.model.js';
 import Announcement from '../../../shared/models/announcements.model.js';
 import AuditLog from '../../../shared/models/auditLog.model.js';
+import { sendTenantWelcomeEmail } from '../../../shared/utils/mailer.js';
 
 class OnboardingError extends Error {
   constructor(message, statusCode = 400) {
@@ -20,7 +21,7 @@ const VALID_PLANS = ['starter', 'pro', 'enterprise'];
  * Generate default temporary password for pre-registered tenants
  */
 function generateTemporaryPassword() {
-  return 'JPTL2026';
+  return 'jptl2026';
 }
 
 /**
@@ -272,6 +273,18 @@ async function createTenant(landlordId, data, ipAddress = '') {
     ipAddress,
   });
 
+  const landlordUser = await User.findById(landlordId).select('firstName lastName company').lean();
+  const landlordName = landlordUser ? [landlordUser.firstName, landlordUser.lastName].filter(Boolean).join(' ') : 'Your Landlord';
+  const fullName = [tenantUser.firstName, tenantUser.middleName, tenantUser.lastName].filter(Boolean).join(' ');
+
+  sendTenantWelcomeEmail({
+    email: tenantUser.email,
+    name: fullName,
+    landlordName,
+    propertyName: assignedProperty ? assignedProperty.name : 'Your Residence',
+    password: generatedPassword || 'jptl2026',
+  }).catch((err) => console.error('Error sending welcome email in registerTenant:', err.message));
+
   return {
     id: tenantUser._id,
     firstName: tenantUser.firstName,
@@ -499,6 +512,15 @@ async function completeFullOnboarding(landlordId, payload, ipAddress = '') {
       entityId: tenantUser._id,
       ipAddress,
     });
+
+    const landlordName = [landlord.firstName, landlord.lastName].filter(Boolean).join(' ') || 'Your Landlord';
+    sendTenantWelcomeEmail({
+      email: tenantUser.email,
+      name: fullName,
+      landlordName,
+      propertyName: assignedProperty ? assignedProperty.name : 'Your Residence',
+      password: tempPassword || 'jptl2026',
+    }).catch((err) => console.error('Error sending welcome email in completeFullOnboarding:', err.message));
   }
 
   // 6. Recalculate Property Metrics for all modified properties

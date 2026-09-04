@@ -4,7 +4,7 @@ export async function getDocuments(req, res) {
   try {
     const landlordId = req.user._id || req.user.id;
     const result = await landlordDocService.getLandlordDocuments(landlordId, req.query);
-    return res.status(200).json({ success: true, ...result });
+    return res.status(200).json({ success: true, data: result.documents, documents: result.documents, ...result });
   } catch (err) {
     const statusCode = err.statusCode || 500;
     return res.status(statusCode).json({ success: false, message: err.message });

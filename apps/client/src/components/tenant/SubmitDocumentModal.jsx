@@ -47,7 +47,8 @@ export const SubmitDocumentModal = ({
         name: fileName,
         type: docType,
         notes: notes,
-        fileSize: selectedFile ? `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB` : '1.4 MB'
+        fileSize: selectedFile ? `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB` : '1.4 MB',
+        file: selectedFile,
       });
 
       setIsSubmitting(false);

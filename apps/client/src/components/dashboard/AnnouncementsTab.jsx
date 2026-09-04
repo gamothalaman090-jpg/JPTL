@@ -1,46 +1,19 @@
 import React, { useState } from 'react';
 import { Megaphone, Plus, Pin, Calendar, Tag, User, Search, Sparkles } from 'lucide-react';
 
-const MOCK_ANNOUNCEMENTS = [
-  {
-    id: 'anc-101',
-    title: 'Property Portal Upgrade & System Enhancements 🚀',
-    body: 'We have deployed the new landlord dashboard system featuring real-time technician dispatches, automated rent roll receipts, and instant tenant placement.',
-    category: 'System',
-    isPinned: true,
-    author: 'Alexander Vance',
-    date: 'Aug 24, 2026',
-  },
-  {
-    id: 'anc-102',
-    title: 'Scheduled HVAC Inspection — Aura Sky Towers',
-    body: 'Annual cooling tower freon checks will occur on Friday between 9:00 AM and 2:00 PM. Access to mechanical rooms will be required.',
-    category: 'Maintenance',
-    isPinned: false,
-    author: 'Alexander Vance',
-    date: 'Aug 22, 2026',
-  },
-  {
-    id: 'anc-103',
-    title: 'Updated Digital Rent Receipt Policy',
-    body: 'Starting September 1st, all rent receipts will be automatically issued upon Stripe transaction clearance. PDF statements can be downloaded anytime.',
-    category: 'Policy',
-    isPinned: false,
-    author: 'Alexander Vance',
-    date: 'Aug 18, 2026',
-  },
-];
-
-export const AnnouncementsTab = ({ onOpenNewAnnouncement }) => {
-  const [announcements, setAnnouncements] = useState(MOCK_ANNOUNCEMENTS);
+export const AnnouncementsTab = ({
+  announcements = [],
+  onOpenNewAnnouncement,
+}) => {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredAnnouncements = announcements.filter((a) => {
-    const matchesSearch =
-      a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      a.body.toLowerCase().includes(searchQuery.toLowerCase());
-    if (categoryFilter !== 'all' && a.category !== categoryFilter) return false;
+    const text = `${a.title || ''} ${a.body || a.content || ''}`.toLowerCase();
+    const matchesSearch = text.includes(searchQuery.toLowerCase());
+    if (categoryFilter !== 'all' && (a.category || 'General').toLowerCase() !== categoryFilter.toLowerCase()) {
+      return false;
+    }
     return matchesSearch;
   });
 
@@ -76,7 +49,7 @@ export const AnnouncementsTab = ({ onOpenNewAnnouncement }) => {
               key={cat}
               onClick={() => setCategoryFilter(cat)}
               className={`px-3 py-1.5 rounded-xl font-mono text-[11px] capitalize btn-press transition-all ${
-                categoryFilter === cat
+                categoryFilter.toLowerCase() === cat.toLowerCase()
                   ? 'bg-indigo-600 text-white font-bold shadow-sm'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
@@ -101,13 +74,19 @@ export const AnnouncementsTab = ({ onOpenNewAnnouncement }) => {
       {/* Announcements List */}
       <div className="space-y-4">
         {filteredAnnouncements.length === 0 ? (
-          <div className="p-12 text-center rounded-2xl border border-slate-200 dark:border-slate-800 apple-glass text-slate-500 dark:text-slate-400 text-xs font-mono">
-            No announcements match the active filter or search query.
+          <div className="p-12 text-center rounded-3xl border border-slate-200 dark:border-slate-800 apple-glass text-slate-500 dark:text-slate-400 text-xs space-y-2">
+            <Megaphone className="w-8 h-8 text-indigo-500/50 mx-auto" />
+            <h4 className="font-bold text-slate-700 dark:text-slate-300">No announcements yet</h4>
+            <p className="text-[11px] font-mono">
+              {announcements.length === 0
+                ? "Click 'New Announcement' above to publish updates to your residents and staff."
+                : 'No announcements match the active filter or search query.'}
+            </p>
           </div>
         ) : (
           filteredAnnouncements.map((a) => (
             <div
-              key={a.id}
+              key={a.id || a._id}
               className={`p-6 rounded-3xl apple-glass top-shade border transition-all space-y-3 ${
                 a.isPinned
                   ? 'border-indigo-500/40 bg-gradient-to-r from-indigo-500/10 via-purple-500/5 to-transparent'
@@ -122,16 +101,20 @@ export const AnnouncementsTab = ({ onOpenNewAnnouncement }) => {
                     </span>
                   )}
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                    {a.category}
+                    {a.category || 'General'}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-4 text-[11px] font-mono text-slate-400">
                   <span className="flex items-center gap-1">
-                    <User className="w-3.5 h-3.5 text-indigo-400" /> {a.author}
+                    <User className="w-3.5 h-3.5 text-indigo-400" /> {
+                      typeof a.author === 'object' && a.author !== null
+                        ? ([a.author.firstName, a.author.lastName].filter(Boolean).join(' ') || a.author.name || 'Landlord')
+                        : (a.author || a.creatorName || 'Landlord')
+                    }
                   </span>
                   <span className="flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5" /> {a.date}
+                    <Calendar className="w-3.5 h-3.5" /> {a.date || (a.createdAt ? new Date(a.createdAt).toLocaleDateString() : 'Recent')}
                   </span>
                 </div>
               </div>
@@ -141,7 +124,7 @@ export const AnnouncementsTab = ({ onOpenNewAnnouncement }) => {
               </h3>
 
               <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed max-w-3xl">
-                {a.body}
+                {a.body || a.content}
               </p>
             </div>
           ))

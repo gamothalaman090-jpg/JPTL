@@ -48,8 +48,17 @@ export async function getLandlordTickets(landlordId, query = {}) {
   const unitIds = units.map((u) => u._id);
   const unitMap = new Map(units.map((u) => [u._id.toString(), u]));
 
+  // Also query tenants registered under this landlord
+  const landlordTenants = await User.find({ landlord: landlordId }).select('_id').lean();
+  const tenantIds = landlordTenants.map((t) => t._id);
+
   // 3. Build Ticket match filter
-  const matchFilter = { unit: { $in: unitIds } };
+  const matchFilter = {
+    $or: [
+      { unit: { $in: unitIds } },
+      { tenant: { $in: tenantIds } },
+    ],
+  };
   if (status && status !== 'all') {
     matchFilter.status = status;
   }
@@ -60,6 +69,7 @@ export async function getLandlordTickets(landlordId, query = {}) {
   // 4. Fetch tickets with populated tenant
   const rawTickets = await Ticket.find(matchFilter)
     .populate('tenant', 'firstName lastName email phone')
+    .populate('unit')
     .sort({ createdAt: -1 })
     .lean();
 

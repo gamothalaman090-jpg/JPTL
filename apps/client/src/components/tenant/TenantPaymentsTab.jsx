@@ -6,62 +6,47 @@ import {
 import { TenantReceiptModal } from './TenantReceiptModal';
 import { PaymentMethodsModal } from './PaymentMethodsModal';
 
-const MOCK_PAYMENT_HISTORY = [
-  {
-    id: 'TXN-9842103',
-    period: 'August 2026 Rent',
-    amount: 2595,
-    paidAt: 'Aug 1, 2026, 09:14 AM',
-    status: 'paid',
-    method: 'Visa •••• 4242',
-  },
-  {
-    id: 'TXN-9120448',
-    period: 'July 2026 Rent',
-    amount: 2595,
-    paidAt: 'Jul 1, 2026, 10:02 AM',
-    status: 'paid',
-    method: 'Visa •••• 4242',
-  },
-  {
-    id: 'TXN-8451992',
-    period: 'June 2026 Rent',
-    amount: 2595,
-    paidAt: 'Jun 1, 2026, 08:30 AM',
-    status: 'paid',
-    method: 'Chase ACH •••• 9102',
-  },
-  {
-    id: 'TXN-7901244',
-    period: 'May 2026 Rent',
-    amount: 2595,
-    paidAt: 'May 1, 2026, 09:00 AM',
-    status: 'paid',
-    method: 'Chase ACH •••• 9102',
-  },
-];
-
 export const TenantPaymentsTab = ({
   tenant,
   unit,
   property,
+  payments = [],
+  securityDeposit,
   onPayRentClick,
 }) => {
-  const [history, setHistory] = useState(MOCK_PAYMENT_HISTORY);
   const [autoPayEnabled, setAutoPayEnabled] = useState(true);
-  
+
   // Modals state
   const [selectedReceiptTx, setSelectedReceiptTx] = useState(null);
   const [isMethodsOpen, setIsMethodsOpen] = useState(false);
 
-  const rentAmount = unit?.monthlyRent || tenant?.monthlyRent || 2400;
+  const rentAmount = unit?.monthlyRent || tenant?.monthlyRent || 0;
   const parkingFee = 150;
   const utilityFee = 45;
-  const totalMonthlyDue = rentAmount + parkingFee + utilityFee;
+  const totalMonthlyDue = rentAmount ? (rentAmount + parkingFee + utilityFee) : 0;
+
+  const depositAmount = securityDeposit !== undefined && securityDeposit !== null
+    ? Number(securityDeposit)
+    : (rentAmount ? rentAmount * 1.5 : 0);
+
+  const livePayments = Array.isArray(payments) && payments.length > 0
+    ? payments.map((p) => ({
+        id: p._id || p.id || p.transactionId || `TXN-${Math.floor(1000000 + Math.random() * 9000000)}`,
+        period: p.notes || p.period || `${new Date(p.dueDate || p.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} Rent`,
+        amount: p.amount || rentAmount,
+        paidAt: p.paidAt
+          ? new Date(p.paidAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+          : p.createdAt
+          ? new Date(p.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+          : 'Cleared',
+        status: p.status || 'paid',
+        method: p.paymentMethod === 'ach' ? 'Direct Bank ACH' : p.paymentMethod === 'card' ? 'Visa •••• 4242' : 'Tenant Portal ACH',
+      }))
+    : [];
 
   return (
     <div className="space-y-6">
-      
+
       {/* Header Banner */}
       <div className="p-6 rounded-3xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -96,7 +81,7 @@ export const TenantPaymentsTab = ({
 
       {/* Itemized Monthly Bill Breakdown & Status */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         {/* Itemized Statement */}
         <div className="lg:col-span-2 p-6 rounded-3xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 space-y-4">
           <div className="flex items-center justify-between">
@@ -135,7 +120,7 @@ export const TenantPaymentsTab = ({
         <div className="space-y-4">
           <div className="p-5 rounded-2xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 space-y-1">
             <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Security Deposit Held</span>
-            <div className="text-2xl font-extrabold font-grotesk text-indigo-500">${(rentAmount * 1.5).toLocaleString()}</div>
+            <div className="text-2xl font-extrabold font-grotesk text-indigo-500">${depositAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">FDIC Escrow Account Protected</p>
           </div>
 
@@ -169,44 +154,50 @@ export const TenantPaymentsTab = ({
         </h2>
 
         <div className="divide-y divide-slate-200 dark:divide-slate-800 border border-slate-200 dark:border-slate-800/80 rounded-2xl overflow-hidden apple-glass top-shade shadow-xs">
-          {history.map((tx) => (
-            <div
-              key={tx.id}
-              className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors"
-            >
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-slate-900 dark:text-white font-grotesk">{tx.period}</span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> Cleared
-                  </span>
-                </div>
-                <p className="text-xs text-slate-400 font-mono flex items-center gap-3">
-                  <span>Ref: {tx.id}</span>
-                  <span>&bull;</span>
-                  <span>{tx.method}</span>
-                  <span>&bull;</span>
-                  <span>{tx.paidAt}</span>
-                </p>
-              </div>
-
-              <div className="flex items-center gap-6 text-xs font-mono">
-                <div className="text-right">
-                  <span className="text-slate-400 text-[10px] uppercase tracking-wider block">Amount Paid</span>
-                  <strong className="text-emerald-600 dark:text-emerald-400 text-sm">${tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedReceiptTx(tx)}
-                  className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 text-xs font-semibold btn-press flex items-center gap-1.5"
-                >
-                  <Eye className="w-3.5 h-3.5 text-indigo-500" />
-                  <span>View Receipt</span>
-                </button>
-              </div>
+          {livePayments.length === 0 ? (
+            <div className="p-8 text-center text-xs text-slate-400 font-mono">
+              No payment history yet.
             </div>
-          ))}
+          ) : (
+            livePayments.map((tx) => (
+              <div
+                key={tx.id}
+                className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-slate-900 dark:text-white font-grotesk">{tx.period}</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Cleared
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 font-mono flex items-center gap-3">
+                    <span>Ref: {tx.id}</span>
+                    <span>&bull;</span>
+                    <span>{tx.method}</span>
+                    <span>&bull;</span>
+                    <span>{tx.paidAt}</span>
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-6 text-xs font-mono">
+                  <div className="text-right">
+                    <span className="text-slate-400 text-[10px] uppercase tracking-wider block">Amount Paid</span>
+                    <strong className="text-emerald-600 dark:text-emerald-400 text-sm">${tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedReceiptTx(tx)}
+                    className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 text-xs font-semibold btn-press flex items-center gap-1.5"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-indigo-500" />
+                    <span>View Receipt</span>
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

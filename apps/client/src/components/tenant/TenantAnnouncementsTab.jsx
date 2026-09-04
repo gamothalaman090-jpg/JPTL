@@ -7,11 +7,13 @@ export const TenantAnnouncementsTab = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
 
-  const filtered = announcements.filter((a) => {
+  const filtered = (announcements || []).filter((a) => {
+    const title = (a.title || '').toLowerCase();
+    const content = (a.body || a.content || '').toLowerCase();
     const matchesSearch =
-      a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      a.body.toLowerCase().includes(searchQuery.toLowerCase());
-    if (categoryFilter !== 'all' && a.category !== categoryFilter) return false;
+      title.includes(searchQuery.toLowerCase()) ||
+      content.includes(searchQuery.toLowerCase());
+    if (categoryFilter !== 'all' && a.category?.toLowerCase() !== categoryFilter.toLowerCase()) return false;
     return matchesSearch;
   });
 
@@ -87,8 +89,14 @@ export const TenantAnnouncementsTab = ({
                 </div>
 
                 <div className="flex items-center gap-4 text-[11px] font-mono text-slate-400">
-                  <span className="flex items-center gap-1"><User className="w-3.5 h-3.5 text-indigo-400" /> {a.author}</span>
-                  <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {a.date}</span>
+                  <span className="flex items-center gap-1">
+                    <User className="w-3.5 h-3.5 text-indigo-400" /> {
+                      typeof a.author === 'object' && a.author !== null
+                        ? ([a.author.firstName, a.author.lastName].filter(Boolean).join(' ') || a.author.name || 'Management')
+                        : (a.author || 'Management')
+                    }
+                  </span>
+                  <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {a.date || (a.createdAt ? new Date(a.createdAt).toLocaleDateString() : 'Recent')}</span>
                 </div>
               </div>
 

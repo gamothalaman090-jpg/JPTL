@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { X, Wrench, AlertTriangle, ShieldAlert, Sparkles, CheckCircle2, Clock, Camera, Upload, Paperclip } from 'lucide-react';
 
 const ISSUE_CATEGORIES = [
-  { key: 'plumbing', label: 'Plumbing / Leak' },
-  { key: 'hvac', label: 'HVAC / AC & Heating' },
-  { key: 'appliance', label: 'Kitchen Appliance' },
-  { key: 'electrical', label: 'Electrical / Lights' },
-  { key: 'lock', label: 'Locks & Security' },
-  { key: 'other', label: 'Other Repair' },
+  { key: 'Plumbing', label: 'Plumbing / Leak' },
+  { key: 'HVAC', label: 'HVAC / AC & Heating' },
+  { key: 'Appliance', label: 'Kitchen Appliance' },
+  { key: 'Electrical', label: 'Electrical / Lights' },
+  { key: 'General', label: 'Locks & Security' },
+  { key: 'Other', label: 'Other Repair' },
 ];
 
 export const ReportIssueModal = ({
@@ -17,7 +17,7 @@ export const ReportIssueModal = ({
   unit,
   onTicketSubmitted = () => {},
 }) => {
-  const [category, setCategory] = useState('plumbing');
+  const [category, setCategory] = useState('Plumbing');
   const [priority, setPriority] = useState('medium');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');

@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   User, Bell, Shield, Phone, Mail, Car, CheckCircle2, Plus, Trash2, ShieldAlert,
   Lock, Key, Smartphone, Camera, Building2, Clock, Wrench, CreditCard, FileText,
   Upload, Eye, EyeOff, Check, AlertCircle, Download, ExternalLink, HelpCircle,
   FileCheck, ShieldCheck
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { tenantApi, authApi } from '../../services/api';
 
 const INITIAL_VEHICLES = [
   { id: 'veh-1', make: 'Tesla Model 3', color: 'Midnight Silver', plate: '7XYZ890', decal: 'DEC-8812' },
@@ -28,20 +30,36 @@ export const TenantSettingsTab = ({
   tenant,
   unit,
 }) => {
+  const { user, updateUser } = useAuth();
   const [activeSubTab, setActiveSubTab] = useState('profile'); // 'profile' | 'notifications' | 'maintenance' | 'payments' | 'documents' | 'privacy'
   const [saved, setSaved] = useState(false);
 
   // 1. Profile & Account state
-  const [firstName, setFirstName] = useState(tenant?.firstName || 'Sophia');
-  const [middleName, setMiddleName] = useState(tenant?.middleName || '');
-  const [lastName, setLastName] = useState(tenant?.lastName || 'Lin');
-  const [email, setEmail] = useState(tenant?.email || 'sophia.lin@example.com');
-  const [phone, setPhone] = useState('+1 (555) 234-8901');
+  const [firstName, setFirstName] = useState(tenant?.firstName || user?.firstName || 'Sophia');
+  const [middleName, setMiddleName] = useState(tenant?.middleName || user?.middleName || '');
+  const [lastName, setLastName] = useState(tenant?.lastName || user?.lastName || 'Lin');
+  const [email, setEmail] = useState(tenant?.email || user?.email || 'sophia.lin@example.com');
+  const [phone, setPhone] = useState(user?.phone || '+1 (555) 234-8901');
   const [emergencyContact, setEmergencyContact] = useState('David Lin (+1 555-901-4432) - Brother');
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [enable2FA, setEnable2FA] = useState(false);
   const [show2FAModal, setShow2FAModal] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ current: '', newPass: '', confirm: '' });
+
+  useEffect(() => {
+    if (user) {
+      if (user.firstName) setFirstName(user.firstName);
+      if (user.lastName) setLastName(user.lastName);
+      if (user.email) setEmail(user.email);
+      if (user.phone) setPhone(user.phone);
+      if (user.emergencyContact?.name) {
+        setEmergencyContact(`${user.emergencyContact.name} (${user.emergencyContact.phone || ''})`);
+      }
+    }
+    tenantApi.getVehicles().then((res) => {
+      if (res.data?.length > 0) setVehicles(res.data);
+    }).catch(() => {});
+  }, [user]);
 
   const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ');
 
@@ -102,8 +120,22 @@ export const TenantSettingsTab = ({
     anonymousAnnouncements: false,
   });
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     if (e) e.preventDefault();
+    try {
+      await authApi.updateProfile({
+        name: [firstName, middleName, lastName].filter(Boolean).join(' '),
+        phone,
+      });
+      updateUser({
+        firstName,
+        lastName,
+        name: [firstName, middleName, lastName].filter(Boolean).join(' '),
+        phone,
+      });
+    } catch (err) {
+      console.warn('Tenant profile save notice:', err.message);
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -118,26 +150,48 @@ export const TenantSettingsTab = ({
     }));
   };
 
-  const handleAddVehicle = (e) => {
+  const handleAddVehicle = async (e) => {
     e.preventDefault();
     if (!newMake || !newPlate) return;
-    setVehicles((prev) => [
-      ...prev,
-      {
+    try {
+      const res = await tenantApi.addVehicle({
+        make: newMake,
+        plate: newPlate,
+        color: 'Standard',
+      });
+      const created = res.data || {
         id: `veh-${Date.now()}`,
         make: newMake,
         color: 'Standard',
         plate: newPlate,
         decal: `DEC-${Math.floor(1000 + Math.random() * 9000)}`,
-      },
-    ]);
+      };
+      setVehicles((prev) => [...prev, created]);
+    } catch (err) {
+      console.warn('Server vehicle add fallback:', err.message);
+      setVehicles((prev) => [
+        ...prev,
+        {
+          id: `veh-${Date.now()}`,
+          make: newMake,
+          color: 'Standard',
+          plate: newPlate,
+          decal: `DEC-${Math.floor(1000 + Math.random() * 9000)}`,
+        },
+      ]);
+    }
     setNewMake('');
     setNewPlate('');
     setIsAddingVeh(false);
   };
 
-  const handleRemoveVehicle = (id) => {
-    setVehicles((prev) => prev.filter((v) => v.id !== id));
+  const handleRemoveVehicle = async (id) => {
+    try {
+      await tenantApi.deleteVehicle(id);
+    } catch (err) {
+      console.warn('Server vehicle remove notice:', err.message);
+    }
+    setVehicles((prev) => prev.filter((v) => v.id !== id && v._id !== id));
   };
 
   const handleAddPaymentMethod = (e) => {

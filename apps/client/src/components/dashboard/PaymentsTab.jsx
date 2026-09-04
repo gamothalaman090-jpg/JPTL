@@ -1,14 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DollarSign, CheckCircle2, Clock, AlertCircle, ShieldCheck, Download, ArrowUpRight } from 'lucide-react';
 
 export const PaymentsTab = ({ payments: initialPayments = [], searchQuery = '' }) => {
   const [payments, setPayments] = useState(initialPayments);
   const [statusFilter, setStatusFilter] = useState('all');
 
+  useEffect(() => {
+    setPayments(initialPayments || []);
+  }, [initialPayments]);
+
   const handleMarkAsPaid = (paymentId) => {
     setPayments((prev) =>
       prev.map((p) =>
-        p.id === paymentId
+        (p.id === paymentId || p._id === paymentId)
           ? {
               ...p,
               status: 'paid',
@@ -20,11 +24,40 @@ export const PaymentsTab = ({ payments: initialPayments = [], searchQuery = '' }
     );
   };
 
+  const handleExportCSV = () => {
+    if (payments.length === 0) {
+      alert('No payments to export.');
+      return;
+    }
+    const headers = ['ID', 'Tenant', 'Property', 'Unit', 'Amount', 'Status', 'Due Date', 'Transaction ID'];
+    const rows = payments.map((p) => [
+      p.id || p._id,
+      `"${p.tenantName || 'Tenant'}"`,
+      `"${p.propertyName || 'Property'}"`,
+      `"${p.unitLabel || 'Unit'}"`,
+      p.amount || 0,
+      p.status || 'pending',
+      p.dueDate || '',
+      `"${p.mockTransactionId || ''}"`,
+    ]);
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `jptl_rent_roll_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const filteredPayments = payments.filter((p) => {
-    const matchesSearch =
-      p.tenantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.propertyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.unitLabel.toLowerCase().includes(searchQuery.toLowerCase());
+    const name = (p.tenantName || '').toLowerCase();
+    const prop = (p.propertyName || '').toLowerCase();
+    const unit = (p.unitLabel || '').toLowerCase();
+    const q = searchQuery.toLowerCase();
+    const matchesSearch = name.includes(q) || prop.includes(q) || unit.includes(q);
 
     if (statusFilter !== 'all' && p.status !== statusFilter) return false;
     return matchesSearch;
@@ -32,11 +65,11 @@ export const PaymentsTab = ({ payments: initialPayments = [], searchQuery = '' }
 
   const totalCollected = payments
     .filter((p) => p.status === 'paid')
-    .reduce((sum, p) => sum + p.amount, 0);
+    .reduce((sum, p) => sum + (p.amount || 0), 0);
 
   const totalPending = payments
     .filter((p) => p.status === 'pending' || p.status === 'overdue')
-    .reduce((sum, p) => sum + p.amount, 0);
+    .reduce((sum, p) => sum + (p.amount || 0), 0);
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -94,10 +127,12 @@ export const PaymentsTab = ({ payments: initialPayments = [], searchQuery = '' }
           </div>
           <button
             type="button"
-            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 text-xs btn-press"
+            onClick={handleExportCSV}
+            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 text-xs btn-press flex items-center gap-1"
             title="Export CSV"
           >
             <Download className="w-4 h-4" />
+            <span className="hidden sm:inline text-[11px] font-mono">Export CSV</span>
           </button>
         </div>
       </div>
@@ -110,22 +145,22 @@ export const PaymentsTab = ({ payments: initialPayments = [], searchQuery = '' }
             Rent Roll & Financial Transactions
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Monitor incoming tenant payments, overdue invoices, and digital transaction receipts.
+            Real-time ledger of paid rent, pending charges, and overdue accounts.
           </p>
         </div>
 
-        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-900/80 p-1 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
-          {['all', 'paid', 'pending', 'overdue'].map((filter) => (
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900/80 p-1 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+          {['all', 'paid', 'pending', 'overdue'].map((tab) => (
             <button
-              key={filter}
-              onClick={() => setStatusFilter(filter)}
-              className={`px-3 py-1.5 rounded-lg font-mono text-[11px] capitalize btn-press transition-all ${
-                statusFilter === filter
-                  ? 'bg-indigo-600 text-white shadow-xs font-bold'
+              key={tab}
+              onClick={() => setStatusFilter(tab)}
+              className={`px-3 py-1 rounded-lg capitalize font-mono text-[11px] btn-press transition-all ${
+                statusFilter === tab
+                  ? 'bg-indigo-600 text-white font-bold shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              {filter}
+              {tab}
             </button>
           ))}
         </div>
@@ -134,26 +169,31 @@ export const PaymentsTab = ({ payments: initialPayments = [], searchQuery = '' }
       {/* Payments Table */}
       <div className="divide-y divide-slate-200 dark:divide-slate-800 border border-slate-200 dark:border-slate-800/80 rounded-2xl overflow-hidden apple-glass top-shade shadow-xs">
         {filteredPayments.length === 0 ? (
-          <div className="p-8 text-center text-slate-500 dark:text-slate-400 text-xs">
-            No payments match the search criteria.
+          <div className="p-12 text-center text-slate-500 dark:text-slate-400 text-xs font-mono space-y-2">
+            <DollarSign className="w-8 h-8 text-slate-400 mx-auto opacity-50" />
+            <p>
+              {payments.length === 0
+                ? 'No payments or transactions recorded in your rent roll yet.'
+                : 'No payments match the search criteria.'}
+            </p>
           </div>
         ) : (
           filteredPayments.map((p) => (
             <div
-              key={p.id}
+              key={p.id || p._id}
               className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors"
             >
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white font-grotesk">
-                    {p.tenantName}
+                    {p.tenantName || 'Tenant'}
                   </h3>
                   <span className="text-xs font-mono text-slate-400 dark:text-slate-500">
-                    ({p.unitLabel} &bull; {p.propertyName})
+                    ({p.unitLabel || 'Unit'} &bull; {p.propertyName || 'Property'})
                   </span>
                 </div>
                 <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-3">
-                  <span>Due Date: <strong className="text-slate-700 dark:text-slate-300 font-mono">{p.dueDate}</strong></span>
+                  <span>Due Date: <strong className="text-slate-700 dark:text-slate-300 font-mono">{p.dueDate || '—'}</strong></span>
                   {p.mockTransactionId && (
                     <span className="font-mono text-[11px] text-indigo-500">
                       Ref: {p.mockTransactionId}
@@ -165,7 +205,7 @@ export const PaymentsTab = ({ payments: initialPayments = [], searchQuery = '' }
               <div className="flex items-center gap-4 shrink-0">
                 <div className="text-right">
                   <span className="text-base font-extrabold font-grotesk text-slate-900 dark:text-white block">
-                    ${p.amount.toLocaleString()}
+                    ${(p.amount || 0).toLocaleString()}
                   </span>
                 </div>
 
@@ -175,7 +215,7 @@ export const PaymentsTab = ({ payments: initialPayments = [], searchQuery = '' }
                   {p.status !== 'paid' && (
                     <button
                       type="button"
-                      onClick={() => handleMarkAsPaid(p.id)}
+                      onClick={() => handleMarkAsPaid(p.id || p._id)}
                       className="px-3 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-grotesk btn-press shadow-xs flex items-center gap-1"
                     >
                       <span>Mark Paid</span>

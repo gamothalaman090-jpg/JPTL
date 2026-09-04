@@ -5,6 +5,11 @@ import { OnboardingPage } from './pages/OnboardingPage';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { TenantPortalPage } from './pages/TenantPortalPage';
+<<<<<<< Updated upstream
+=======
+import { NotFoundPage } from './pages/NotFoundPage';
+import { AuthProvider } from './context/AuthContext';
+>>>>>>> Stashed changes
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -92,9 +97,11 @@ function App() {
   };
 
   return (
-    <ErrorBoundary>
-      {renderContent()}
-    </ErrorBoundary>
+    <AuthProvider>
+      <ErrorBoundary>
+        {renderContent()}
+      </ErrorBoundary>
+    </AuthProvider>
   );
 }
 

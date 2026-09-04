@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Building2, Layers, DollarSign, Home, Check, AlertCircle, Plus, MapPin, Maximize2 } from 'lucide-react';
+import { X, Building2, Layers, DollarSign, Home, Check, AlertCircle, Plus, MapPin, Maximize2, Loader2 } from 'lucide-react';
 
 export const AddPropertyOrUnitModal = ({
   isOpen,
@@ -29,12 +29,14 @@ export const AddPropertyOrUnitModal = ({
 
   const [errors, setErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setActiveTab(initialTab);
       setErrors({});
       setSuccessMessage('');
+      setIsSubmitting(false);
       
       // Reset forms
       setPropertyName('');
@@ -51,14 +53,14 @@ export const AddPropertyOrUnitModal = ({
       if (initialPropertyId) {
         setSelectedPropertyId(initialPropertyId);
       } else if (properties.length > 0) {
-        setSelectedPropertyId(properties[0].id);
+        setSelectedPropertyId(properties[0].id || properties[0]._id);
       }
     }
   }, [isOpen, initialTab, properties, initialPropertyId]);
 
   if (!isOpen) return null;
 
-  const handleCreateProperty = (e) => {
+  const handleCreateProperty = async (e) => {
     e.preventDefault();
     const errs = {};
     if (!propertyName.trim()) errs.propertyName = 'Property name is required';
@@ -69,6 +71,7 @@ export const AddPropertyOrUnitModal = ({
       return;
     }
 
+    setIsSubmitting(true);
     const newProp = {
       id: `prop-custom-${Date.now()}`,
       name: propertyName.trim(),
@@ -82,18 +85,26 @@ export const AddPropertyOrUnitModal = ({
       category: propertyCategory,
     };
 
-    onPropertyCreated(newProp);
-    setSuccessMessage(`Property "${newProp.name}" created successfully!`);
-    
-    setTimeout(() => {
-      setSuccessMessage('');
-      // Switch tab to create unit for this new property
-      setSelectedPropertyId(newProp.id);
-      setActiveTab('unit');
-    }, 800);
+    try {
+      const createdProp = await onPropertyCreated(newProp);
+      const realPropId = createdProp?._id || createdProp?.id || newProp.id;
+      setSuccessMessage(`Property "${newProp.name}" created successfully!`);
+      
+      setTimeout(() => {
+        setSuccessMessage('');
+        if (realPropId) {
+          setSelectedPropertyId(realPropId);
+        }
+        setActiveTab('unit');
+      }, 600);
+    } catch (err) {
+      setErrors({ propertyName: err.message || 'Failed to create property' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleCreateUnit = (e) => {
+  const handleCreateUnit = async (e) => {
     e.preventDefault();
     const errs = {};
     if (!unitLabel.trim()) errs.unitLabel = 'Unit name/label is required';
@@ -105,7 +116,7 @@ export const AddPropertyOrUnitModal = ({
       return;
     }
 
-    const matchedProperty = properties.find((p) => p.id === selectedPropertyId);
+    const matchedProperty = properties.find((p) => p.id === selectedPropertyId || p._id === selectedPropertyId);
 
     const newUnit = {
       id: `unit-custom-${Date.now()}`,
@@ -119,13 +130,20 @@ export const AddPropertyOrUnitModal = ({
       sqft: Number(sqft) || 800,
     };
 
-    onUnitCreated(newUnit, targetMemberId);
-    setSuccessMessage(`Unit "${newUnit.label}" created and available!`);
+    setIsSubmitting(true);
+    try {
+      await onUnitCreated(newUnit, targetMemberId);
+      setSuccessMessage(`Unit "${newUnit.label}" created and available!`);
 
-    setTimeout(() => {
-      setSuccessMessage('');
-      onClose();
-    }, 800);
+      setTimeout(() => {
+        setSuccessMessage('');
+        onClose();
+      }, 600);
+    } catch (err) {
+      setErrors({ unitLabel: err.message || 'Failed to create unit' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -288,10 +306,11 @@ export const AddPropertyOrUnitModal = ({
               </button>
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold font-grotesk shadow-md shadow-indigo-600/30 flex items-center gap-1.5 active:scale-95 transition-all"
+                disabled={isSubmitting}
+                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold font-grotesk shadow-md shadow-indigo-600/30 flex items-center gap-1.5 active:scale-95 transition-all"
               >
-                <Plus className="w-4 h-4" />
-                <span>Save Property</span>
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                <span>{isSubmitting ? 'Saving Property...' : 'Save Property'}</span>
               </button>
             </div>
           </form>
@@ -320,11 +339,14 @@ export const AddPropertyOrUnitModal = ({
                   onChange={(e) => { setSelectedPropertyId(e.target.value); setErrors((prev) => ({ ...prev, selectedPropertyId: '' })); }}
                   className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700/80 rounded-xl pl-10 pr-3 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
-                  {properties.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
+                  {properties.map((p) => {
+                    const pId = p.id || p._id;
+                    return (
+                      <option key={pId} value={pId}>
+                        {p.name}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
               {errors.selectedPropertyId && (
@@ -430,10 +452,11 @@ export const AddPropertyOrUnitModal = ({
               </button>
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold font-grotesk shadow-md shadow-indigo-600/30 flex items-center gap-1.5 active:scale-95 transition-all"
+                disabled={isSubmitting}
+                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold font-grotesk shadow-md shadow-indigo-600/30 flex items-center gap-1.5 active:scale-95 transition-all"
               >
-                <Plus className="w-4 h-4" />
-                <span>Save Unit</span>
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                <span>{isSubmitting ? 'Saving Unit...' : 'Save Unit'}</span>
               </button>
             </div>
           </form>

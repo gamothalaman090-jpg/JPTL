@@ -8,6 +8,7 @@ export const TenantOverviewTab = ({
   tenant,
   unit,
   property,
+  landlord,
   tickets = [],
   announcements = [],
   onPayRentClick,
@@ -232,15 +233,25 @@ export const TenantOverviewTab = ({
 
           <div className="p-5 rounded-2xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 space-y-4 text-xs">
             <div className="space-y-1">
-              <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Landlord</span>
-              <strong className="text-slate-900 dark:text-white block text-sm font-grotesk">{property?.landlordName || 'Alexander Vance'}</strong>
-              <p className="text-slate-500 dark:text-slate-400 font-mono">alexander.vance@jptl.com</p>
+              <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Landlord / Property Manager</span>
+              <strong className="text-slate-900 dark:text-white block text-sm font-grotesk">
+                {property?.landlordName || landlord?.name || 'Property Management'}
+              </strong>
+              <p className="text-slate-500 dark:text-slate-400 font-mono">
+                {property?.landlordEmail || landlord?.email || 'contact@jptl.com'}
+              </p>
             </div>
 
             <div className="pt-3 border-t border-slate-100 dark:border-slate-800/60 space-y-1">
-              <span className="text-[10px] font-mono text-rose-500 font-bold uppercase tracking-wider block">24/7 Emergency Dispatch</span>
-              <strong className="text-slate-900 dark:text-white block font-mono">+1 (800) 555-0199</strong>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">For active plumbing leaks, electrical fire hazards, or lockouts.</p>
+              <span className="text-[10px] font-mono text-rose-500 font-bold uppercase tracking-wider block">
+                24/7 Emergency Dispatch & Maintenance
+              </span>
+              <strong className="text-slate-900 dark:text-white block font-mono text-sm">
+                {property?.landlordPhone || landlord?.phone || landlord?.officePhone || '+1 (555) 019-2831'}
+              </strong>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Direct phone line to landlord / property management for urgent leaks, fire hazards, or lockouts.
+              </p>
             </div>
           </div>
         </div>

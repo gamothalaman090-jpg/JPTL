@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Building2, UserPlus, Users, Search, Home, LogOut, ShieldCheck, ArrowUpRight, 
   Sun, Moon, Sparkles, Megaphone, Wrench, DollarSign, X, Bell, ArrowRight,
-  TrendingUp, CheckCircle2, Clock, AlertCircle, Trash2, Layers, MapPin
+  TrendingUp, CheckCircle2, Clock, AlertCircle, Trash2, Layers, MapPin, Key
 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { 
@@ -14,6 +14,7 @@ import {
   MOCK_DOCUMENTS
 } from '../data/mockData';
 import { AddTenantModal } from '../components/dashboard/AddTenantModal';
+import { AssignTenantModal } from '../components/dashboard/AssignTenantModal';
 import { UnitDetailModal } from '../components/dashboard/UnitDetailModal';
 import { KpiMetricsSection } from '../components/dashboard/KpiMetricsSection';
 import { TicketsTab } from '../components/dashboard/TicketsTab';
@@ -29,9 +30,12 @@ import { LandlordSettingsTab } from '../components/dashboard/LandlordSettingsTab
 import { LandlordDocumentsTab } from '../components/dashboard/LandlordDocumentsTab';
 import { DeletePropertyModal } from '../components/dashboard/DeletePropertyModal';
 import { AddPropertyOrUnitModal } from '../components/dashboard/AddPropertyOrUnitModal';
+import { useAuth } from '../context/AuthContext';
+import { landlordApi } from '../services/api';
 
 export const DashboardPage = ({ onNavigate = () => {} }) => {
   const { theme, toggleTheme } = useTheme();
+  const { user, logout } = useAuth();
 
   const [activeView, setActiveView] = useState('overview');
 
@@ -40,12 +44,12 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
       const savedProps = sessionStorage.getItem('jptl_custom_properties');
       if (savedProps) {
         const parsed = JSON.parse(savedProps);
-        if (Array.isArray(parsed) && parsed.length > 0) return [...MOCK_PROPERTIES, ...parsed];
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) {
       console.error(e);
     }
-    return MOCK_PROPERTIES;
+    return [];
   });
 
   const [units, setUnits] = useState(() => {
@@ -53,17 +57,17 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
       const savedUnits = sessionStorage.getItem('jptl_custom_units');
       if (savedUnits) {
         const parsed = JSON.parse(savedUnits);
-        if (Array.isArray(parsed) && parsed.length > 0) return [...INITIAL_UNITS, ...parsed];
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) {
       console.error(e);
     }
-    return INITIAL_UNITS;
+    return [];
   });
 
-  const [tenants, setTenants] = useState(INITIAL_TENANTS);
-  const [tickets, setTickets] = useState(INITIAL_TICKETS);
-  const [payments, setPayments] = useState(INITIAL_PAYMENTS);
+  const [tenants, setTenants] = useState([]);
+  const [tickets, setTickets] = useState([]);
+  const [payments, setPayments] = useState([]);
   const [documents, setDocuments] = useState(() => {
     try {
       const savedDocs = sessionStorage.getItem('jptl_documents');
@@ -74,18 +78,28 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
     } catch (e) {
       console.error(e);
     }
-    return MOCK_DOCUMENTS;
+    return [];
   });
 
-  const handleUpdateDocumentStatus = (docId, status, rejectionReason) => {
+  const [announcements, setAnnouncements] = useState([]);
+  const [announcement, setAnnouncement] = useState(null);
+  const [broadcastDismissed, setBroadcastDismissed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  const handleUpdateDocumentStatus = async (docId, status, rejectionReason) => {
+    try {
+      await landlordApi.updateDocumentStatus(docId, status, rejectionReason);
+    } catch (err) {
+      console.warn('Could not persist document status to server:', err.message);
+    }
     setDocuments((prev) => {
       const updated = prev.map((d) => 
-        d.id === docId ? { 
+        (d.id === docId || d._id === docId) ? { 
           ...d, 
           status, 
           rejectionReason: status === 'Rejected' ? rejectionReason : undefined,
           verifiedAt: status === 'Verified' ? new Date().toISOString() : d.verifiedAt,
-          reviewedBy: 'Alexander Vance (Landlord)'
+          reviewedBy: `${user?.name || 'Alexander Vance'} (Landlord)`
         } : d
       );
       try {
@@ -96,14 +110,6 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
       return updated;
     });
   };
-
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  const [announcement, setAnnouncement] = useState({
-    subject: 'Welcome to our new Property Portal! 🚀',
-    body: 'We have upgraded the landlord workspace with a redesigned dashboard, real-time maintenance queue, and automated rent roll tracking.',
-  });
-  const [broadcastDismissed, setBroadcastDismissed] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -128,74 +134,173 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
   const [addPropUnitTab, setAddPropUnitTab] = useState('unit');
   const [addPropPreselectedPropertyId, setAddPropPreselectedPropertyId] = useState(null);
 
-  const handleDashboardPropertyCreated = (newProp) => {
-    setProperties((prev) => {
-      const updated = [...prev, newProp];
-      try {
-        const customOnly = updated.filter((p) => p.id.startsWith('prop-custom-'));
-        sessionStorage.setItem('jptl_custom_properties', JSON.stringify(customOnly));
-      } catch (e) {
-        console.error(e);
-      }
-      return updated;
-    });
-    setToastNotification(`Property "${newProp.name}" created successfully!`);
-    setTimeout(() => setToastNotification(null), 4000);
+  // Tenant Assignment Modal State
+  const [assigningTenant, setAssigningTenant] = useState(null);
+
+  // Lease Duration Helper
+  const getLeaseDuration = (start, end) => {
+    if (!start || !end) return null;
+    const s = new Date(start);
+    const e = new Date(end);
+    if (isNaN(s.getTime()) || isNaN(e.getTime())) return null;
+    const diffTime = e.getTime() - s.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays <= 0) return '0 Days';
+    const diffMonths = Math.round(diffDays / 30.44);
+    if (diffMonths >= 12) {
+      const years = (diffMonths / 12).toFixed(diffMonths % 12 === 0 ? 0 : 1);
+      return `${years} ${years === '1' ? 'Year' : 'Years'} (${diffMonths} mo)`;
+    }
+    return `${diffMonths} ${diffMonths === 1 ? 'Month' : 'Months'}`;
   };
 
-  const handleDashboardUnitCreated = (newUnit) => {
-    setUnits((prev) => {
-      const updated = [...prev, newUnit];
-      try {
-        const customOnly = updated.filter((u) => u.id.startsWith('unit-custom-'));
-        sessionStorage.setItem('jptl_custom_units', JSON.stringify(customOnly));
-      } catch (e) {
-        console.error(e);
-      }
-      return updated;
-    });
-    setToastNotification(`Unit "${newUnit.label}" created successfully!`);
-    setTimeout(() => setToastNotification(null), 4000);
+  // Lease Expiration Helper
+  const getLeaseExpirationInfo = (end) => {
+    if (!end) return null;
+    const e = new Date(end);
+    if (isNaN(e.getTime())) return null;
+    const now = new Date();
+    const diffDays = Math.ceil((e.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    const formattedDate = e.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    if (diffDays < 0) {
+      return {
+        formattedDate,
+        badgeText: `Expired ${Math.abs(diffDays)}d ago`,
+        statusClass: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20',
+      };
+    }
+    if (diffDays <= 30) {
+      return {
+        formattedDate,
+        badgeText: `Expires in ${diffDays}d`,
+        statusClass: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20',
+      };
+    }
+    return {
+      formattedDate,
+      badgeText: `${diffDays} days left`,
+      statusClass: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20',
+    };
   };
 
-  const handleDeleteProperty = (propertyId) => {
-    const propToDelete = properties.find((p) => p.id === propertyId);
+  const handleDashboardPropertyCreated = async (newProp) => {
+    try {
+      const res = await landlordApi.createProperty({
+        name: newProp.name,
+        address: newProp.address,
+        city: newProp.city,
+        category: newProp.category,
+        image: newProp.image,
+      });
+      const created = res.data || newProp;
+      const finalProp = { ...created, id: created._id || created.id, units: [] };
+      setProperties((prev) => [finalProp, ...prev]);
+      setToastNotification(`Property "${finalProp.name}" created successfully!`);
+      setTimeout(() => setToastNotification(null), 4000);
+      return finalProp;
+    } catch (err) {
+      console.warn('Server createProperty fallback to local:', err.message);
+      const fallback = { ...newProp, id: newProp.id || `prop-custom-${Date.now()}`, units: [] };
+      setProperties((prev) => {
+        const updated = [...prev, fallback];
+        try {
+          const customOnly = updated.filter((p) => String(p.id).startsWith('prop-custom-'));
+          sessionStorage.setItem('jptl_custom_properties', JSON.stringify(customOnly));
+        } catch (e) {
+          console.error(e);
+        }
+        return updated;
+      });
+      setToastNotification(`Property "${newProp.name}" created!`);
+      setTimeout(() => setToastNotification(null), 4000);
+      return fallback;
+    }
+  };
+
+  const handleDashboardUnitCreated = async (newUnit) => {
+    try {
+      const targetPropId = newUnit.propertyId || newUnit.property;
+      const isMongoId = /^[0-9a-fA-F]{24}$/.test(String(targetPropId));
+      if (!isMongoId) {
+        console.warn('Property ID is not a MongoDB ObjectId, creating unit locally:', targetPropId);
+        const fallbackUnit = { ...newUnit, id: newUnit.id || `unit-custom-${Date.now()}` };
+        setUnits((prev) => [fallbackUnit, ...prev]);
+        setToastNotification(`Unit "${fallbackUnit.label}" created locally.`);
+        setTimeout(() => setToastNotification(null), 4000);
+        return fallbackUnit;
+      }
+      const res = await landlordApi.createUnit(targetPropId, {
+        label: newUnit.label,
+        monthlyRent: newUnit.monthlyRent,
+        bedrooms: newUnit.bedrooms,
+        bathrooms: newUnit.bathrooms,
+        sqft: newUnit.sqft,
+      });
+      const created = res.data || newUnit;
+      const targetProp = properties.find((p) => (p.id === targetPropId || p._id === targetPropId));
+      const finalUnit = {
+        ...created,
+        id: created._id || created.id,
+        propertyId: targetPropId,
+        propertyName: targetProp?.name || 'Property',
+      };
+      setUnits((prev) => [finalUnit, ...prev]);
+      setToastNotification(`Unit "${finalUnit.label}" created successfully!`);
+      setTimeout(() => setToastNotification(null), 4000);
+      return finalUnit;
+    } catch (err) {
+      console.warn('Server createUnit fallback to local:', err.message);
+      setUnits((prev) => {
+        const updated = [...prev, newUnit];
+        try {
+          const customOnly = updated.filter((u) => String(u.id).startsWith('unit-custom-'));
+          sessionStorage.setItem('jptl_custom_units', JSON.stringify(customOnly));
+        } catch (e) {
+          console.error(e);
+        }
+        return updated;
+      });
+      setToastNotification(`Unit "${newUnit.label}" created!`);
+      setTimeout(() => setToastNotification(null), 4000);
+    }
+  };
+
+  const handleDeleteProperty = async (propertyId) => {
+    const propToDelete = properties.find((p) => p.id === propertyId || p._id === propertyId);
     const propName = propToDelete ? propToDelete.name : 'Property';
 
+    try {
+      await landlordApi.deleteProperty(propertyId, true);
+    } catch (err) {
+      console.warn('Server deleteProperty notice:', err.message);
+    }
+
     // Remove property
-    setProperties((prev) => {
-      const updated = prev.filter((p) => p.id !== propertyId);
-      try {
-        const customOnly = updated.filter((p) => p.id.startsWith('prop-custom-'));
-        sessionStorage.setItem('jptl_custom_properties', JSON.stringify(customOnly));
-      } catch (e) {
-        console.error(e);
-      }
-      return updated;
-    });
+    setProperties((prev) => prev.filter((p) => p.id !== propertyId && p._id !== propertyId));
 
     // Remove vacant units belonging to this property
-    setUnits((prev) => {
-      const updated = prev.filter((u) => u.propertyId !== propertyId && u.property !== propertyId);
-      try {
-        const customOnly = updated.filter((u) => u.id.startsWith('unit-custom-'));
-        sessionStorage.setItem('jptl_custom_units', JSON.stringify(customOnly));
-      } catch (e) {
-        console.error(e);
-      }
-      return updated;
-    });
+    setUnits((prev) => prev.filter((u) => u.propertyId !== propertyId && u.property !== propertyId));
 
     setToastNotification(`Property "${propName}" and its vacant units were deleted.`);
     setTimeout(() => setToastNotification(null), 4500);
   };
 
-  const handleUpdateTicketStatus = (ticketId, newStatus, updatedTicket) => {
+  const handleUpdateTicketStatus = async (ticketId, newStatus, updatedTicket) => {
+    try {
+      await landlordApi.updateTicketStatus(ticketId, newStatus);
+    } catch (err) {
+      console.warn('Server updateTicketStatus notice:', err.message);
+    }
     setTickets((prev) =>
-      prev.map((t) => (t.id === ticketId ? (updatedTicket || { ...t, status: newStatus }) : t))
+      prev.map((t) => ((t.id === ticketId || t._id === ticketId) ? (updatedTicket || { ...t, status: newStatus }) : t))
     );
     setToastNotification(`Ticket status updated to "${newStatus.replace('_', ' ')}"`);
     setTimeout(() => setToastNotification(null), 3500);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    onNavigate('/login');
   };
 
   // ⌘K shortcut
@@ -210,30 +315,108 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Load session data
+  // Load live data from server
   useEffect(() => {
-    try {
-      const savedTenants = sessionStorage.getItem('jptl_onboarding_tenants');
-      if (savedTenants) {
-        const parsed = JSON.parse(savedTenants);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setTenants((prev) => [...parsed, ...prev]);
-          parsed.forEach((t) => {
-            if (t.unitId) {
-              setUnits((prevUnits) =>
-                prevUnits.map((u) =>
-                  u.id === t.unitId ? { ...u, status: 'occupied', tenantId: t.id, tenantName: t.name, tenantEmail: t.email } : u
-                )
-              );
+    let isMounted = true;
+
+    async function loadLiveDashboardData() {
+      try {
+        const [dashRes, propsRes, ticketsRes, tenantsRes, docsRes, rentRollRes, ancRes] = await Promise.allSettled([
+          landlordApi.getDashboard(),
+          landlordApi.getProperties(),
+          landlordApi.getTickets(),
+          landlordApi.getTenants(),
+          landlordApi.getDocuments(),
+          landlordApi.getRentRoll(),
+          landlordApi.getAnnouncements(),
+        ]);
+
+        if (!isMounted) return;
+
+        if (propsRes.status === 'fulfilled') {
+          const liveProps = propsRes.value?.data || [];
+          setProperties(liveProps);
+          const liveUnits = liveProps.flatMap((p) =>
+            (p.units || []).map((u) => ({
+              ...u,
+              id: u._id || u.id,
+              propertyId: p._id || p.id,
+              propertyName: p.name,
+              propertyAddress: p.address,
+            }))
+          );
+          setUnits(liveUnits);
+        }
+
+        if (ticketsRes.status === 'fulfilled') {
+          const tList = ticketsRes.value?.tickets || ticketsRes.value?.data || (Array.isArray(ticketsRes.value) ? ticketsRes.value : []);
+          setTickets(Array.isArray(tList) ? tList : []);
+        }
+
+        if (tenantsRes.status === 'fulfilled') {
+          const serverTenants = tenantsRes.value?.data || [];
+          const map = new Map();
+          serverTenants.forEach((t) => {
+            const id = String(t.id || t._id || t.email);
+            map.set(id, { ...t, id: t.id || t._id });
+          });
+          try {
+            const savedTenants = sessionStorage.getItem('jptl_onboarding_tenants');
+            if (savedTenants) {
+              const parsed = JSON.parse(savedTenants);
+              if (Array.isArray(parsed)) {
+                parsed.forEach((t) => {
+                  const id = String(t.id || t._id || t.email);
+                  if (id && !map.has(id)) {
+                    map.set(id, t);
+                  }
+                });
+              }
             }
+          } catch (e) {
+            console.error('Failed to load session data', e);
+          }
+          setTenants(Array.from(map.values()));
+        }
+
+        if (docsRes.status === 'fulfilled') {
+          const dList = docsRes.value?.documents || docsRes.value?.data || (Array.isArray(docsRes.value) ? docsRes.value : []);
+          setDocuments(Array.isArray(dList) ? dList : []);
+        }
+
+        if (rentRollRes.status === 'fulfilled') {
+          setPayments(rentRollRes.value?.data || []);
+        }
+
+        if (ancRes.status === 'fulfilled') {
+          const ancList = ancRes.value?.data || [];
+          setAnnouncements(ancList);
+          const pinned = ancList.find((a) => a.isPinned) || ancList[0];
+          if (pinned) {
+            setAnnouncement({
+              subject: pinned.title,
+              body: pinned.content || pinned.body,
+            });
+          } else {
+            setAnnouncement(null);
+          }
+        } else if (dashRes.status === 'fulfilled' && dashRes.value?.data?.pinnedAnnouncement) {
+          const p = dashRes.value.data.pinnedAnnouncement;
+          setAnnouncement({
+            subject: p.title,
+            body: p.content || p.body,
           });
         }
+      } catch (err) {
+        console.warn('Dashboard live data fetch fallback:', err.message);
       }
-      const savedAnnouncement = sessionStorage.getItem('jptl_announcement');
-      if (savedAnnouncement) setAnnouncement(JSON.parse(savedAnnouncement));
-    } catch (e) {
-      console.error('Failed to load session data', e);
     }
+
+    loadLiveDashboardData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleOpenAddTenant = (propertyId = '', unitId = '') => {
@@ -247,7 +430,7 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
     if (newTenant.unitId) {
       setUnits((prev) =>
         prev.map((u) =>
-          u.id === newTenant.unitId
+          (u.id === newTenant.unitId || u._id === newTenant.unitId)
             ? { ...u, status: 'occupied', tenantId: newTenant.id, tenantName: newTenant.name, tenantEmail: newTenant.email, leaseStart: newTenant.leaseStart, leaseEnd: newTenant.leaseEnd }
             : u
         )
@@ -255,17 +438,67 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
     }
   };
 
+  const handleTenantAssigned = (updatedTenant) => {
+    setTenants((prev) =>
+      prev.map((t) => ((t.id === updatedTenant.id || t._id === updatedTenant.id || t.email === updatedTenant.email) ? updatedTenant : t))
+    );
+    if (updatedTenant.unitId) {
+      setUnits((prev) =>
+        prev.map((u) => {
+          if (u.id === updatedTenant.unitId || u._id === updatedTenant.unitId) {
+            return {
+              ...u,
+              status: 'occupied',
+              tenantId: updatedTenant.id,
+              tenantName: updatedTenant.name,
+              tenantEmail: updatedTenant.email,
+              leaseStart: updatedTenant.leaseStart,
+              leaseEnd: updatedTenant.leaseEnd,
+              monthlyRent: updatedTenant.monthlyRent || u.monthlyRent,
+            };
+          }
+          if (u.tenantId === updatedTenant.id && u.id !== updatedTenant.unitId && u._id !== updatedTenant.unitId) {
+            return { ...u, status: 'vacant', tenantId: null, tenantName: null, tenantEmail: null };
+          }
+          return u;
+        })
+      );
+    }
+    setToastNotification(`${updatedTenant.name} successfully assigned to ${updatedTenant.unitLabel || 'unit'} at ${updatedTenant.propertyName || 'property'}!`);
+    setTimeout(() => setToastNotification(null), 4000);
+  };
+
   const handleTicketCreated = (newTicket) => {
     setTickets((prev) => [newTicket, ...prev]);
   };
 
-  const handleAnnouncementCreated = (newAnc) => {
-    if (newAnc.isPinned) {
-      setAnnouncement({
-        subject: newAnc.title,
-        body: newAnc.body,
+  const handleAnnouncementCreated = async (newAnc) => {
+    try {
+      const res = await landlordApi.createAnnouncement({
+        title: newAnc.title,
+        content: newAnc.body,
+        category: newAnc.category,
+        isPinned: newAnc.isPinned,
       });
-      setBroadcastDismissed(false);
+      const created = res.data || newAnc;
+      setAnnouncements((prev) => [created, ...prev]);
+      if (newAnc.isPinned) {
+        setAnnouncement({
+          subject: newAnc.title,
+          body: newAnc.body,
+        });
+        setBroadcastDismissed(false);
+      }
+    } catch (err) {
+      console.warn('Server createAnnouncement notice:', err.message);
+      setAnnouncements((prev) => [newAnc, ...prev]);
+      if (newAnc.isPinned) {
+        setAnnouncement({
+          subject: newAnc.title,
+          body: newAnc.body,
+        });
+        setBroadcastDismissed(false);
+      }
     }
   };
 
@@ -313,7 +546,7 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
         onChangeView={(view) => { setActiveView(view); setSearchQuery(''); setFilterStatus('all'); }}
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed((p) => !p)}
-        onLogout={() => onNavigate('/')}
+        onLogout={handleLogout}
         onNavigate={onNavigate}
         pendingDocCount={documents.filter((d) => d.status === 'Pending Review').length}
       />
@@ -364,10 +597,16 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
 
               {/* User Avatar + Name */}
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold font-grotesk">AV</div>
+                <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold font-grotesk">
+                  {(user?.firstName?.[0] || 'J') + (user?.lastName?.[0] || 'T')}
+                </div>
                 <div className="text-right hidden md:block">
-                  <span className="text-xs font-bold text-slate-900 dark:text-white block leading-tight">Alexander Vance</span>
-                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">Landlord</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white block leading-tight">
+                    {user?.name || user?.firstName || 'Julian Thorne'}
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                    {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Landlord'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -401,7 +640,7 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
               {/* Hero Greeting */}
               <div>
                 <h1 className="text-3xl sm:text-4xl font-extrabold font-grotesk tracking-tight text-slate-900 dark:text-white leading-tight">
-                  {greeting}, <span className="bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">Alexander</span> 👋
+                  {greeting}, <span className="bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">{user?.firstName || 'Julian'}</span> 👋
                 </h1>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Here's what's happening with your properties today.</p>
               </div>
@@ -490,7 +729,7 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
           {/* ─── VIEW 2: ANNOUNCEMENTS PAGE (dedicated) */}
           {/* ═════════════════════════════════════════ */}
           {activeView === 'announcements' && (
-            <AnnouncementsTab onOpenNewAnnouncement={() => setIsNewAnnouncementOpen(true)} />
+            <AnnouncementsTab announcements={announcements} onOpenNewAnnouncement={() => setIsNewAnnouncementOpen(true)} />
           )}
 
           {/* ═════════════════════════════════════════ */}
@@ -785,24 +1024,105 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
                 {filteredTenants.length === 0 ? (
                   <div className="p-8 text-center text-xs text-slate-400 font-mono">No tenants match the search filter.</div>
                 ) : (
-                  filteredTenants.map((t) => (
-                    <div key={t.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-bold text-slate-900 dark:text-white font-grotesk">{t.name}</h3>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase font-mono ${t.status === 'active' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' : 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'}`}>
-                            {t.status === 'active' ? 'Active Lease' : 'Pre-added'}
-                          </span>
+                  filteredTenants.map((t, idx) => {
+                    const duration = getLeaseDuration(t.leaseStart, t.leaseEnd);
+                    const expiration = getLeaseExpirationInfo(t.leaseEnd);
+                    const isAssigned = Boolean(t.unitId && t.unitId !== 'pre_add_unassigned');
+
+                    return (
+                      <div key={t.id || t._id || `tenant-${idx}`} className="p-4 sm:p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors">
+                        {/* Tenant Identity */}
+                        <div className="space-y-1 min-w-[200px]">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-bold text-slate-900 dark:text-white font-grotesk">{t.name}</h3>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase font-mono ${
+                              isAssigned
+                                ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20'
+                                : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                            }`}>
+                              {isAssigned ? 'Active Lease' : 'Unassigned'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">{t.email} {t.phone ? `• ${t.phone}` : ''}</p>
                         </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">{t.email}</p>
+
+                        {/* Property, Unit, Rent, Duration, Expiration Grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 text-xs font-mono items-center flex-1">
+                          {/* Property & Unit */}
+                          <div>
+                            <span className="text-slate-400 block text-[10px] uppercase tracking-wider font-semibold mb-0.5">Property & Unit</span>
+                            {isAssigned ? (
+                              <div className="flex flex-col">
+                                <strong className="text-slate-900 dark:text-white flex items-center gap-1 truncate font-sans text-xs">
+                                  <Building2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                                  {t.propertyName || 'Property'}
+                                </strong>
+                                <span className="text-slate-600 dark:text-slate-300 flex items-center gap-1 text-[11px]">
+                                  <Home className="w-3 h-3 text-slate-400 shrink-0" />
+                                  {t.unitLabel || 'Unit'}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-amber-600 dark:text-amber-400 text-xs italic font-sans font-medium">Unassigned</span>
+                            )}
+                          </div>
+
+                          {/* Rent */}
+                          <div>
+                            <span className="text-slate-400 block text-[10px] uppercase tracking-wider font-semibold mb-0.5">Rent</span>
+                            {t.monthlyRent > 0 ? (
+                              <strong className="text-emerald-600 dark:text-emerald-400 font-bold text-sm">${t.monthlyRent}/mo</strong>
+                            ) : (
+                              <span className="text-slate-400">—</span>
+                            )}
+                          </div>
+
+                          {/* Lease Duration */}
+                          <div>
+                            <span className="text-slate-400 block text-[10px] uppercase tracking-wider font-semibold mb-0.5">Lease Duration</span>
+                            {duration ? (
+                              <div className="flex items-center gap-1 text-slate-800 dark:text-slate-200">
+                                <Clock className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                                <strong>{duration}</strong>
+                              </div>
+                            ) : (
+                              <span className="text-slate-400">No active term</span>
+                            )}
+                          </div>
+
+                          {/* Expiration Date & Status */}
+                          <div>
+                            <span className="text-slate-400 block text-[10px] uppercase tracking-wider font-semibold mb-0.5">Expiration</span>
+                            {expiration ? (
+                              <div className="space-y-1">
+                                <strong className="text-slate-900 dark:text-slate-100 block">{expiration.formattedDate}</strong>
+                                <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${expiration.statusClass}`}>
+                                  {expiration.badgeText}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-slate-400">—</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
+                          <button
+                            onClick={() => setAssigningTenant(t)}
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold font-grotesk btn-press flex items-center gap-1.5 transition-all ${
+                              !isAssigned
+                                ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm shadow-indigo-600/30'
+                                : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700'
+                            }`}
+                          >
+                            <Key className="w-3.5 h-3.5 text-indigo-400" />
+                            <span>{!isAssigned ? 'Assign Unit' : 'Manage Lease'}</span>
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-6 text-xs font-mono">
-                        <div><span className="text-slate-400 block text-[10px] uppercase tracking-wider">Unit</span><strong className="text-slate-900 dark:text-white">{t.unitLabel || 'Unassigned'}</strong></div>
-                        {t.monthlyRent > 0 && <div><span className="text-slate-400 block text-[10px] uppercase tracking-wider">Rent</span><strong className="text-emerald-600 dark:text-emerald-400">${t.monthlyRent}/mo</strong></div>}
-                        {t.leaseStart && <div className="hidden md:block"><span className="text-slate-400 block text-[10px] uppercase tracking-wider">Lease</span><strong className="text-slate-700 dark:text-slate-300">{t.leaseStart} → {t.leaseEnd || '—'}</strong></div>}
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -863,7 +1183,17 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
 
       {/* ─── MODALS ─── */}
       <CommandPaletteModal isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} properties={properties} units={units} tenants={tenants} tickets={tickets} onSelectResult={handleCommandPaletteSelect} />
-      <AddTenantModal isOpen={isAddTenantOpen} onClose={() => setIsAddTenantOpen(false)} properties={properties} units={units} initialPropertyId={addTenantPropertyId} initialUnitId={addTenantUnitId} onTenantAdded={handleTenantAdded} />
+      <AddTenantModal
+        isOpen={isAddTenantOpen}
+        onClose={() => setIsAddTenantOpen(false)}
+        properties={properties}
+        units={units}
+        tenants={tenants}
+        initialPropertyId={addTenantPropertyId}
+        initialUnitId={addTenantUnitId}
+        onTenantAdded={handleTenantAdded}
+        onTenantAssigned={handleTenantAssigned}
+      />
       <UnitDetailModal isOpen={Boolean(selectedUnitForDetail)} unit={selectedUnitForDetail} property={properties.find((p) => p.id === selectedUnitForDetail?.propertyId)} onClose={() => setSelectedUnitForDetail(null)} onAddTenant={handleOpenAddTenant} />
       <NewTicketModal isOpen={isNewTicketOpen} onClose={() => setIsNewTicketOpen(false)} properties={properties} units={units} onTicketCreated={handleTicketCreated} />
       <NewAnnouncementModal isOpen={isNewAnnouncementOpen} onClose={() => setIsNewAnnouncementOpen(false)} onAnnouncementCreated={handleAnnouncementCreated} />
@@ -886,6 +1216,16 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
         property={selectedPropertyForDelete}
         units={units}
         onConfirmDelete={handleDeleteProperty}
+      />
+
+      {/* Assign Tenant Modal */}
+      <AssignTenantModal
+        isOpen={Boolean(assigningTenant)}
+        onClose={() => setAssigningTenant(null)}
+        tenant={assigningTenant}
+        properties={properties}
+        units={units}
+        onTenantAssigned={handleTenantAssigned}
       />
 
     </div>

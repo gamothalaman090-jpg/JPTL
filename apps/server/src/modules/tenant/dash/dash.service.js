@@ -49,20 +49,22 @@ async function getTenantDashboard(tenantId) {
   if (!tenantUser) throw new TenantDashError('Tenant not found', 404);
 
   const unitId = profile?.unit?._id ?? null;
-  const landlordId = tenantUser.landlord ?? null;
+  const landlordId = tenantUser.landlord || profile?.property?.landlord || null;
 
-  // 2. Parallel secondary queries — scoped to tenant's unit
+  // 2. Fetch landlord user details for property contacts
+  const landlordUser = landlordId
+    ? await User.findById(landlordId).select('firstName lastName email phone officePhone company').lean()
+    : null;
+
+  // 3. Parallel secondary queries — query tickets by tenant regardless of unitId
   const [tickets, payments, announcements] = await Promise.all([
-    unitId
-      ? Ticket.find({ tenant: tenantId })
-          .sort({ createdAt: -1 })
-          .lean()
-      : Promise.resolve([]),
-    unitId
-      ? Payment.find({ tenant: tenantId })
-          .sort({ dueDate: 1 })
-          .lean()
-      : Promise.resolve([]),
+    Ticket.find({ tenant: tenantId })
+      .populate('unit')
+      .sort({ createdAt: -1 })
+      .lean(),
+    Payment.find({ tenant: tenantId })
+      .sort({ dueDate: 1 })
+      .lean(),
     landlordId
       ? Announcement.find({ author: landlordId })
           .sort({ isPinned: -1, createdAt: -1 })
@@ -71,7 +73,7 @@ async function getTenantDashboard(tenantId) {
       : Promise.resolve([]),
   ]);
 
-  // 3. Payment KPIs
+  // 4. Payment KPIs
   const now = new Date();
   const upcomingPayment = payments.find(
     (p) => p.status === 'pending' && new Date(p.dueDate) >= now
@@ -80,11 +82,11 @@ async function getTenantDashboard(tenantId) {
   const paidPayments = payments.filter((p) => p.status === 'paid');
   const totalPaid = paidPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
 
-  // 4. Ticket KPIs
+  // 5. Ticket KPIs
   const openTickets = tickets.filter((t) => !['resolved', 'cancelled'].includes(t.status));
   const resolvedTickets = tickets.filter((t) => t.status === 'resolved');
 
-  // 5. Lease info from profile
+  // 6. Lease info from profile
   const unit = profile?.unit || null;
   const property = profile?.property || null;
   const leaseStart = profile?.leaseStart ?? unit?.leaseStart ?? null;
@@ -100,7 +102,7 @@ async function getTenantDashboard(tenantId) {
     leaseStatus = 'active';
   }
 
-  // 6. Shape recent data slices
+  // 7. Shape recent data slices
   const recentTickets = tickets.slice(0, 5).map((t) => ({
     id: t._id,
     title: t.title,
@@ -126,6 +128,7 @@ async function getTenantDashboard(tenantId) {
     id: a._id,
     title: a.title,
     content: a.content,
+    body: a.content,
     category: a.category,
     isPinned: a.isPinned,
     createdAt: a.createdAt,
@@ -143,6 +146,7 @@ async function getTenantDashboard(tenantId) {
       email: tenantUser.email,
       phone: tenantUser.phone || '',
       status: tenantUser.status,
+      securityDeposit: profile?.securityDeposit ?? (profile?.monthlyRent ? profile.monthlyRent * 1.5 : 0),
       memberSince: tenantUser.createdAt,
     },
     lease: {
@@ -150,8 +154,19 @@ async function getTenantDashboard(tenantId) {
       leaseStart,
       leaseEnd,
       monthlyRent: profile?.monthlyRent ?? unit?.monthlyRent ?? 0,
+      securityDeposit: profile?.securityDeposit ?? (profile?.monthlyRent ? profile.monthlyRent * 1.5 : 0),
       tenantStatus: profile?.status ?? 'pre_added',
     },
+    landlord: landlordUser
+      ? {
+          id: landlordUser._id,
+          name: [landlordUser.firstName, landlordUser.lastName].filter(Boolean).join(' ') || 'Landlord',
+          email: landlordUser.email,
+          phone: landlordUser.phone || landlordUser.officePhone || '',
+          officePhone: landlordUser.officePhone || '',
+          company: landlordUser.company || '',
+        }
+      : null,
     unit: unit
       ? {
           id: unit._id,
@@ -171,6 +186,11 @@ async function getTenantDashboard(tenantId) {
           city: property.city,
           image: property.image,
           category: property.category,
+          landlordName: landlordUser
+            ? [landlordUser.firstName, landlordUser.lastName].filter(Boolean).join(' ')
+            : 'Property Management',
+          landlordEmail: landlordUser?.email || '',
+          landlordPhone: landlordUser?.phone || landlordUser?.officePhone || '',
         }
       : null,
     payments: {

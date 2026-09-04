@@ -15,9 +15,7 @@ export const TenantMaintenanceTab = ({
   const [selectedTechTicket, setSelectedTechTicket] = useState(null);
   const [ratings, setRatings] = useState({});
 
-  const tenantTickets = tickets.filter(
-    (t) => t.unitId === unit?.id || t.tenantName === tenant?.name
-  );
+  const tenantTickets = Array.isArray(tickets) ? tickets : [];
 
   const filteredTickets = tenantTickets.filter((t) => {
     if (statusFilter !== 'all' && t.status !== statusFilter) return false;

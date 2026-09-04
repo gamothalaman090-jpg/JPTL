@@ -4,10 +4,12 @@ import {
   ChevronDown, CreditCard, Wrench, FileText, Megaphone, ArrowRight 
 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
+import { useAuth } from '../context/AuthContext';
+import { tenantApi } from '../services/api';
 import { 
   MOCK_PROPERTIES, 
   MOCK_UNITS, 
-  MOCK_TENANTS,
+  MOCK_TENANTS, 
   MOCK_TICKETS as INITIAL_TICKETS 
 } from '../data/mockData';
 import { TenantSidebar } from '../components/tenant/TenantSidebar';
@@ -54,39 +56,126 @@ const MOCK_RESIDENT_ANNOUNCEMENTS = [
 
 export const TenantPortalPage = ({ onNavigate = () => {} }) => {
   const { theme, toggleTheme } = useTheme();
+  const { user, logout } = useAuth();
 
   // Active Tab & Resident selection
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'payments' | 'maintenance' | 'lease' | 'announcements' | 'settings'
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [selectedTenantId, setSelectedTenantId] = useState('usr-tenant-1'); // Default: Sophia Lin
 
-  // Live state for tickets & announcements
-  const [tickets, setTickets] = useState(INITIAL_TICKETS);
-  const [announcements, setAnnouncements] = useState(MOCK_RESIDENT_ANNOUNCEMENTS);
+  // Live state from backend
+  const [tenantData, setTenantData] = useState(null);
+  const [unitData, setUnitData] = useState(null);
+  const [propertyData, setPropertyData] = useState(null);
+  const [landlordData, setLandlordData] = useState(null);
+  const [leaseData, setLeaseData] = useState(null);
+  const [payments, setPayments] = useState([]);
+  const [tickets, setTickets] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
 
   // Modals & Drawers
   const [isPayRentOpen, setIsPayRentOpen] = useState(false);
   const [isReportIssueOpen, setIsReportIssueOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
-  // Find active tenant, unit, and property
-  const currentTenant = MOCK_TENANTS.find((t) => t.id === selectedTenantId) || MOCK_TENANTS[0];
-  const currentUnit = MOCK_UNITS.find((u) => u.id === currentTenant.unitId) || MOCK_UNITS[0];
-  const currentProperty = MOCK_PROPERTIES.find((p) => p.id === currentTenant.propertyId) || MOCK_PROPERTIES[0];
+  // Load live data from server on mount
+  useEffect(() => {
+    let isMounted = true;
 
-  const handleTicketSubmitted = (newTicket) => {
-    setTickets((prev) => [newTicket, ...prev]);
+    async function loadTenantData() {
+      try {
+        const [dashRes, paymentsRes, ticketsRes, ancRes] = await Promise.allSettled([
+          tenantApi.getDashboard(),
+          tenantApi.getPayments(),
+          tenantApi.getTickets(),
+          tenantApi.getAnnouncements(),
+        ]);
+
+        if (!isMounted) return;
+
+        if (dashRes.status === 'fulfilled' && dashRes.value?.data) {
+          const d = dashRes.value.data;
+          if (d.tenant) setTenantData(d.tenant);
+          if (d.unit) setUnitData(d.unit);
+          if (d.property) setPropertyData(d.property);
+          if (d.landlord) setLandlordData(d.landlord);
+          if (d.lease) setLeaseData(d.lease);
+          if (Array.isArray(d.payments?.recent)) setPayments(d.payments.recent);
+          if (Array.isArray(d.tickets?.recent)) setTickets(d.tickets.recent);
+          if (Array.isArray(d.announcements)) setAnnouncements(d.announcements);
+        }
+
+        if (ticketsRes.status === 'fulfilled') {
+          const tList = ticketsRes.value?.tickets || ticketsRes.value?.data || (Array.isArray(ticketsRes.value) ? ticketsRes.value : []);
+          if (Array.isArray(tList) && tList.length > 0) setTickets(tList);
+        }
+
+        if (ancRes.status === 'fulfilled') {
+          const aList = ancRes.value?.announcements || ancRes.value?.data || (Array.isArray(ancRes.value) ? ancRes.value : []);
+          if (Array.isArray(aList) && aList.length > 0) setAnnouncements(aList);
+        }
+
+        if (paymentsRes.status === 'fulfilled') {
+          const pList = paymentsRes.value?.payments || paymentsRes.value?.data?.recentPayments || paymentsRes.value?.data || (Array.isArray(paymentsRes.value) ? paymentsRes.value : []);
+          if (Array.isArray(pList) && pList.length > 0) setPayments(pList);
+        }
+      } catch (err) {
+        console.warn('Tenant live data fetch fallback:', err.message);
+      }
+    }
+
+    loadTenantData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Compute active tenant, unit, and property (live only, no fallback to mock tenants/units)
+  const currentTenant = {
+    ...(user || {}),
+    ...(tenantData || {}),
+    id: user?._id || user?.id || tenantData?._id || tenantData?.id,
+    name: tenantData?.fullName || tenantData?.name || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.name || 'Resident',
+    email: user?.email || tenantData?.email || '',
+  };
+  const currentUnit = unitData ? {
+    ...unitData,
+    id: unitData._id || unitData.id,
+    label: unitData.label || 'Unit',
+  } : null;
+  const currentProperty = propertyData ? {
+    ...propertyData,
+    id: propertyData._id || propertyData.id,
+    name: propertyData.name || 'Property',
+  } : null;
+
+  const handleTicketSubmitted = async (newTicket) => {
+    try {
+      const res = await tenantApi.createTicket({
+        title: newTicket.title,
+        description: newTicket.description,
+        category: newTicket.category,
+        priority: newTicket.priority,
+      });
+      const created = res.data || newTicket;
+      setTickets((prev) => [created, ...prev]);
+    } catch (err) {
+      console.warn('Server ticket submission fallback:', err.message);
+      setTickets((prev) => [newTicket, ...prev]);
+    }
   };
 
-  const handlePaymentSuccess = (receipt) => {
+  const handlePaymentSuccess = async (receipt) => {
+    try {
+      await tenantApi.payRent({
+        amount: receipt.amount,
+        paymentMethod: receipt.method || 'card',
+        notes: receipt.period || 'Rent payment',
+      });
+    } catch (err) {
+      console.warn('Server rent payment notice:', err.message);
+    }
     const newPaymentRecord = {
       id: receipt.transactionId,
-      tenantId: currentTenant.id,
-      tenantName: currentTenant.name,
-      propertyId: currentProperty.id,
-      propertyName: currentProperty.name,
-      unitId: currentUnit.id,
-      unitLabel: currentUnit.label,
       amount: receipt.amount,
       dueDate: '2026-09-01',
       paidAt: receipt.paidAt,
@@ -95,6 +184,15 @@ export const TenantPortalPage = ({ onNavigate = () => {} }) => {
     };
     setPayments((prev) => [newPaymentRecord, ...prev]);
   };
+
+  const handleLogout = async () => {
+    await logout();
+    onNavigate('/login');
+  };
+
+  const displayName = currentTenant.name || 'Resident';
+  const unitLabel = currentUnit?.label || 'Unassigned';
+  const initials = displayName.split(' ').map((n) => n[0]).join('').slice(0, 2) || 'R';
 
   return (
     <div className="min-h-screen bg-[#F4F6F9] dark:bg-[#070A12] text-slate-900 dark:text-slate-100 font-sans flex selection:bg-indigo-600/30 selection:text-indigo-300 transition-colors duration-300">
@@ -105,8 +203,8 @@ export const TenantPortalPage = ({ onNavigate = () => {} }) => {
         onChangeTab={(tab) => setActiveTab(tab)}
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed((p) => !p)}
-        onLogout={() => onNavigate('/')}
-        tenant={{ ...currentTenant, unitLabel: currentUnit.label, propertyName: currentProperty.name }}
+        onLogout={handleLogout}
+        tenant={{ ...currentTenant, unitLabel: currentUnit?.label || 'Unassigned', propertyName: currentProperty?.name || 'Property' }}
       />
 
       {/* ─── MAIN CONTENT AREA ─── */}
@@ -153,11 +251,11 @@ export const TenantPortalPage = ({ onNavigate = () => {} }) => {
               {/* User Avatar + Unit Pill */}
               <div className="flex items-center gap-2.5 pl-2 border-l border-slate-200 dark:border-slate-800">
                 <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold font-grotesk">
-                  {currentTenant.name.split(' ').map((n) => n[0]).join('')}
+                  {initials}
                 </div>
                 <div className="text-right hidden sm:block">
-                  <span className="text-xs font-bold text-slate-900 dark:text-white block leading-tight">{currentTenant.name}</span>
-                  <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400">{currentUnit.label}</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white block leading-tight">{displayName}</span>
+                  <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400">{unitLabel}</span>
                 </div>
               </div>
 
@@ -171,9 +269,10 @@ export const TenantPortalPage = ({ onNavigate = () => {} }) => {
           
           {activeTab === 'overview' && (
             <TenantOverviewTab
-              tenant={{ ...currentTenant, unitLabel: currentUnit.label, propertyName: currentProperty.name }}
+              tenant={{ ...currentTenant, unitLabel: currentUnit?.label || 'Unassigned', propertyName: currentProperty?.name || 'Property' }}
               unit={currentUnit}
               property={currentProperty}
+              landlord={landlordData}
               tickets={tickets}
               announcements={announcements}
               onPayRentClick={() => setIsPayRentOpen(true)}
@@ -187,6 +286,8 @@ export const TenantPortalPage = ({ onNavigate = () => {} }) => {
               tenant={currentTenant}
               unit={currentUnit}
               property={currentProperty}
+              payments={payments}
+              securityDeposit={tenantData?.securityDeposit ?? leaseData?.securityDeposit}
               onPayRentClick={() => setIsPayRentOpen(true)}
             />
           )}

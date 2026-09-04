@@ -6,6 +6,7 @@ import {
 import { MOCK_DOCUMENTS } from '../../data/mockData';
 import { DocumentInspectionModal } from '../dashboard/DocumentInspectionModal';
 import { SubmitDocumentModal } from './SubmitDocumentModal';
+import { tenantApi } from '../../services/api';
 
 export const TenantDocumentsTab = ({
   tenant,
@@ -23,6 +24,25 @@ export const TenantDocumentsTab = ({
     }
     return MOCK_DOCUMENTS;
   });
+
+  // Fetch live documents from server on mount
+  useEffect(() => {
+    let isMounted = true;
+    async function loadDocs() {
+      try {
+        const res = await tenantApi.getDocuments();
+        if (!isMounted) return;
+        const docs = res.documents || res.data || [];
+        if (Array.isArray(docs) && docs.length > 0) {
+          setDocuments(docs);
+        }
+      } catch (err) {
+        console.warn('Could not load tenant documents from server:', err.message);
+      }
+    }
+    loadDocs();
+    return () => { isMounted = false; };
+  }, []);
 
   // Sync state if sessionStorage updates
   const reloadDocsFromStorage = () => {
@@ -49,11 +69,13 @@ export const TenantDocumentsTab = ({
   };
 
   const currentTenantName = tenant?.name || 'Sophia Lin';
-  const currentTenantId = tenant?.id || 'usr-tenant-1';
+  const currentTenantId = tenant?.id || tenant?._id || 'usr-tenant-1';
 
-  // Filter documents to ONLY show submitted documents by this tenant or building-wide published rules
+  // Filter documents to show submitted documents by this tenant or building-wide published rules
   const tenantDocs = documents.filter(d => 
+    !d.tenantId ||
     d.tenantId === currentTenantId || 
+    d.tenant === currentTenantId ||
     d.tenantName === currentTenantName ||
     d.tenantId === 'all'
   );
@@ -66,9 +88,31 @@ export const TenantDocumentsTab = ({
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
 
   // Handle Tenant File Submission from Modal
-  const handleDocModalSubmit = (docData) => {
-    const newDoc = {
-      id: `doc-${Date.now()}`,
+  const handleDocModalSubmit = async (docData) => {
+    let createdDoc = null;
+    try {
+      if (docData.file) {
+        const formData = new FormData();
+        formData.append('file', docData.file);
+        formData.append('name', docData.name);
+        formData.append('type', docData.type);
+        formData.append('notes', docData.notes || '');
+        const res = await tenantApi.uploadDocument(formData);
+        createdDoc = res.data;
+      } else {
+        const res = await tenantApi.uploadDocument({
+          name: docData.name,
+          type: docData.type,
+          notes: docData.notes || '',
+        });
+        createdDoc = res.data;
+      }
+    } catch (err) {
+      console.warn('Server document upload fallback:', err.message);
+    }
+
+    const fallbackDoc = {
+      id: createdDoc?._id || createdDoc?.id || `doc-${Date.now()}`,
       tenantId: currentTenantId,
       tenantName: currentTenantName,
       unitLabel: unit?.label || 'Unit 14B',
@@ -79,9 +123,10 @@ export const TenantDocumentsTab = ({
       size: docData.fileSize || '1.4 MB',
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
       status: 'Pending Review',
-      fileUrl: `/docs/${docData.name}`
+      fileUrl: createdDoc?.fileUrl || `/docs/${docData.name}`
     };
 
+    const newDoc = createdDoc ? { ...createdDoc, id: createdDoc._id || createdDoc.id } : fallbackDoc;
     const updatedList = [newDoc, ...documents];
     updateDocumentList(updatedList);
     setIsSubmitModalOpen(false);

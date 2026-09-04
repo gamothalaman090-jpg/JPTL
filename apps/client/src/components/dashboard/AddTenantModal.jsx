@@ -1,69 +1,112 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserPlus, Mail, User, Building2, Key, Copy, Check, AlertCircle, Loader2, Calendar, DollarSign, AlertTriangle } from 'lucide-react';
+import { 
+  X, UserPlus, Mail, User, Building2, Key, Copy, Check, AlertCircle, 
+  Loader2, Calendar, DollarSign, AlertTriangle, Clock, Users, CheckCircle2, Home, Sparkles 
+} from 'lucide-react';
+import { landlordApi } from '../../services/api';
 
 export const AddTenantModal = ({
   isOpen,
   onClose,
   properties = [],
   units = [],
+  tenants = [],
   initialPropertyId = '',
   initialUnitId = '',
   onTenantAdded = () => {},
+  onTenantAssigned = () => {},
 }) => {
+  // Mode: 'existing' (assign already created/pre-added) vs 'new' (create brand new account)
+  const [activeTab, setActiveTab] = useState('existing');
+
+  // Existing / Pre-added Tenant selection
+  const [selectedTenantId, setSelectedTenantId] = useState('');
+
+  // New Tenant Form Fields
   const [firstName, setFirstName] = useState('');
   const [middleName, setMiddleName] = useState('');
   const [lastName, setLastName] = useState('');
   const [tenantEmail, setTenantEmail] = useState('');
+  const [tenantPhone, setTenantPhone] = useState('');
+
+  // Unit & Property assignment
   const [selectedPropertyId, setSelectedPropertyId] = useState(initialPropertyId);
   const [selectedUnitId, setSelectedUnitId] = useState(initialUnitId);
   const [monthlyRent, setMonthlyRent] = useState('');
   const [leaseStart, setLeaseStart] = useState('');
   const [leaseEnd, setLeaseEnd] = useState('');
+  const [durationMonths, setDurationMonths] = useState(12);
 
   const [isPreAdd, setIsPreAdd] = useState(false);
-  const [simulateConflict, setSimulateConflict] = useState(false);
 
   const [touched, setTouched] = useState({});
   const [errors, setErrors] = useState({});
-
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [conflictError, setConflictError] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
 
-  // Success state modal data
+  // Success modal state for new tenant creation
   const [successData, setSuccessData] = useState(null);
   const [copied, setCopied] = useState(false);
 
-  // Filter vacant units for selected property
-  const vacantUnits = units.filter(
-    (u) => u.status === 'vacant' && (!selectedPropertyId || u.propertyId === selectedPropertyId)
-  );
+  // Helper to calculate end date from start date and months
+  const calculateEndDate = (startDateStr, months) => {
+    if (!startDateStr) return '';
+    const date = new Date(startDateStr);
+    if (isNaN(date.getTime())) return '';
+    date.setMonth(date.getMonth() + Number(months));
+    return date.toISOString().split('T')[0];
+  };
 
-  // Synchronize initial pre-filled parameters when modal opens
+  // Filter vacant units for selected property
+  const vacantUnits = units.filter((u) => {
+    const uPropId = u.propertyId || u.property;
+    const matchesProp = !selectedPropertyId || uPropId === selectedPropertyId;
+    return matchesProp && u.status === 'vacant';
+  });
+
+  // Filter pre-added / unassigned accounts from tenants list
+  const preAddedTenants = tenants.filter((t) => t.status === 'pre_added' || !t.unitId || t.unitId === 'pre_add_unassigned');
+  const otherTenants = tenants.filter((t) => t.status !== 'pre_added' && t.unitId && t.unitId !== 'pre_add_unassigned');
+
   useEffect(() => {
     if (isOpen) {
       setFirstName('');
       setMiddleName('');
       setLastName('');
       setTenantEmail('');
+      setTenantPhone('');
       setTouched({});
       setErrors({});
-      setConflictError(null);
+      setErrorMessage(null);
       setSuccessData(null);
       setCopied(false);
-      setSimulateConflict(false);
 
+      // Default activeTab: if initialUnitId provided and there are pre-added tenants, default to 'existing'
+      if (preAddedTenants.length > 0) {
+        setActiveTab('existing');
+        setSelectedTenantId(preAddedTenants[0].id || preAddedTenants[0]._id || '');
+      } else if (tenants.length > 0 && initialUnitId) {
+        setActiveTab('existing');
+        setSelectedTenantId(tenants[0].id || tenants[0]._id || '');
+      } else {
+        setActiveTab('new');
+        setSelectedTenantId('');
+      }
+
+      // Initial property
       if (initialPropertyId) {
         setSelectedPropertyId(initialPropertyId);
       } else if (properties.length > 0) {
-        setSelectedPropertyId(properties[0].id);
+        setSelectedPropertyId(properties[0].id || properties[0]._id);
       }
 
+      // Initial unit
       if (initialUnitId) {
         setSelectedUnitId(initialUnitId);
         setIsPreAdd(false);
-        const unit = units.find((u) => u.id === initialUnitId);
-        if (unit) {
-          setMonthlyRent(unit.monthlyRent || '');
+        const unit = units.find((u) => u.id === initialUnitId || u._id === initialUnitId);
+        if (unit && unit.monthlyRent) {
+          setMonthlyRent(String(unit.monthlyRent));
         }
       } else {
         setSelectedUnitId('');
@@ -71,22 +114,23 @@ export const AddTenantModal = ({
         setMonthlyRent('');
       }
 
-      // Default lease start to today's date YYYY-MM-DD
+      // Default lease dates
       const today = new Date().toISOString().split('T')[0];
       setLeaseStart(today);
-      setLeaseEnd('');
+      setDurationMonths(12);
+      setLeaseEnd(calculateEndDate(today, 12));
     }
-  }, [isOpen, initialPropertyId, initialUnitId, properties, units]);
+  }, [isOpen, initialPropertyId, initialUnitId, properties, units, tenants]);
 
-  // Handle property dropdown change
+  // Handle property change
   const handlePropertyChange = (propId) => {
     setSelectedPropertyId(propId);
     setSelectedUnitId('');
     setMonthlyRent('');
-    setConflictError(null);
+    setErrorMessage(null);
   };
 
-  // Handle unit dropdown change
+  // Handle unit change
   const handleUnitChange = (uId) => {
     if (uId === 'pre_add_unassigned') {
       setIsPreAdd(true);
@@ -95,15 +139,62 @@ export const AddTenantModal = ({
     } else {
       setIsPreAdd(false);
       setSelectedUnitId(uId);
-      const unit = units.find((u) => u.id === uId);
-      if (unit) {
-        setMonthlyRent(unit.monthlyRent ? String(unit.monthlyRent) : '');
+      const unit = units.find((u) => u.id === uId || u._id === uId);
+      if (unit && unit.monthlyRent) {
+        setMonthlyRent(String(unit.monthlyRent));
       }
     }
-    setConflictError(null);
+    setErrorMessage(null);
   };
 
-  // Validation logic
+  // Handle duration preset
+  const handleDurationPreset = (months) => {
+    setDurationMonths(months);
+    if (leaseStart) {
+      setLeaseEnd(calculateEndDate(leaseStart, months));
+    }
+  };
+
+  // Handle lease start date
+  const handleStartDateChange = (dateVal) => {
+    setLeaseStart(dateVal);
+    if (durationMonths && dateVal) {
+      setLeaseEnd(calculateEndDate(dateVal, durationMonths));
+    }
+  };
+
+  // Handle lease end date
+  const handleEndDateChange = (dateVal) => {
+    setLeaseEnd(dateVal);
+    if (leaseStart && dateVal) {
+      const s = new Date(leaseStart);
+      const e = new Date(dateVal);
+      if (e > s) {
+        const months = Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24 * 30.44)));
+        setDurationMonths(months);
+      }
+    }
+  };
+
+  // Expiration calculation for live preview badge
+  const getExpirationPreview = () => {
+    if (!leaseEnd) return null;
+    const end = new Date(leaseEnd);
+    if (isNaN(end.getTime())) return null;
+    const now = new Date();
+    const diffDays = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+    const formatted = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return {
+      formatted,
+      diffDays,
+      isExpired: diffDays < 0,
+      isExpiringSoon: diffDays >= 0 && diffDays <= 30,
+    };
+  };
+
+  const expirationPreview = getExpirationPreview();
+
+  // Validation logic for new tenant form
   const validateField = (name, value) => {
     let err = '';
     if (name === 'firstName') {
@@ -146,7 +237,7 @@ export const AddTenantModal = ({
   };
 
   const handleTextChange = (field, val) => {
-    setConflictError(null);
+    setErrorMessage(null);
     if (field === 'firstName') {
       setFirstName(val);
       if (touched.firstName) setErrors((prev) => ({ ...prev, firstName: validateField('firstName', val) }));
@@ -165,18 +256,112 @@ export const AddTenantModal = ({
     }
   };
 
-  const isFormValid =
-    firstName.trim().length >= 2 &&
-    firstName.trim().length <= 50 &&
-    lastName.trim().length >= 2 &&
-    lastName.trim().length <= 50 &&
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(tenantEmail.trim()) &&
-    (isPreAdd || (selectedUnitId && leaseStart));
+  // Selected tenant in existing mode
+  const selectedExistingTenant = tenants.find(
+    (t) => String(t.id || t._id) === String(selectedTenantId)
+  );
 
-  const handleSubmit = (e) => {
+  // Submit Handler
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setConflictError(null);
+    setErrorMessage(null);
 
+    // ─────────────────────────────────────────────────────────
+    // TAB 1: ASSIGN EXISTING / PRE-ADDED TENANT ACCOUNT
+    // ─────────────────────────────────────────────────────────
+    if (activeTab === 'existing') {
+      if (!selectedTenantId) {
+        setErrorMessage('Please select a tenant account to assign');
+        return;
+      }
+      if (!selectedUnitId) {
+        setErrorMessage('Please select a vacant unit to assign to this tenant');
+        return;
+      }
+      if (!leaseStart) {
+        setErrorMessage('Lease start date is required');
+        return;
+      }
+      if (!leaseEnd) {
+        setErrorMessage('Lease expiration date is required');
+        return;
+      }
+
+      setIsSubmitting(true);
+      try {
+        const targetUnit = units.find((u) => u.id === selectedUnitId || u._id === selectedUnitId);
+        const targetProp = properties.find((p) => p.id === selectedPropertyId || p._id === selectedPropertyId);
+
+        const isMongoId = /^[0-9a-fA-F]{24}$/.test(String(selectedTenantId));
+        let res;
+
+        if (isMongoId) {
+          res = await landlordApi.updateTenant(selectedTenantId, {
+            email: selectedExistingTenant?.email,
+            firstName: selectedExistingTenant?.firstName || selectedExistingTenant?.name?.split(' ')[0],
+            lastName: selectedExistingTenant?.lastName || selectedExistingTenant?.name?.split(' ').slice(1).join(' '),
+            unitId: selectedUnitId,
+            monthlyRent: Number(monthlyRent) || targetUnit?.monthlyRent || 0,
+            leaseStart,
+            leaseEnd,
+            status: 'active',
+          });
+        } else {
+          // Pre-added tenant with synthetic ID: Create in database with credentials!
+          res = await landlordApi.createTenant({
+            firstName: selectedExistingTenant?.firstName || selectedExistingTenant?.name?.split(' ')[0] || 'Resident',
+            middleName: selectedExistingTenant?.middleName || '',
+            lastName: selectedExistingTenant?.lastName || selectedExistingTenant?.name?.split(' ').slice(1).join(' ') || 'Tenant',
+            email: selectedExistingTenant?.email,
+            phone: selectedExistingTenant?.phone || '',
+            unitId: selectedUnitId,
+            monthlyRent: Number(monthlyRent) || targetUnit?.monthlyRent || 0,
+            leaseStart,
+            leaseEnd,
+            tempPassword: 'jptl2026',
+          });
+
+          // Clean up synthetic ID from sessionStorage
+          try {
+            const rawStored = sessionStorage.getItem('jptl_onboarding_tenants');
+            if (rawStored) {
+              const parsed = JSON.parse(rawStored);
+              const remaining = parsed.filter(
+                (t) => String(t.id) !== String(selectedTenantId) && t.email !== selectedExistingTenant?.email
+              );
+              sessionStorage.setItem('jptl_onboarding_tenants', JSON.stringify(remaining));
+            }
+          } catch (_) {}
+        }
+
+        const updatedTenant = {
+          ...(selectedExistingTenant || {}),
+          ...(res.data || {}),
+          id: res.data?._id || res.data?.id || selectedTenantId,
+          propertyId: selectedPropertyId,
+          propertyName: targetProp?.name || selectedExistingTenant?.propertyName || 'Property',
+          unitId: selectedUnitId,
+          unitLabel: targetUnit?.label || 'Unit',
+          monthlyRent: Number(monthlyRent) || targetUnit?.monthlyRent || 0,
+          leaseStart,
+          leaseEnd,
+          status: 'active',
+        };
+
+        onTenantAssigned(updatedTenant);
+        onClose();
+      } catch (err) {
+        console.error('Assign tenant error:', err);
+        setErrorMessage(err.response?.data?.message || err.message || 'Failed to assign tenant to unit');
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // TAB 2: CREATE NEW TENANT ACCOUNT
+    // ─────────────────────────────────────────────────────────
     const firstErr = validateField('firstName', firstName);
     const middleErr = validateField('middleName', middleName);
     const lastErr = validateField('lastName', lastName);
@@ -191,38 +376,35 @@ export const AddTenantModal = ({
 
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      const tempPassword = 'jptl2026';
 
-      if (simulateConflict && !isPreAdd) {
-        setConflictError('This unit is no longer vacant. Another landlord session may have assigned it.');
-        return;
-      }
-
-      // Generate random temporary password
-      const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const tempPassword = `JPTL-${randomCode}`;
-
-      const targetUnit = units.find((u) => u.id === selectedUnitId);
-      const targetProperty = properties.find((p) => p.id === selectedPropertyId);
-
+      const targetUnit = units.find((u) => u.id === selectedUnitId || u._id === selectedUnitId);
+      const targetProperty = properties.find((p) => p.id === selectedPropertyId || p._id === selectedPropertyId);
       const fullName = [firstName.trim(), middleName.trim(), lastName.trim()].filter(Boolean).join(' ');
 
-      const newTenant = {
-        id: `usr-tenant-${Date.now()}`,
+      const payload = {
         firstName: firstName.trim(),
         middleName: middleName.trim(),
         lastName: lastName.trim(),
-        name: fullName,
-        email: tenantEmail.trim(),
-        propertyId: isPreAdd ? undefined : selectedPropertyId,
-        propertyName: isPreAdd ? 'Unassigned' : targetProperty?.name || 'Property',
-        unitId: isPreAdd ? undefined : selectedUnitId,
-        unitLabel: isPreAdd ? 'Unassigned' : targetUnit?.label || 'Unit',
+        email: tenantEmail.trim().toLowerCase(),
+        phone: tenantPhone.trim(),
+        unitId: isPreAdd ? 'pre_add_unassigned' : selectedUnitId,
         monthlyRent: isPreAdd ? 0 : Number(monthlyRent) || targetUnit?.monthlyRent || 0,
-        leaseStart: isPreAdd ? undefined : leaseStart,
-        leaseEnd: isPreAdd ? undefined : leaseEnd || undefined,
-        status: isPreAdd ? 'pre_added' : 'active',
+        leaseStart: (!isPreAdd && leaseStart) ? leaseStart : undefined,
+        leaseEnd: (!isPreAdd && leaseEnd) ? leaseEnd : undefined,
+        tempPassword,
+      };
+
+      const res = await landlordApi.createTenant(payload);
+      const serverTenant = res.data;
+
+      const newTenant = {
+        ...serverTenant,
+        id: serverTenant._id || serverTenant.id,
+        name: serverTenant.name || fullName,
+        propertyName: targetProperty?.name || serverTenant.propertyName || 'Property',
+        unitLabel: targetUnit?.label || serverTenant.unitLabel || 'Unit',
         tempPassword,
       };
 
@@ -230,7 +412,13 @@ export const AddTenantModal = ({
         tenant: newTenant,
         tempPassword,
       });
-    }, 1200);
+    } catch (err) {
+      console.error('Create tenant error:', err);
+      const msg = err.response?.data?.message || err.message || 'Failed to create tenant account';
+      setErrorMessage(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleDone = () => {
@@ -252,387 +440,482 @@ export const AddTenantModal = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-      
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-slate-950/80 backdrop-blur-md transition-opacity animate-in fade-in duration-200"
         onClick={onClose}
       />
 
-      {/* Modal Window with Emil's scale(0.95) entry */}
-      <div className="relative w-full max-w-lg bg-white dark:bg-[#10131F] border border-slate-200 dark:border-slate-800/90 rounded-3xl p-6 sm:p-8 shadow-2xl z-10 my-8 top-shade modal-enter modal-enter-active">
+      {/* Modal Card */}
+      <div className="relative w-full max-w-lg bg-white dark:bg-[#10131F] border border-slate-200 dark:border-slate-800/90 rounded-3xl p-6 sm:p-8 shadow-2xl z-10 my-8">
         
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-900 text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center border border-slate-200 dark:border-slate-800 btn-press focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          aria-label="Close add tenant dialog"
+          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-900 text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center border border-slate-200 dark:border-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          aria-label="Close dialog"
         >
           <X className="w-4 h-4" />
         </button>
 
-        {/* Modal Header */}
         {!successData ? (
           <div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center shrink-0">
                 <UserPlus className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-xl font-bold font-grotesk text-white">Add Tenant Account</h2>
-                <p className="text-xs text-slate-400">Fill out tenant information and assign unit lease details.</p>
+                <h2 className="text-xl font-bold font-grotesk text-slate-900 dark:text-white">
+                  {activeTab === 'existing' ? 'Assign Tenant to Unit' : 'Create New Tenant'}
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {activeTab === 'existing'
+                    ? 'Select a created or pre-added account and attach them to a unit.'
+                    : 'Issue credentials and send welcome email to a new resident.'}
+                </p>
               </div>
             </div>
 
-            {/* Mock Conflict Banner */}
-            {conflictError && (
-              <div role="alert" className="mb-5 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-start gap-2.5">
-                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            {/* Tab Switcher: Existing Accounts vs Create New */}
+            <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 dark:bg-[#080B14] rounded-2xl mb-5 border border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => { setActiveTab('existing'); setErrorMessage(null); }}
+                className={`py-2 px-3 text-xs font-bold font-grotesk rounded-xl transition-all flex items-center justify-center gap-2 ${
+                  activeTab === 'existing'
+                    ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/80 dark:border-slate-700/80'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>Existing / Pre-added</span>
+                {preAddedTenants.length > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-mono font-bold">
+                    {preAddedTenants.length}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setActiveTab('new'); setErrorMessage(null); }}
+                className={`py-2 px-3 text-xs font-bold font-grotesk rounded-xl transition-all flex items-center justify-center gap-2 ${
+                  activeTab === 'new'
+                    ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/80 dark:border-slate-700/80'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>+ Create New</span>
+              </button>
+            </div>
+
+            {/* Error Banner */}
+            {errorMessage && (
+              <div role="alert" className="mb-4 p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-500 text-xs flex items-start gap-2.5 animate-in fade-in duration-200">
+                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
                 <div>
-                  <strong className="font-semibold block text-amber-200">Unit conflict alert</strong>
-                  <span>{conflictError}</span>
+                  <strong className="font-semibold block">Error</strong>
+                  <span>{errorMessage}</span>
                 </div>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} noValidate className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               
-              {/* Tenant Name Fields: First, Middle, Last */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                {/* First Name */}
-                <div>
-                  <label htmlFor="tenant-firstName" className="text-xs font-semibold text-slate-300 mb-1 block">
-                    First name
-                  </label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none" />
-                    <input
-                      id="tenant-firstName"
-                      type="text"
-                      required
-                      disabled={isSubmitting}
-                      value={firstName}
-                      onChange={(e) => handleTextChange('firstName', e.target.value)}
-                      onBlur={() => handleBlur('firstName')}
-                      placeholder="Sophia"
-                      className={`w-full bg-slate-900 border ${
-                        touched.firstName && errors.firstName
-                          ? 'border-rose-500 focus:ring-rose-500'
-                          : 'border-slate-700/80 focus:border-indigo-500 focus:ring-indigo-500'
-                      } rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all`}
-                    />
-                  </div>
-                  {touched.firstName && errors.firstName && (
-                    <p className="text-[11px] text-rose-400 mt-1 flex items-center gap-1 font-medium">
-                      <AlertCircle className="w-3 h-3" />
-                      <span>{errors.firstName}</span>
-                    </p>
-                  )}
-                </div>
-
-                {/* Middle Name */}
-                <div>
-                  <label htmlFor="tenant-middleName" className="text-xs font-semibold text-slate-300 mb-1 block">
-                    Middle name <span className="text-slate-500 font-normal">(Opt)</span>
-                  </label>
-                  <input
-                    id="tenant-middleName"
-                    type="text"
-                    disabled={isSubmitting}
-                    value={middleName}
-                    onChange={(e) => handleTextChange('middleName', e.target.value)}
-                    onBlur={() => handleBlur('middleName')}
-                    placeholder="M."
-                    className={`w-full bg-slate-900 border ${
-                      touched.middleName && errors.middleName
-                        ? 'border-rose-500 focus:ring-rose-500'
-                        : 'border-slate-700/80 focus:border-indigo-500 focus:ring-indigo-500'
-                    } rounded-xl px-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all`}
-                  />
-                  {touched.middleName && errors.middleName && (
-                    <p className="text-[11px] text-rose-400 mt-1 flex items-center gap-1 font-medium">
-                      <AlertCircle className="w-3 h-3" />
-                      <span>{errors.middleName}</span>
-                    </p>
-                  )}
-                </div>
-
-                {/* Last Name */}
-                <div>
-                  <label htmlFor="tenant-lastName" className="text-xs font-semibold text-slate-300 mb-1 block">
-                    Last name
-                  </label>
-                  <input
-                    id="tenant-lastName"
-                    type="text"
-                    required
-                    disabled={isSubmitting}
-                    value={lastName}
-                    onChange={(e) => handleTextChange('lastName', e.target.value)}
-                    onBlur={() => handleBlur('lastName')}
-                    placeholder="Lin"
-                    className={`w-full bg-slate-900 border ${
-                      touched.lastName && errors.lastName
-                        ? 'border-rose-500 focus:ring-rose-500'
-                        : 'border-slate-700/80 focus:border-indigo-500 focus:ring-indigo-500'
-                    } rounded-xl px-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all`}
-                  />
-                  {touched.lastName && errors.lastName && (
-                    <p className="text-[11px] text-rose-400 mt-1 flex items-center gap-1 font-medium">
-                      <AlertCircle className="w-3 h-3" />
-                      <span>{errors.lastName}</span>
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Tenant Email */}
-              <div>
-                <label htmlFor="tenant-email" className="text-xs font-semibold text-slate-300 mb-1 block">
-                  Tenant email address
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3 pointer-events-none" />
-                  <input
-                    id="tenant-email"
-                    type="email"
-                    required
-                    disabled={isSubmitting}
-                    value={tenantEmail}
-                    onChange={(e) => handleTextChange('tenantEmail', e.target.value)}
-                    onBlur={() => handleBlur('tenantEmail')}
-                    placeholder="tenant@example.com"
-                    className={`w-full bg-slate-900 border ${
-                      touched.tenantEmail && errors.tenantEmail
-                        ? 'border-rose-500 focus:ring-rose-500'
-                        : 'border-slate-700/80 focus:border-indigo-500 focus:ring-indigo-500'
-                    } rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all`}
-                  />
-                </div>
-                {touched.tenantEmail && errors.tenantEmail && (
-                  <p className="text-[11px] text-rose-400 mt-1 flex items-center gap-1 font-medium">
-                    <AlertCircle className="w-3 h-3" />
-                    <span>{errors.tenantEmail}</span>
-                  </p>
-                )}
-              </div>
-
-              {/* Dependent Dropdown: Property -> Unit */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                
-                {/* Property Dropdown */}
-                <div>
-                  <label htmlFor="tenant-property" className="text-xs font-semibold text-slate-300 mb-1 block">
-                    Property
-                  </label>
-                  <div className="relative">
-                    <Building2 className="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none" />
+              {/* ───────────────────────────────────────────────────── */}
+              {/* TAB 1: EXISTING / PRE-ADDED TENANT SELECTION          */}
+              {/* ───────────────────────────────────────────────────── */}
+              {activeTab === 'existing' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                      Choose Created or Pre-added Tenant *
+                    </label>
                     <select
-                      id="tenant-property"
+                      value={selectedTenantId}
+                      onChange={(e) => setSelectedTenantId(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700/80 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="">-- Select an account --</option>
+                      {preAddedTenants.length > 0 && (
+                        <optgroup label="Pre-added / Unassigned Accounts">
+                          {preAddedTenants.map((t) => (
+                            <option key={t.id || t._id} value={t.id || t._id}>
+                              {t.name} ({t.email}) — Pre-added
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                      {otherTenants.length > 0 && (
+                        <optgroup label="Other Registered Tenants">
+                          {otherTenants.map((t) => (
+                            <option key={t.id || t._id} value={t.id || t._id}>
+                              {t.name} ({t.email}) — Assigned to {t.unitLabel || 'Unit'}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                    </select>
+                  </div>
+
+                  {/* Selected Tenant Summary Card */}
+                  {selectedExistingTenant && (
+                    <div className="p-3 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 text-xs flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-xs">
+                          {selectedExistingTenant.name?.charAt(0) || 'T'}
+                        </div>
+                        <div>
+                          <strong className="text-slate-900 dark:text-white block font-grotesk">{selectedExistingTenant.name}</strong>
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">{selectedExistingTenant.email}</span>
+                        </div>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono uppercase ${
+                        selectedExistingTenant.status === 'active'
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                          : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                      }`}>
+                        {selectedExistingTenant.status === 'active' ? 'Active' : 'Pre-added'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ───────────────────────────────────────────────────── */}
+              {/* TAB 2: CREATE BRAND-NEW TENANT ACCOUNT               */}
+              {/* ───────────────────────────────────────────────────── */}
+              {activeTab === 'new' && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label htmlFor="tenant-firstName" className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 block">
+                        First name *
+                      </label>
+                      <input
+                        id="tenant-firstName"
+                        type="text"
+                        value={firstName}
+                        onChange={(e) => handleTextChange('firstName', e.target.value)}
+                        onBlur={() => handleBlur('firstName')}
+                        placeholder="e.g. Alex"
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700/80 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                      {touched.firstName && errors.firstName && (
+                        <p className="text-[11px] text-rose-500 mt-1">{errors.firstName}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label htmlFor="tenant-middleName" className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 block">
+                        Middle <span className="text-slate-400 font-normal">(Opt)</span>
+                      </label>
+                      <input
+                        id="tenant-middleName"
+                        type="text"
+                        value={middleName}
+                        onChange={(e) => handleTextChange('middleName', e.target.value)}
+                        placeholder="e.g. M."
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700/80 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="tenant-lastName" className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 block">
+                        Last name *
+                      </label>
+                      <input
+                        id="tenant-lastName"
+                        type="text"
+                        value={lastName}
+                        onChange={(e) => handleTextChange('lastName', e.target.value)}
+                        onBlur={() => handleBlur('lastName')}
+                        placeholder="e.g. Vance"
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700/80 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                      {touched.lastName && errors.lastName && (
+                        <p className="text-[11px] text-rose-500 mt-1">{errors.lastName}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="tenant-email" className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 block">
+                      Tenant Email Address * <span className="text-slate-400 font-normal">(Login & Credentials will be sent here)</span>
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                      <input
+                        id="tenant-email"
+                        type="email"
+                        value={tenantEmail}
+                        onChange={(e) => handleTextChange('tenantEmail', e.target.value)}
+                        onBlur={() => handleBlur('tenantEmail')}
+                        placeholder="e.g. resident@gmail.com"
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                    {touched.tenantEmail && errors.tenantEmail && (
+                      <p className="text-[11px] text-rose-500 mt-1">{errors.tenantEmail}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ───────────────────────────────────────────────────── */}
+              {/* PROPERTY & UNIT SELECTION                            */}
+              {/* ───────────────────────────────────────────────────── */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                    Property *
+                  </label>
+                  <div className="relative">
+                    <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                    <select
                       value={selectedPropertyId}
                       onChange={(e) => handlePropertyChange(e.target.value)}
-                      disabled={isSubmitting || Boolean(initialPropertyId)}
-                      className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none disabled:opacity-60"
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
-                      {properties.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
+                      {properties.map((p) => {
+                        const pId = p.id || p._id;
+                        return (
+                          <option key={pId} value={pId}>
+                            {p.name}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
                 </div>
 
-                {/* Vacant Unit Dropdown with Pre-Add Option */}
                 <div>
-                  <label htmlFor="tenant-unit" className="text-xs font-semibold text-slate-300 mb-1 block">
-                    Unit assignment
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                    Unit Assignment *
                   </label>
-                  <select
-                    id="tenant-unit"
-                    value={isPreAdd ? 'pre_add_unassigned' : selectedUnitId}
-                    onChange={(e) => handleUnitChange(e.target.value)}
-                    onBlur={() => handleBlur('unit')}
-                    disabled={isSubmitting || Boolean(initialUnitId)}
-                    className={`w-full bg-slate-900 border ${
-                      touched.unit && errors.unit ? 'border-rose-500' : 'border-slate-700/80'
-                    } rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60`}
-                  >
-                    <option value="">Select vacant unit...</option>
-                    {vacantUnits.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.label} (${u.monthlyRent}/mo)
-                      </option>
-                    ))}
-                    <option value="pre_add_unassigned">&mdash; Unassigned (Pre-add tenant) &mdash;</option>
-                  </select>
-                  {touched.unit && errors.unit && (
-                    <p className="text-[11px] text-rose-400 mt-1">{errors.unit}</p>
+                  <div className="relative">
+                    <Home className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                    <select
+                      value={isPreAdd ? 'pre_add_unassigned' : selectedUnitId}
+                      onChange={(e) => handleUnitChange(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="">Select vacant unit...</option>
+                      {vacantUnits.map((u) => {
+                        const uId = u.id || u._id;
+                        return (
+                          <option key={uId} value={uId}>
+                            {u.label} (${u.monthlyRent}/mo)
+                          </option>
+                        );
+                      })}
+                      {activeTab === 'new' && (
+                        <option value="pre_add_unassigned">— Unassigned (Pre-add tenant) —</option>
+                      )}
+                    </select>
+                  </div>
+                  {vacantUnits.length === 0 && !isPreAdd && (
+                    <p className="text-[11px] text-amber-500 mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5" /> No vacant units in this property
+                    </p>
                   )}
                 </div>
-
               </div>
 
-              {/* Pre-Add Notice */}
-              {isPreAdd && (
-                <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs flex items-center gap-2">
-                  <UserPlus className="w-4 h-4 text-blue-400 shrink-0" />
-                  <span>Pre-adding tenant without immediate unit assignment. You can assign a unit later.</span>
-                </div>
-              )}
-
-              {/* Monthly Rent & Lease Start Date */}
+              {/* ───────────────────────────────────────────────────── */}
+              {/* LEASE TERMS: RENT, DURATION, EXPIRATION               */}
+              {/* ───────────────────────────────────────────────────── */}
               {!isPreAdd && (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    
-                    {/* Monthly Rent (Editable, pre-filled) */}
                     <div>
-                      <label htmlFor="tenant-rent" className="text-xs font-semibold text-slate-300 mb-1 block">
-                        Monthly rent ($)
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        Monthly Rent ($) *
                       </label>
                       <div className="relative">
-                        <DollarSign className="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none" />
+                        <DollarSign className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
                         <input
-                          id="tenant-rent"
                           type="number"
                           value={monthlyRent}
                           onChange={(e) => setMonthlyRent(e.target.value)}
                           placeholder="e.g. 2400"
-                          className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         />
                       </div>
                     </div>
 
-                    {/* Lease Start Date */}
                     <div>
-                      <label htmlFor="tenant-start" className="text-xs font-semibold text-slate-300 mb-1 block">
-                        Lease start date
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        Lease Start Date *
                       </label>
                       <div className="relative">
-                        <Calendar className="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none" />
+                        <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
                         <input
-                          id="tenant-start"
                           type="date"
-                          required
                           value={leaseStart}
-                          onChange={(e) => setLeaseStart(e.target.value)}
-                          onBlur={() => handleBlur('leaseStart')}
-                          className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          onChange={(e) => handleStartDateChange(e.target.value)}
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         />
                       </div>
-                      {touched.leaseStart && errors.leaseStart && (
-                        <p className="text-[11px] text-rose-400 mt-1">{errors.leaseStart}</p>
-                      )}
                     </div>
-
                   </div>
 
-                  {/* Lease End Date (Optional) */}
+                  {/* Lease Duration Presets */}
                   <div>
-                    <label htmlFor="tenant-end" className="text-xs font-semibold text-slate-300 mb-1 block">
-                      Lease end date <span className="text-slate-500 font-normal">(Optional)</span>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                        Lease Duration Presets
+                      </label>
+                      <span className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400 font-semibold">
+                        {durationMonths} Months ({durationMonths >= 12 ? `${(durationMonths / 12).toFixed(durationMonths % 12 === 0 ? 0 : 1)} Year` : ''})
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[
+                        { months: 6, label: '6 Months' },
+                        { months: 12, label: '1 Year (12 Mo)' },
+                        { months: 24, label: '2 Years (24 Mo)' },
+                        { months: 36, label: '3 Years (36 Mo)' },
+                      ].map((preset) => (
+                        <button
+                          key={preset.months}
+                          type="button"
+                          onClick={() => handleDurationPreset(preset.months)}
+                          className={`py-1.5 px-2 text-center rounded-xl text-xs font-semibold transition-all border ${
+                            durationMonths === preset.months
+                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-600/30'
+                              : 'bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Expiration Date Input */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                      Lease Expiration Date *
                     </label>
                     <div className="relative">
-                      <Calendar className="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none" />
+                      <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
                       <input
-                        id="tenant-end"
                         type="date"
                         value={leaseEnd}
-                        onChange={(e) => setLeaseEnd(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        onChange={(e) => handleEndDateChange(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
                     </div>
                   </div>
+
+                  {/* Expiration Summary Preview */}
+                  {expirationPreview && (
+                    <div className="p-3 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 text-xs flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <span className="text-[10px] uppercase tracking-wider text-indigo-600 dark:text-indigo-400 font-bold block">
+                          Term & Expiration
+                        </span>
+                        <span className="font-bold text-slate-900 dark:text-white">
+                          {durationMonths} Months Lease • Expires {expirationPreview.formatted}
+                        </span>
+                      </div>
+                      <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold font-mono ${
+                        expirationPreview.isExpired
+                          ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                          : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                      }`}>
+                        {expirationPreview.isExpired ? 'Expired' : `${expirationPreview.diffDays}d left`}
+                      </span>
+                    </div>
+                  )}
                 </>
               )}
 
-
-
-              {/* Form Action */}
-              <div className="pt-2 flex items-center justify-end gap-3">
+              {/* Action Buttons */}
+              <div className="pt-3 flex items-center justify-end gap-3 border-t border-slate-200 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500"
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 text-xs font-semibold border border-slate-300 dark:border-slate-800"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={!isFormValid || isSubmitting}
-                  className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold font-grotesk shadow-lg shadow-indigo-600/30 flex items-center gap-2 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  disabled={isSubmitting || (activeTab === 'existing' && (!selectedTenantId || !selectedUnitId))}
+                  className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold font-grotesk shadow-md shadow-indigo-600/30 flex items-center gap-2 active:scale-95 transition-all"
                 >
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin text-white" />
-                      <span>Creating tenant account...</span>
+                      <span>{activeTab === 'existing' ? 'Assigning tenant...' : 'Creating account...'}</span>
                     </>
                   ) : (
-                    <span>Add tenant account</span>
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>{activeTab === 'existing' ? 'Confirm Assignment & Lease' : 'Create & Send Invitation'}</span>
+                    </>
                   )}
                 </button>
               </div>
-
             </form>
           </div>
         ) : (
-          /* SUCCESS MODAL: Temp Password Generator Feedback */
-          <div className="text-center animate-in fade-in zoom-in-95 duration-200">
-            <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto mb-4">
-              <Check className="w-8 h-8" />
+          /* Success Screen for New Tenant Creation */
+          <div className="space-y-6 text-center py-2 animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-14 h-14 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/10">
+              <Check className="w-7 h-7 stroke-[3]" />
             </div>
-            
-            <h3 className="text-2xl font-bold font-grotesk text-white">Tenant Account Created!</h3>
-            <p className="text-xs text-slate-300 mt-1">
-              Account created for <strong className="text-white">{successData.tenant.name}</strong> ({successData.tenant.email}).
-            </p>
 
-            {/* Generated Temporary Password Display */}
-            <div className="my-6 p-4 rounded-2xl bg-slate-900 border border-slate-700/80 text-left relative">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
-                Generated Temporary Password
-              </span>
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-indigo-400 font-mono text-lg font-bold">
-                  <Key className="w-4 h-4 text-indigo-400" />
-                  <span>{successData.tempPassword}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleCopyPassword}
-                  className="px-3 py-1.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 text-xs font-semibold border border-indigo-500/40 flex items-center gap-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="text-emerald-400">Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Copy</span>
-                    </>
-                  )}
-                </button>
-              </div>
-              <p className="text-[11px] text-amber-400 mt-3 flex items-center gap-1.5 font-medium">
-                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                <span>Share this with your tenant &mdash; it won't be shown again.</span>
+            <div>
+              <h3 className="text-xl font-bold font-grotesk text-slate-900 dark:text-white">Resident Account Created!</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs mx-auto">
+                A welcome email with login credentials was sent to <strong className="text-slate-800 dark:text-slate-200">{successData.tenant.email}</strong>.
               </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-left space-y-3">
+              <div>
+                <span className="text-[10px] text-slate-400 uppercase font-mono tracking-wider block">Resident Name</span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white">{successData.tenant.name}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 uppercase font-mono tracking-wider block">Portal Username / Email</span>
+                <span className="text-xs font-mono text-indigo-600 dark:text-indigo-400 font-bold">{successData.tenant.email}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 uppercase font-mono tracking-wider block">Temporary Password</span>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-sm font-mono font-extrabold text-amber-500 bg-amber-500/10 px-3 py-1 rounded-lg border border-amber-500/20">
+                    {successData.tempPassword}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleCopyPassword}
+                    className="px-3 py-1 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-all"
+                  >
+                    {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copied ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+              </div>
             </div>
 
             <button
               type="button"
               onClick={handleDone}
-              className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold font-grotesk shadow-lg shadow-indigo-600/30 focus:outline-none focus:ring-2 focus:ring-indigo-400 active:scale-98 transition-all"
+              className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold font-grotesk text-xs shadow-lg shadow-indigo-600/30 transition-all"
             >
-              Done
+              Done & Return to Dashboard
             </button>
           </div>
         )}
-
       </div>
     </div>
   );
 };
+
+export default AddTenantModal;

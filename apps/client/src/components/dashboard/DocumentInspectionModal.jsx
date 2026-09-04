@@ -30,16 +30,47 @@ export const DocumentInspectionModal = ({
   const handleApprove = () => {
     setIsVerifying(true);
     setTimeout(() => {
-      onVerify(doc.id);
+      onVerify(doc.id || doc._id);
       setIsVerifying(false);
       onClose();
     }, 400);
   };
 
+  const handleDownload = () => {
+    if (doc.fileUrl && (doc.fileUrl.startsWith('http://') || doc.fileUrl.startsWith('https://') || doc.fileUrl.startsWith('blob:'))) {
+      window.open(doc.fileUrl, '_blank');
+      return;
+    }
+    const docSummary = `JPTL PROPERTY MANAGEMENT SYSTEM
+=====================================================
+OFFICIAL RESIDENTIAL DOCUMENT RECORD
+=====================================================
+Document Name: ${doc.name}
+Document Type: ${doc.type || 'Residential Document'}
+Verification Status: ${doc.status}
+Resident / Tenant: ${doc.tenantName || 'Tenant'}
+Unit & Residence: ${doc.unitLabel || 'Unit'} (${doc.propertyName || 'Property'})
+Filing Date: ${doc.date || new Date().toLocaleDateString()}
+Document Reference: DOC-${doc.id || doc._id || Date.now()}
+=====================================================
+This document is digitally registered in the JPTL Resident Compliance Vault.
+`;
+    const blob = new Blob([docSummary], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const downloadName = (doc.name || 'document').replace(/\.pdf$/i, '') + '.txt';
+    link.download = downloadName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const handleConfirmReject = (e) => {
     if (e) e.preventDefault();
     if (!rejectionReason.trim()) return;
-    onReject(doc.id, rejectionReason.trim());
+    onReject(doc.id || doc._id, rejectionReason.trim());
     onClose();
   };
 
@@ -89,7 +120,7 @@ export const DocumentInspectionModal = ({
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => alert(`Downloading document ${doc.name}...`)}
+              onClick={handleDownload}
               className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 transition-colors btn-press text-xs font-mono flex items-center gap-1.5"
               title="Download File"
             >
@@ -387,8 +418,8 @@ export const DocumentInspectionModal = ({
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => alert(`Downloading official copy of ${doc.name}...`)}
-                      className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-grotesk font-bold text-xs btn-press flex items-center gap-1.5"
+                      onClick={handleDownload}
+                      className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-grotesk font-bold text-xs btn-press flex items-center gap-1.5 shadow-sm"
                     >
                       <Download className="w-3.5 h-3.5" /> Download Copy
                     </button>
