@@ -26,7 +26,12 @@ async function login(req, res) {
   try {
     const { user, token } = await authService.login(req.body);
     res.cookie(COOKIE_NAME, token, cookieOptions());
-    return res.status(200).json({ success: true, role: user.role, token });
+    return res.status(200).json({
+      success: true,
+      role: user.role,
+      token,
+      data: { user, token },
+    });
   } catch (err) {
     const statusCode = err.statusCode || 500;
     return res.status(statusCode).json({ success: false, message: err.message });
@@ -57,4 +62,26 @@ async function changePassword(req, res) {
   }
 }
 
-export { signupLandlord, login, logout, changePassword };
+async function getMe(req, res) {
+  try {
+    const userId = req.user?.id || req.user?._id;
+    const user = await authService.getMeService(userId);
+    return res.status(200).json({ success: true, user });
+  } catch (err) {
+    const statusCode = err.statusCode || 500;
+    return res.status(statusCode).json({ success: false, message: err.message });
+  }
+}
+
+async function updateProfile(req, res) {
+  try {
+    const userId = req.user?.id || req.user?._id;
+    const user = await authService.updateProfileService(userId, req.body);
+    return res.status(200).json({ success: true, message: 'Profile updated successfully', user });
+  } catch (err) {
+    const statusCode = err.statusCode || 500;
+    return res.status(statusCode).json({ success: false, message: err.message });
+  }
+}
+
+export { signupLandlord, login, logout, changePassword, getMe, updateProfile };

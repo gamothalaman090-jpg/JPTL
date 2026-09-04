@@ -38,6 +38,16 @@ const tenantProfileSchema = new mongoose.Schema(
         expiry: { type: String },
       },
     ],
+    vehicles: [
+      {
+        make: { type: String, required: true, trim: true },
+        model: { type: String, trim: true, default: '' },
+        color: { type: String, trim: true, default: '' },
+        licensePlate: { type: String, required: true, trim: true },
+        decalNumber: { type: String, trim: true, default: '' },
+        registeredAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

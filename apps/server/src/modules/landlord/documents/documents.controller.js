@@ -34,3 +34,15 @@ export async function deleteDocument(req, res) {
     return res.status(statusCode).json({ success: false, message: err.message });
   }
 }
+
+export async function publishPolicy(req, res) {
+  try {
+    const landlordId = req.user._id || req.user.id;
+    const ipAddress = req.ip || req.connection?.remoteAddress || '';
+    const result = await landlordDocService.publishBuildingPolicy(landlordId, req.body, ipAddress);
+    return res.status(201).json({ success: true, message: 'Policy published successfully', data: result });
+  } catch (err) {
+    const statusCode = err.statusCode || 400;
+    return res.status(statusCode).json({ success: false, message: err.message });
+  }
+}

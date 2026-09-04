@@ -6,6 +6,7 @@ import Ticket from '../../../shared/models/ticket.model.js';
 import Payment from '../../../shared/models/payment.model.js';
 import Document from '../../../shared/models/document.model.js';
 import AuditLog from '../../../shared/models/auditLog.model.js';
+import { sendTenantWelcomeEmail } from '../../../shared/utils/mailer.js';
 import crypto from 'crypto';
 
 class TenantDirectoryError extends Error {
@@ -268,7 +269,7 @@ async function createTenant(landlordId, data, ipAddress = '') {
     throw new TenantDirectoryError('A user with this email address already exists', 409);
   }
 
-  const generatedPassword = tempPassword || generateTemporaryPassword();
+  const initialPassword = tempPassword || 'JPTL2026';
 
   // Create user
   const tenantUser = await User.create({
@@ -277,7 +278,7 @@ async function createTenant(landlordId, data, ipAddress = '') {
     lastName: lastName.trim(),
     email: normalizedEmail,
     phone: phone.trim(),
-    password: generatedPassword,
+    password: initialPassword,
     role: 'tenant',
     landlord: landlordId,
     status: 'active',
@@ -332,6 +333,18 @@ async function createTenant(landlordId, data, ipAddress = '') {
 
   const fullName = [tenantUser.firstName, tenantUser.middleName, tenantUser.lastName].filter(Boolean).join(' ');
 
+  // Dispatch welcome email asynchronously
+  const landlordUser = await User.findById(landlordId).select('firstName lastName company').lean();
+  const landlordName = landlordUser ? [landlordUser.firstName, landlordUser.lastName].filter(Boolean).join(' ') : 'Your Landlord';
+  const propertyName = assignedProperty ? assignedProperty.name : 'Your Residence';
+
+  sendTenantWelcomeEmail({
+    email: tenantUser.email,
+    name: fullName,
+    landlordName,
+    propertyName,
+  }).catch((err) => console.error('Error sending welcome email:', err.message));
+
   return {
     id: tenantUser._id,
     firstName: tenantUser.firstName,
@@ -341,7 +354,8 @@ async function createTenant(landlordId, data, ipAddress = '') {
     email: tenantUser.email,
     phone: tenantUser.phone,
     role: tenantUser.role,
-    temporaryPassword: generatedPassword,
+    temporaryPassword: initialPassword,
+    defaultPassword: initialPassword,
     propertyId: assignedProperty?._id || null,
     propertyName: assignedProperty?.name || 'Unassigned',
     unitId: assignedUnit?._id || null,

@@ -5,7 +5,7 @@
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "base_url", "value": "http://localhost:3000", "type": "string" },
+    { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
     { "key": "landlord_token", "value": "", "type": "string" },
     { "key": "tenant_token", "value": "", "type": "string" },
     { "key": "lease_id", "value": "", "type": "string" },
@@ -34,7 +34,7 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"email\": \"sophia.lin@example.com\",\n  \"password\": \"password123\"\n}"
+          "raw": "{\n  \"email\": \"tenant@jptl.com\",\n  \"password\": \"Password123!\"\n}"
         },
         "url": {
           "raw": "{{base_url}}/api/auth/login",
@@ -52,8 +52,9 @@
             "exec": [
               "const res = pm.response.json();",
               "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
-              "if (res.data && res.data.token) {",
-              "  pm.collectionVariables.set('landlord_token', res.data.token);",
+              "const token = res.token || (res.data && res.data.token);",
+              "if (token) {",
+              "  pm.collectionVariables.set('landlord_token', token);",
               "  console.log('Landlord token saved.');",
               "}"
             ]
@@ -65,7 +66,7 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"email\": \"vance.landlord@example.com\",\n  \"password\": \"password123\"\n}"
+          "raw": "{\n  \"email\": \"landlord@jptl.com\",\n  \"password\": \"Password123!\"\n}"
         },
         "url": {
           "raw": "{{base_url}}/api/auth/login",

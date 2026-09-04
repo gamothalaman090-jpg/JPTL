@@ -14,6 +14,8 @@ import Ticket from '../shared/models/ticket.model.js';
 import Announcement from '../shared/models/announcements.model.js';
 import Document from '../shared/models/document.model.js';
 import AuditLog from '../shared/models/auditLog.model.js';
+import Vendor from '../shared/models/vendor.model.js';
+import { Notification, PushSubscription } from '../shared/models/notification.model.js';
 
 // Load environment variables
 const __filename = fileURLToPath(import.meta.url);
@@ -36,6 +38,9 @@ export async function purgeData(silent = false) {
     { name: 'Unit', model: Unit },
     { name: 'Property', model: Property },
     { name: 'Announcement', model: Announcement },
+    { name: 'Vendor', model: Vendor },
+    { name: 'Notification', model: Notification },
+    { name: 'PushSubscription', model: PushSubscription },
     { name: 'User', model: User },
   ];
 

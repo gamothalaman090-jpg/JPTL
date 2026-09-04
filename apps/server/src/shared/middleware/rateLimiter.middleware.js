@@ -13,7 +13,7 @@ const shouldSkip = () => {
  */
 export const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 300,
+  max: 2000,
   standardHeaders: true,
   legacyHeaders: false,
   skip: shouldSkip,
@@ -26,11 +26,10 @@ export const generalLimiter = rateLimit({
 /**
  * Strict Auth Limiter (applied to /api/auth/login, /api/auth/signup)
  * Protects against brute-force attacks and credential stuffing
- * 20 attempts per 15 minutes per IP
  */
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20,
+  max: 300,
   standardHeaders: true,
   legacyHeaders: false,
   skip: shouldSkip,

@@ -187,3 +187,35 @@ export async function deleteDocument(landlordId, docId, ipAddress = '') {
     deletedDocId: docId,
   };
 }
+
+/**
+ * Publish building-wide policy or rules document
+ */
+export async function publishBuildingPolicy(landlordId, data, ipAddress = '') {
+  const { title, type = 'House Rules', category = 'rules', fileUrl, size = '1.2 MB' } = data;
+  if (!title?.trim() || !fileUrl?.trim()) {
+    throw new LandlordDocumentError('Policy title and fileUrl are required', 400);
+  }
+
+  const doc = await Document.create({
+    landlord: landlordId,
+    buildingWide: true,
+    name: title.trim().endsWith('.pdf') ? title.trim() : `${title.trim()}.pdf`,
+    type,
+    category,
+    size,
+    fileUrl,
+    status: 'Verified',
+    verifiedAt: new Date(),
+    reviewedBy: landlordId,
+  });
+
+  await logAction({
+    actorId: landlordId,
+    action: 'POLICY_PUBLISHED',
+    entityId: doc._id,
+    ipAddress,
+  });
+
+  return doc;
+}

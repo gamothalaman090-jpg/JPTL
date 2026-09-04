@@ -27,6 +27,10 @@ import tenantPaymentsRoutes from './src/modules/tenant/payments/payments.routes.
 import tenantTicketRoutes from './src/modules/tenant/tickets/tickets.routes.js';
 import tenantLeaseRoutes from './src/modules/tenant/lease/lease.routes.js';
 import tenantDocumentRoutes from './src/modules/tenant/documents/documents.routes.js';
+import tenantVehicleRoutes from './src/modules/tenant/vehicles/vehicles.routes.js';
+import landlordVendorRoutes from './src/modules/landlord/vendors/vendors.routes.js';
+import landlordAuditLogRoutes from './src/modules/landlord/auditlogs/auditlogs.routes.js';
+import notificationRoutes from './src/modules/notifications/notifications.routes.js';
 
 const app = express();
 
@@ -74,6 +78,8 @@ app.use('/api/landlord/documents', landlordDocumentRoutes);
 app.use('/api/landlord/announcements', landlordAnnouncementRoutes);
 app.use('/api/landlord/tenantdirectory', landlordTenantDirectoryRoutes);
 app.use('/api/landlord/rentroll', landlordRentRollRoutes);
+app.use('/api/landlord/vendors', landlordVendorRoutes);
+app.use('/api/landlord/audit-logs', landlordAuditLogRoutes);
 
 // Tenant routes
 app.use('/api/tenant/dash', tenantDashRoutes);
@@ -82,6 +88,10 @@ app.use('/api/tenant/payments', tenantPaymentsRoutes);
 app.use('/api/tenant/tickets', tenantTicketRoutes);
 app.use('/api/tenant/lease', tenantLeaseRoutes);
 app.use('/api/tenant/documents', tenantDocumentRoutes);
+app.use('/api/tenant/vehicles', tenantVehicleRoutes);
+
+// Shared Notifications & Web-Push routes
+app.use('/api/notifications', notificationRoutes);
 
 // 9. 404 Route Not Found Handler
 app.use(notFoundMiddleware);

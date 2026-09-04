@@ -14,6 +14,8 @@ import Ticket from '../shared/models/ticket.model.js';
 import Announcement from '../shared/models/announcements.model.js';
 import Document from '../shared/models/document.model.js';
 import AuditLog from '../shared/models/auditLog.model.js';
+import Vendor from '../shared/models/vendor.model.js';
+import { Notification } from '../shared/models/notification.model.js';
 import { purgeData } from './purge.js';
 
 // Load environment variables
@@ -129,7 +131,50 @@ export async function seedData() {
     status: 'active',
   });
 
-  console.log(`   ✅ Seeded 8 users (1 Superadmin, 2 Landlords, 5 Tenants)`);
+  // Test credentials used by Newman postman suites
+  await User.create([
+    {
+      firstName: 'Alexander',
+      middleName: 'J.',
+      lastName: 'Vance',
+      email: 'vance.landlord@example.com',
+      password: 'password123',
+      role: 'landlord',
+      plan: 'pro',
+      onboardingCompleted: true,
+      status: 'active',
+    },
+    {
+      firstName: 'Alexander',
+      lastName: 'Vance',
+      email: 'alexander.vance@example.com',
+      password: 'Password123!',
+      role: 'landlord',
+      plan: 'pro',
+      onboardingCompleted: true,
+      status: 'active',
+    },
+    {
+      firstName: 'Sophia',
+      lastName: 'Lin',
+      email: 'sophia.lin@example.com',
+      password: 'password123',
+      role: 'tenant',
+      landlord: primaryLandlord._id,
+      status: 'active',
+    },
+    {
+      firstName: 'Directory',
+      lastName: 'Tenant',
+      email: 'tenant@example.com',
+      password: 'JPTL2026',
+      role: 'tenant',
+      landlord: primaryLandlord._id,
+      status: 'active',
+    },
+  ]);
+
+  console.log(`   ✅ Seeded users (including test runner accounts)`);
 
   // ==========================================
   // 3. SEED PROPERTIES
@@ -312,6 +357,16 @@ export async function seedData() {
         isDefault: false,
       },
     ],
+    vehicles: [
+      {
+        make: 'Tesla Model 3',
+        model: 'Standard Range Plus',
+        color: 'Midnight Silver',
+        licensePlate: '7XYZ890',
+        decalNumber: 'DEC-8812',
+        registeredAt: new Date('2026-01-10'),
+      },
+    ],
   });
 
   await TenantProfile.create({
@@ -332,6 +387,16 @@ export async function seedData() {
         type: 'card',
         isDefault: true,
         expiry: '08/27',
+      },
+    ],
+    vehicles: [
+      {
+        make: 'BMW 330i',
+        model: 'Sedan',
+        color: 'Alpine White',
+        licensePlate: '9ABC123',
+        decalNumber: 'DEC-8813',
+        registeredAt: new Date('2026-03-05'),
       },
     ],
   });
@@ -878,6 +943,139 @@ export async function seedData() {
   });
 
   console.log(`   ✅ Seeded 5 security audit logs`);
+
+  // ==========================================
+  // 12. SEED VENDORS
+  // ==========================================
+  console.log('🛠️ Seeding Approved Maintenance Vendors...');
+
+  await Vendor.create({
+    landlord: primaryLandlord._id,
+    name: 'Apex Plumbing Solutions',
+    category: 'Plumbing',
+    contactPhone: '+1 (555) 991-0022',
+    email: 'dispatch@apexplumbing.com',
+    company: 'Apex Plumbing Solutions LLC',
+    contactPerson: 'Marco Rossi',
+    autoAssign: true,
+    rating: 4.9,
+    notes: 'Primary emergency plumber. 1h guaranteed response time.',
+  });
+
+  await Vendor.create({
+    landlord: primaryLandlord._id,
+    name: 'VoltTech Electrical Co.',
+    category: 'Electrical',
+    contactPhone: '+1 (555) 334-9911',
+    email: 'service@volttech.com',
+    company: 'VoltTech Electrical Contractors',
+    contactPerson: 'James Carter',
+    autoAssign: true,
+    rating: 4.8,
+    notes: 'Licensed for high-voltage and residential circuitry.',
+  });
+
+  await Vendor.create({
+    landlord: primaryLandlord._id,
+    name: 'ClimateAir HVAC Solutions',
+    category: 'HVAC',
+    contactPhone: '+1 (555) 887-2665',
+    email: 'support@climateair.com',
+    company: 'ClimateAir Systems Inc.',
+    contactPerson: 'Sarah Jenkins',
+    autoAssign: true,
+    rating: 4.7,
+    notes: 'Commercial and residential heat pump specialist.',
+  });
+
+  await Vendor.create({
+    landlord: primaryLandlord._id,
+    name: 'In-House Handyman Contractor',
+    category: 'General',
+    contactPhone: '+1 (555) 000-1122',
+    email: 'handyman@jptl.com',
+    company: 'JPTL Internal Facilities',
+    contactPerson: 'David Miller',
+    autoAssign: false,
+    rating: 5.0,
+    notes: 'Drywall, locks, painting, and basic carpentry.',
+  });
+
+  console.log(`   ✅ Seeded 4 maintenance vendors`);
+
+  // ==========================================
+  // 13. SEED BUILDING-WIDE RULES & POLICIES
+  // ==========================================
+  console.log('📜 Seeding Building Policies & Rules...');
+
+  await Document.create({
+    landlord: primaryLandlord._id,
+    buildingWide: true,
+    name: 'Building_House_Rules_v3.pdf',
+    type: 'House Rules',
+    category: 'rules',
+    size: '1.1 MB',
+    fileUrl: 'https://res.cloudinary.com/fzpweior/raw/upload/house_rules.pdf',
+    status: 'Verified',
+    reviewedBy: primaryLandlord._id,
+    verifiedAt: new Date(),
+  });
+
+  await Document.create({
+    landlord: primaryLandlord._id,
+    buildingWide: true,
+    name: 'Pool_and_Gym_Amenity_Guidelines_2026.pdf',
+    type: 'Amenity Guidelines',
+    category: 'policy',
+    size: '780 KB',
+    fileUrl: 'https://res.cloudinary.com/fzpweior/raw/upload/amenity_policy.pdf',
+    status: 'Verified',
+    reviewedBy: primaryLandlord._id,
+    verifiedAt: new Date(),
+  });
+
+  console.log(`   ✅ Seeded 2 building-wide policy documents`);
+
+  // ==========================================
+  // 14. SEED NOTIFICATIONS
+  // ==========================================
+  console.log('🔔 Seeding Real-Time Notifications...');
+
+  await Notification.create({
+    user: tenantSophia._id,
+    title: 'Maintenance Update',
+    body: 'Apex Plumbing Solutions has been dispatched for your Master Bath Faucet Leak ticket.',
+    type: 'maintenance',
+    read: false,
+    data: { ticketId: 'sample' },
+  });
+
+  await Notification.create({
+    user: tenantSophia._id,
+    title: 'Rent Receipt Issued',
+    body: 'Your payment of $2,400.00 for September 2026 rent was processed successfully.',
+    type: 'payment',
+    read: true,
+    data: { amount: 2400 },
+  });
+
+  await Notification.create({
+    user: primaryLandlord._id,
+    title: 'Payment Received',
+    body: 'Sophia Lin paid $2,400 rent for Unit 101 via Visa card.',
+    type: 'payment',
+    read: false,
+  });
+
+  await Notification.create({
+    user: primaryLandlord._id,
+    title: 'New Maintenance Ticket',
+    body: 'Marcus Miller reported HVAC Airflow Weak in Living Room.',
+    type: 'maintenance',
+    read: false,
+  });
+
+  console.log(`   ✅ Seeded 4 notifications`);
 
   console.log('\n========================================================');
   console.log('🎉 ALL DATA SEEDED SUCCESSFULLY!');

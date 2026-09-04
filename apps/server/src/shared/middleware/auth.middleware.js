@@ -5,7 +5,7 @@ function requireAuth(req, res, next) {
     ? req.headers.authorization.split(' ')[1]
     : null;
 
-  const token = req.cookies?.token || bearerToken;
+  const token = bearerToken || req.cookies?.token;
 
   if (!token) {
     return res.status(401).json({ success: false, message: 'No token provided' });

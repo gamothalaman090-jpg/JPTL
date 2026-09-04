@@ -1,18 +1,18 @@
 {
   "info": {
-    "name": "Announcements Module API (Landlord & Tenant)",
-    "description": "Postman / Newman collection testing Landlord announcement broadcasts and Tenant announcement feed consumption, including authorization guards and payload error handling.",
+    "name": "Landlord – Vendor Directory Module",
+    "description": "Postman test collection for Landlord Approved Maintenance Vendors CRUD endpoints.\nIncludes vendor listing, creation, updating, deletion, and role security guards.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
     { "key": "landlord_token", "value": "", "type": "string" },
     { "key": "tenant_token", "value": "", "type": "string" },
-    { "key": "created_announcement_id", "value": "", "type": "string" }
+    { "key": "created_vendor_id", "value": "", "type": "string" }
   ],
   "item": [
     {
-      "name": "01. Auth - Login Landlord",
+      "name": "01. Auth – Login as Landlord",
       "event": [
         {
           "listen": "test",
@@ -20,8 +20,9 @@
             "exec": [
               "const res = pm.response.json();",
               "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
-              "if (res.token) {",
-              "  pm.collectionVariables.set('landlord_token', res.token);",
+              "const token = res.token || (res.data && res.data.token);",
+              "if (token) {",
+              "  pm.collectionVariables.set('landlord_token', token);",
               "}"
             ]
           }
@@ -42,7 +43,7 @@
       }
     },
     {
-      "name": "02. Auth - Login Tenant",
+      "name": "02. Auth – Login as Tenant",
       "event": [
         {
           "listen": "test",
@@ -73,7 +74,7 @@
       }
     },
     {
-      "name": "03. Landlord - Create Broadcast Announcement",
+      "name": "03. Vendor Directory – Create Vendor",
       "event": [
         {
           "listen": "test",
@@ -81,10 +82,9 @@
             "exec": [
               "const res = pm.response.json();",
               "pm.test('Status is 201 Created', () => pm.response.to.have.status(201));",
-              "pm.test('Returns success true', () => pm.expect(res.success).to.be.true);",
-              "pm.test('Notice title matches', () => pm.expect(res.data.title).to.include('Elevator Inspection'));",
+              "pm.test('Vendor created successfully', () => pm.expect(res.success).to.be.true);",
               "if (res.data && res.data._id) {",
-              "  pm.collectionVariables.set('created_announcement_id', res.data._id);",
+              "  pm.collectionVariables.set('created_vendor_id', res.data._id);",
               "}"
             ]
           }
@@ -94,21 +94,21 @@
         "method": "POST",
         "header": [
           { "key": "Content-Type", "value": "application/json" },
-          { "key": "Cookie", "value": "token={{landlord_token}}" }
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"title\": \"Annual Elevator Inspection & Routine Test\",\n  \"content\": \"Routine elevator maintenance and emergency power testing will occur this Friday between 10 AM and 12 PM.\",\n  \"category\": \"Maintenance\",\n  \"isPinned\": true\n}"
+          "raw": "{\n  \"name\": \"ProFix Electricals\",\n  \"category\": \"Electrical\",\n  \"contactPhone\": \"+1 (555) 777-8899\",\n  \"email\": \"profix@electric.com\",\n  \"company\": \"ProFix Electric Corp\",\n  \"contactPerson\": \"Dan Sparks\",\n  \"rating\": 4.8\n}"
         },
         "url": {
-          "raw": "{{base_url}}/api/landlord/announcements",
+          "raw": "{{base_url}}/api/landlord/vendors",
           "host": ["{{base_url}}"],
-          "path": ["api", "landlord", "announcements"]
+          "path": ["api", "landlord", "vendors"]
         }
       }
     },
     {
-      "name": "04. Landlord - List My Announcements",
+      "name": "04. Vendor Directory – List Vendors",
       "event": [
         {
           "listen": "test",
@@ -116,7 +116,7 @@
             "exec": [
               "const res = pm.response.json();",
               "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
-              "pm.test('Returns announcement list array', () => pm.expect(Array.isArray(res.data)).to.be.true);"
+              "pm.test('Vendors returned', () => pm.expect(res.data).to.be.an('array'));"
             ]
           }
         }
@@ -124,17 +124,17 @@
       "request": {
         "method": "GET",
         "header": [
-          { "key": "Cookie", "value": "token={{landlord_token}}" }
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" }
         ],
         "url": {
-          "raw": "{{base_url}}/api/landlord/announcements",
+          "raw": "{{base_url}}/api/landlord/vendors",
           "host": ["{{base_url}}"],
-          "path": ["api", "landlord", "announcements"]
+          "path": ["api", "landlord", "vendors"]
         }
       }
     },
     {
-      "name": "05. Tenant - Get Announcements Feed",
+      "name": "05. Vendor Directory – Update Vendor",
       "event": [
         {
           "listen": "test",
@@ -142,51 +142,30 @@
             "exec": [
               "const res = pm.response.json();",
               "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
-              "pm.test('Returns announcements array', () => pm.expect(Array.isArray(res.announcements)).to.be.true);"
+              "pm.test('Rating updated', () => pm.expect(res.data.rating).to.equal(5.0));"
             ]
           }
         }
       ],
       "request": {
-        "method": "GET",
+        "method": "PATCH",
         "header": [
-          { "key": "Cookie", "value": "token={{tenant_token}}" }
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" }
         ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"rating\": 5.0\n}"
+        },
         "url": {
-          "raw": "{{base_url}}/api/tenant/announcements",
+          "raw": "{{base_url}}/api/landlord/vendors/{{created_vendor_id}}",
           "host": ["{{base_url}}"],
-          "path": ["api", "tenant", "announcements"]
+          "path": ["api", "landlord", "vendors", "{{created_vendor_id}}"]
         }
       }
     },
     {
-      "name": "06. Tenant - View Single Announcement",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "const res = pm.response.json();",
-              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
-              "pm.test('Returns correct announcement data', () => pm.expect(res.data._id || res.data.id).to.equal(pm.collectionVariables.get('created_announcement_id')));"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [
-          { "key": "Cookie", "value": "token={{tenant_token}}" }
-        ],
-        "url": {
-          "raw": "{{base_url}}/api/tenant/announcements/{{created_announcement_id}}",
-          "host": ["{{base_url}}"],
-          "path": ["api", "tenant", "announcements", "{{created_announcement_id}}"]
-        }
-      }
-    },
-    {
-      "name": "07. Error Handling - Tenant Forbidden from Creating Announcements (403)",
+      "name": "06. Security Guard – Tenant Forbidden",
       "event": [
         {
           "listen": "test",
@@ -201,45 +180,42 @@
         "method": "POST",
         "header": [
           { "key": "Content-Type", "value": "application/json" },
-          { "key": "Cookie", "value": "token={{tenant_token}}" }
+          { "key": "Authorization", "value": "Bearer {{tenant_token}}" }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"title\": \"Unauthorized notice attempt\",\n  \"content\": \"Should fail with 403\"\n}"
+          "raw": "{\n  \"name\": \"Hacker Plumbing\",\n  \"category\": \"Plumbing\"\n}"
         },
         "url": {
-          "raw": "{{base_url}}/api/landlord/announcements",
+          "raw": "{{base_url}}/api/landlord/vendors",
           "host": ["{{base_url}}"],
-          "path": ["api", "landlord", "announcements"]
+          "path": ["api", "landlord", "vendors"]
         }
       }
     },
     {
-      "name": "08. Error Handling - Missing Required Title (400)",
+      "name": "07. Vendor Directory – Delete Vendor",
       "event": [
         {
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test('Status is 400 Bad Request', () => pm.response.to.have.status(400));"
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Vendor deleted successfully', () => pm.expect(res.success).to.be.true);"
             ]
           }
         }
       ],
       "request": {
-        "method": "POST",
+        "method": "DELETE",
         "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Cookie", "value": "token={{landlord_token}}" }
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" }
         ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"content\": \"Missing title payload should be rejected.\"\n}"
-        },
         "url": {
-          "raw": "{{base_url}}/api/landlord/announcements",
+          "raw": "{{base_url}}/api/landlord/vendors/{{created_vendor_id}}",
           "host": ["{{base_url}}"],
-          "path": ["api", "landlord", "announcements"]
+          "path": ["api", "landlord", "vendors", "{{created_vendor_id}}"]
         }
       }
     }

@@ -8,6 +8,7 @@ const router = Router();
 router.use(requireAuth, requireRole('landlord'));
 
 router.get('/', landlordDocController.getDocuments);
+router.post('/policy', landlordDocController.publishPolicy);
 router.patch('/:id/verify', landlordDocController.verifyDocument);
 router.delete('/:id', landlordDocController.deleteDocument);
 
