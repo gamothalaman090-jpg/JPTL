@@ -260,9 +260,11 @@ export const LoginModal = ({ isOpen, initialRole = 'tenant', onClose, onLoginSuc
                         <Smartphone className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
                         <input
                           type="tel"
-                          placeholder="+1 (555) 234-5678"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          placeholder="09123456789"
                           value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
+                          onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
                           className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-10 pr-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                         />
                       </div>

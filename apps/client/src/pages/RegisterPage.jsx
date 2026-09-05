@@ -57,11 +57,13 @@ export const RegisterPage = ({ onNavigate = () => {} }) => {
     }
 
     if (name === 'phone') {
-      const phoneRegex = /^[+]?[(]?[0-9]{1,4}[)]?[-\s./0-9]{6,15}$/;
+      const cleanVal = value.replace(/\D/g, '');
       if (!value.trim()) {
         error = 'Phone number is required';
-      } else if (!phoneRegex.test(value.trim())) {
-        error = 'Enter a valid phone number';
+      } else if (!/^\d+$/.test(value.trim())) {
+        error = 'Phone number must contain only numbers';
+      } else if (cleanVal.length < 7 || cleanVal.length > 15) {
+        error = 'Enter a valid phone number (7–15 digits)';
       }
     }
 
@@ -120,8 +122,9 @@ export const RegisterPage = ({ onNavigate = () => {} }) => {
       if (touched.email) setErrors((prev) => ({ ...prev, email: validateField('email', val) }));
     }
     if (field === 'phone') {
-      setPhone(val);
-      if (touched.phone) setErrors((prev) => ({ ...prev, phone: validateField('phone', val) }));
+      const numericVal = val.replace(/\D/g, '');
+      setPhone(numericVal);
+      if (touched.phone) setErrors((prev) => ({ ...prev, phone: validateField('phone', numericVal) }));
     }
     if (field === 'password') {
       setPassword(val);
@@ -147,7 +150,7 @@ export const RegisterPage = ({ onNavigate = () => {} }) => {
   // Checkmark criteria boolean logic (strictly false when empty)
   const is8Chars = password.length >= 8;
   const hasDigit = /\d/.test(password);
-  const isPhoneValid = phone.trim().length >= 7 && /^[+]?[(]?[0-9]{1,4}[)]?[-\s./0-9]{6,15}$/.test(phone.trim());
+  const isPhoneValid = phone.trim().length >= 7 && /^\d+$/.test(phone.trim());
   const isFormValid =
     firstName.trim().length >= 2 &&
     firstName.trim().length <= 50 &&
@@ -432,12 +435,14 @@ export const RegisterPage = ({ onNavigate = () => {} }) => {
                 <input
                   id="reg-phone"
                   type="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   required
                   disabled={isSubmitting}
                   value={phone}
-                  onChange={(e) => handleChange('phone', e.target.value)}
+                  onChange={(e) => handleChange('phone', e.target.value.replace(/\D/g, ''))}
                   onBlur={() => handleBlur('phone')}
-                  placeholder="+1 (555) 234-5678"
+                  placeholder="09123456789"
                   className={`w-full bg-white dark:bg-[#0D111D] border ${
                     touched.phone && errors.phone
                       ? 'border-rose-500 focus:ring-rose-500'

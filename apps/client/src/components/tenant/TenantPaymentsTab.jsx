@@ -124,19 +124,52 @@ export const TenantPaymentsTab = ({
               <strong className="text-slate-900 dark:text-white">${utilityFee}.00</strong>
             </div>
 
-            <div className="pt-3 flex justify-between items-center text-sm font-bold text-slate-900 dark:text-white">
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center text-sm font-bold text-slate-900 dark:text-white">
               <span>Total Statement Due</span>
               <span className="text-emerald-600 dark:text-emerald-400 text-lg font-grotesk">${totalMonthlyDue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            </div>
+
+            {/* Co-Tenant Split Payment Calculator */}
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-indigo-600 dark:text-indigo-400 font-bold font-grotesk flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" /> Co-Tenant Split Allocation (50/50 Roommate Split)
+                </span>
+                <span className="text-slate-500 font-mono">${(totalMonthlyDue / 2).toFixed(2)} / roommate</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+                  <span className="text-slate-500 block">Sophia Lin (Your Share)</span>
+                  <strong className="text-indigo-500 text-xs font-bold font-mono">${(totalMonthlyDue / 2).toFixed(2)}</strong>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                  <span className="text-slate-500 block">Co-Tenant Share</span>
+                  <strong className="text-slate-700 dark:text-slate-300 text-xs font-bold font-mono">${(totalMonthlyDue / 2).toFixed(2)}</strong>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Security & Escrow Card */}
+        {/* Security & Escrow Card + Gateway Telemetry */}
         <div className="space-y-4">
-          <div className="p-5 rounded-2xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 space-y-1">
-            <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Security Deposit Held</span>
-            <div className="text-2xl font-extrabold font-grotesk text-indigo-500">${(rentAmount * 1.5).toLocaleString()}</div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">FDIC Escrow Account Protected</p>
+          <div className="p-5 rounded-2xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 space-y-2">
+            <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Security Deposit & Escrow Accounting</span>
+            <div className="text-2xl font-extrabold font-grotesk text-indigo-500">${(rentAmount * 1.5).toLocaleString()}.00</div>
+            <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-[11px] font-mono text-indigo-400 space-y-0.5">
+              <div className="flex justify-between">
+                <span>Accrued Interest (1.2% APY):</span>
+                <strong className="text-emerald-400">+$42.18</strong>
+              </div>
+              <span className="text-[10px] text-slate-400 block">FDIC Escrow Account Protected</span>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 space-y-1 text-xs font-mono">
+            <span className="text-emerald-500 font-bold block flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Gateway Telemetry Operational
+            </span>
+            <p className="text-[10px] text-slate-500">Stripe ACH Webhooks 100% Synced &bull; Auto-Retry Active &bull; 0 Delay</p>
           </div>
 
           <div className="p-5 rounded-2xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 flex items-center justify-between">

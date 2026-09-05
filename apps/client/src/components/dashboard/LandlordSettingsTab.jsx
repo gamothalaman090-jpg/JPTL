@@ -564,6 +564,36 @@ export const LandlordSettingsTab = ({
               </div>
 
             </div>
+
+            {/* Active Device Sessions & Security Audit */}
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-800/80 space-y-3">
+              <span className="text-xs font-bold text-slate-900 dark:text-white font-grotesk block">
+                Administrative Active Sessions & MFA Governance Telemetry
+              </span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs font-mono">
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#080B14] border border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
+                  <div>
+                    <strong className="text-slate-900 dark:text-white block">Active Device Session</strong>
+                    <span className="text-[11px] text-slate-500">Chrome Windows 11 (IP: 192.168.1.10)</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-600 font-bold border border-emerald-500/20">Active Now</span>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#080B14] border border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
+                  <div>
+                    <strong className="text-slate-900 dark:text-white block">Admin Login Timestamp</strong>
+                    <span className="text-[11px] text-slate-500">Today at 08:30 AM (Passkey)</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-indigo-500/10 text-indigo-600 font-bold border border-indigo-500/20">Verified</span>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#080B14] border border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
+                  <div>
+                    <strong className="text-slate-900 dark:text-white block">MFA Enforcement Status</strong>
+                    <span className="text-[11px] text-slate-500">TOTP Authenticator Active</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-600 font-bold border border-emerald-500/20">Enforced</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Portfolio Defaults */}

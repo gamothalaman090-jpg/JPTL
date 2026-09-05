@@ -158,29 +158,43 @@ export const TenantMaintenanceTab = ({
                   </div>
                 </div>
 
-                {/* Live Technician Card (If Dispatched or In Progress) */}
+                {/* Live Technician Card with Real-Time GPS Telemetry (If Dispatched or In Progress) */}
                 {t.status === 'in_progress' && (
-                  <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-500/10 to-purple-500/5 border border-indigo-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xs font-grotesk shrink-0">
-                        MS
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-500/10 via-purple-500/5 to-indigo-500/10 border border-indigo-500/30 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xs font-grotesk shrink-0 shadow-md shadow-indigo-600/30">
+                          MS
+                        </div>
+                        <div className="text-xs">
+                          <div className="flex items-center gap-2">
+                            <strong className="text-slate-900 dark:text-white font-grotesk block text-sm">Marcus Sterling — Senior HVAC Tech</strong>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live GPS Tracking
+                            </span>
+                          </div>
+                          <span className="text-amber-500 font-mono flex items-center gap-1 mt-0.5">
+                            <Clock className="w-3 h-3 text-amber-400 animate-spin" /> Live ETA: ~14 Mins (En Route &bull; 2.4 miles away)
+                          </span>
+                        </div>
                       </div>
-                      <div className="text-xs">
-                        <strong className="text-slate-900 dark:text-white font-grotesk block text-sm">Marcus Sterling — Tech Dispatched</strong>
-                        <span className="text-amber-500 font-mono flex items-center gap-1">
-                          <Clock className="w-3 h-3" /> ETA: Today between 2:00 PM – 4:00 PM
-                        </span>
-                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTechTicket(t)}
+                        className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold font-grotesk btn-press shadow-md shadow-indigo-600/20 flex items-center gap-1.5 shrink-0 self-start sm:self-auto"
+                      >
+                        <UserCheck className="w-4 h-4" />
+                        <span>Track GPS & Field Details</span>
+                      </button>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setSelectedTechTicket(t)}
-                      className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold font-grotesk btn-press shadow-md shadow-indigo-600/20 flex items-center gap-1.5 shrink-0 self-start sm:self-auto"
-                    >
-                      <UserCheck className="w-4 h-4" />
-                      <span>Track Technician Details</span>
-                    </button>
+                    <div className="p-2.5 rounded-xl bg-slate-900/60 border border-white/10 text-[11px] font-mono text-slate-300 flex items-center justify-between">
+                      <span className="flex items-center gap-1 text-indigo-300">
+                        ⚡ Field Telemetry: Vehicle Unit #V-42 &bull; Tools Loaded &bull; Parts Verified
+                      </span>
+                      <span className="text-emerald-400 font-bold">Signal: Strong 5G</span>
+                    </div>
                   </div>
                 )}
 

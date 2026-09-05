@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { 
+import {
   User, Bell, Shield, Phone, Mail, Car, CheckCircle2, Plus, Trash2, ShieldAlert,
   Lock, Key, Smartphone, Camera, Building2, Clock, Wrench, CreditCard, FileText,
   Upload, Eye, EyeOff, Check, AlertCircle, Download, ExternalLink, HelpCircle,
@@ -174,7 +174,7 @@ export const TenantSettingsTab = ({
     e.preventDefault();
     const fileInput = e.target.elements.docFile;
     const fileName = fileInput?.files?.[0]?.name || `${uploadDocType.replace(/\s+/g, '_')}_Uploaded.pdf`;
-    
+
     const newDoc = {
       id: `doc-${Date.now()}`,
       tenantId: tenant?.id || 'usr-tenant-1',
@@ -212,7 +212,7 @@ export const TenantSettingsTab = ({
 
   return (
     <div className="space-y-6">
-      
+
       {/* ─── HEADER ─── */}
       <div className="p-6 rounded-3xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -255,8 +255,8 @@ export const TenantSettingsTab = ({
               onClick={() => setActiveSubTab(tab.key)}
               className={`
                 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-grotesk font-semibold whitespace-nowrap btn-press transition-all
-                ${isActive 
-                  ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200 dark:border-slate-800' 
+                ${isActive
+                  ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200 dark:border-slate-800'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50'
                 }
               `}
@@ -271,10 +271,10 @@ export const TenantSettingsTab = ({
       {/* ─── TAB 1: PROFILE & ACCOUNT ─── */}
       {activeSubTab === 'profile' && (
         <div className="space-y-6">
-          
+
           {/* Avatar & Assigned Unit Banner */}
           <div className="p-6 rounded-3xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
+
             {/* Photo & Avatar Controls */}
             <div className="flex flex-col items-center justify-center p-6 rounded-2xl bg-slate-50 dark:bg-[#080B14] border border-slate-200/80 dark:border-slate-800/60 text-center space-y-3">
               <div className="relative group">
@@ -405,8 +405,11 @@ export const TenantSettingsTab = ({
                 <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Contact Phone Number</label>
                 <input
                   type="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="09123456789"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
                   className="w-full bg-slate-50 dark:bg-[#080B14] border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
                 />
               </div>
@@ -428,13 +431,27 @@ export const TenantSettingsTab = ({
               <h2 className="text-base font-bold font-grotesk text-slate-900 dark:text-white flex items-center gap-2">
                 <Car className="w-4 h-4 text-indigo-500" /> Registered Vehicles & Parking Permits
               </h2>
-              <button
-                type="button"
-                onClick={() => setIsAddingVeh(true)}
-                className="text-xs font-bold font-grotesk text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 btn-press"
-              >
-                <Plus className="w-3.5 h-3.5" /> Register Vehicle
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const guestPlate = prompt("Enter Visitor Vehicle License Plate #:", "GUEST-8891");
+                    if (guestPlate) {
+                      alert(`Guest Parking Pass Issued!\nPass Code: GUEST-PASS-#${Math.floor(1000 + Math.random() * 9000)}\nBay: Level 2 Guest Bay G-04\nValid For: 48 Hours (Expires Aug 31, 2026)`);
+                    }
+                  }}
+                  className="text-xs font-bold font-grotesk text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 btn-press mr-2"
+                >
+                  <Car className="w-3.5 h-3.5" /> + Visitor Pass
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsAddingVeh(true)}
+                  className="text-xs font-bold font-grotesk text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 btn-press"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Register Vehicle
+                </button>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -504,7 +521,7 @@ export const TenantSettingsTab = ({
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
-              
+
               {/* Change Password */}
               <div className="space-y-3 p-4 rounded-2xl bg-slate-50 dark:bg-[#080B14] border border-slate-200/80 dark:border-slate-800">
                 <h3 className="font-grotesk font-bold text-slate-900 dark:text-white">Change Account Password</h3>
@@ -568,6 +585,80 @@ export const TenantSettingsTab = ({
               </div>
 
             </div>
+
+            {/* Active Device Sessions & Identity Audit */}
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-800/80 space-y-3">
+              <span className="text-xs font-bold text-slate-900 dark:text-white font-grotesk block">
+                Active Security Sessions & Identity Telemetry
+              </span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-mono">
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#080B14] border border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
+                  <div>
+                    <strong className="text-slate-900 dark:text-white block">Current Device Session</strong>
+                    <span className="text-[11px] text-slate-500">Chrome on Windows 11 &bull; IP: 192.168.1.104</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-600 font-bold border border-emerald-500/20">Active Now</span>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#080B14] border border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
+                  <div>
+                    <strong className="text-slate-900 dark:text-white block">Last Login Timestamp</strong>
+                    <span className="text-[11px] text-slate-500">Today at 08:42 AM (Authenticated)</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-indigo-500/10 text-indigo-600 font-bold border border-indigo-500/20">Verified</span>
+                </div>
+              </div>
+            </div>
+
+            {/* GDPR / CCPA Data Subject Rights & Portability */}
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-800/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-900 dark:text-white font-grotesk block">
+                  Data Subject Rights & Privacy Governance (GDPR / CCPA)
+                </span>
+                <span className="text-[10px] font-mono text-indigo-500 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20 font-bold">
+                  Compliance Ready
+                </span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#080B14] border border-slate-200/80 dark:border-slate-800 space-y-3 text-xs">
+                <p className="text-slate-500 text-[11px] leading-relaxed font-sans">
+                  Under GDPR and CCPA regulations, you hold full ownership of your personal resident records, payment ledgers, and uploaded documents.
+                </p>
+
+                <div className="flex flex-wrap items-center gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
+                        resident: "Sophia Lin",
+                        unit: "Unit 14B",
+                        exportDate: new Date().toISOString(),
+                        leaseStatus: "Active",
+                        paymentLedger: "Cleared",
+                      }, null, 2));
+                      const downloadAnchor = document.createElement('a');
+                      downloadAnchor.setAttribute("href", dataStr);
+                      downloadAnchor.setAttribute("download", "Sophia_Lin_JPTL_Personal_Data_Archive.json");
+                      document.body.appendChild(downloadAnchor);
+                      downloadAnchor.click();
+                      downloadAnchor.remove();
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold font-grotesk text-xs flex items-center gap-1.5 btn-press shadow-xs"
+                  >
+                    <span>Download Personal Data Archive (.JSON)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => alert("Data Erasure Request Logged: Following lease termination on Jan 14, 2027, your records will be purged per CCPA §1798.105 standard.")}
+                    className="px-3.5 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono text-[11px] btn-press"
+                  >
+                    Request Data Deletion Post-Lease
+                  </button>
+                </div>
+              </div>
+            </div>
+
           </div>
 
         </div>
@@ -576,7 +667,7 @@ export const TenantSettingsTab = ({
       {/* ─── TAB 2: NOTIFICATIONS ─── */}
       {activeSubTab === 'notifications' && (
         <div className="space-y-6">
-          
+
           {/* Channel Matrix Card */}
           <div className="p-6 rounded-3xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 space-y-4">
             <div>
@@ -598,7 +689,7 @@ export const TenantSettingsTab = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
-                  
+
                   {/* Maintenance */}
                   <tr>
                     <td className="py-4 px-4 font-sans font-semibold text-slate-900 dark:text-white">
@@ -749,7 +840,7 @@ export const TenantSettingsTab = ({
       {/* ─── TAB 3: MAINTENANCE REQUEST PREFERENCES ─── */}
       {activeSubTab === 'maintenance' && (
         <div className="space-y-6">
-          
+
           <div className="p-6 rounded-3xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 space-y-6">
             <div>
               <h2 className="text-base font-bold font-grotesk text-slate-900 dark:text-white flex items-center gap-2">
@@ -776,8 +867,8 @@ export const TenantSettingsTab = ({
                     onClick={() => setDefaultContactMethod(m.key)}
                     className={`
                       p-3.5 rounded-2xl border text-left btn-press transition-all
-                      ${defaultContactMethod === m.key 
-                        ? 'bg-indigo-500/10 border-indigo-500 text-indigo-600 dark:text-indigo-400 font-bold' 
+                      ${defaultContactMethod === m.key
+                        ? 'bg-indigo-500/10 border-indigo-500 text-indigo-600 dark:text-indigo-400 font-bold'
                         : 'bg-slate-50 dark:bg-[#080B14] border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'
                       }
                     `}
@@ -869,7 +960,7 @@ export const TenantSettingsTab = ({
       {/* ─── TAB 4: PAYMENTS ─── */}
       {activeSubTab === 'payments' && (
         <div className="space-y-6">
-          
+
           {/* Saved Payment Methods */}
           <div className="p-6 rounded-3xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 space-y-4">
             <div className="flex items-center justify-between">
@@ -983,7 +1074,7 @@ export const TenantSettingsTab = ({
             </h2>
 
             <div className="space-y-4 text-xs font-sans">
-              
+
               {/* Auto-pay toggle */}
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#080B14] border border-slate-200 dark:border-slate-800 flex items-center justify-between">
                 <div>
@@ -1040,7 +1131,7 @@ export const TenantSettingsTab = ({
       {/* ─── TAB 5: PRIVACY & PERMISSIONS ─── */}
       {activeSubTab === 'privacy' && (
         <div className="space-y-6">
-          
+
           <div className="p-6 rounded-3xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 space-y-4">
             <div>
               <h2 className="text-base font-bold font-grotesk text-slate-900 dark:text-white flex items-center gap-2">
@@ -1052,7 +1143,7 @@ export const TenantSettingsTab = ({
             </div>
 
             <div className="space-y-3 text-xs font-sans">
-              
+
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#080B14] border border-slate-200 dark:border-slate-800 flex items-center justify-between">
                 <div>
                   <strong className="text-slate-900 dark:text-white block font-grotesk">Phone Number Visible to Landlord</strong>

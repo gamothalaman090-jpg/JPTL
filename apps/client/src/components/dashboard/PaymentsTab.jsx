@@ -86,19 +86,52 @@ export const PaymentsTab = ({ payments: initialPayments = [], searchQuery = '' }
         <div className="p-4 rounded-2xl apple-glass border border-slate-200 dark:border-slate-800/80 top-shade flex items-center justify-between">
           <div>
             <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
-              Automated Receipts
+              Payment Gateway Health
             </span>
-            <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-indigo-500" /> Stripe / Bank Webhooks
+            <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 font-mono">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Stripe ACH API (38ms)</span>
             </div>
+            <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 block mt-0.5">0 Failed Retries &bull; 100% Synced</span>
           </div>
           <button
             type="button"
-            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 text-xs btn-press"
+            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 text-xs btn-press flex items-center gap-1"
             title="Export CSV"
           >
             <Download className="w-4 h-4" />
+            <span className="font-mono text-[10px]">Export CSV</span>
           </button>
+        </div>
+      </div>
+
+      {/* Delinquency & Overdue Breakdown Panel */}
+      <div className="p-4 rounded-2xl bg-amber-500/5 dark:bg-amber-500/[0.03] border border-amber-500/20 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-400 font-grotesk">
+            <AlertCircle className="w-4 h-4" />
+            <span>Delinquency & Late Fee Breakdown Queue</span>
+          </div>
+          <span className="text-[10px] font-mono text-amber-600 dark:text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+            1 Action Required
+          </span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">
+          <div className="p-3 rounded-xl bg-white dark:bg-[#0D111D] border border-slate-200 dark:border-slate-800 space-y-1">
+            <span className="text-[10px] text-slate-400 block">Active Lease Delinquencies</span>
+            <strong className="text-rose-500 text-sm block">1 Overdue ($2,450)</strong>
+            <span className="text-[10px] text-slate-500">Liam Carter &bull; Unit 102</span>
+          </div>
+          <div className="p-3 rounded-xl bg-white dark:bg-[#0D111D] border border-slate-200 dark:border-slate-800 space-y-1">
+            <span className="text-[10px] text-slate-400 block">Late Fee Calculation</span>
+            <strong className="text-amber-500 text-sm block">+$122.50 (5% Standard)</strong>
+            <span className="text-[10px] text-slate-500">Auto-Assessed Grace +5 Days</span>
+          </div>
+          <div className="p-3 rounded-xl bg-white dark:bg-[#0D111D] border border-slate-200 dark:border-slate-800 space-y-1">
+            <span className="text-[10px] text-slate-400 block">Pending Balance Disputes</span>
+            <strong className="text-emerald-500 text-sm block">0 Disputes Active</strong>
+            <span className="text-[10px] text-slate-500">Gateway Ledger Clean</span>
+          </div>
         </div>
       </div>
 
