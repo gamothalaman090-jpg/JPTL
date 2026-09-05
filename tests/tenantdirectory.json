@@ -1,0 +1,297 @@
+{
+  "info": {
+    "name": "Landlord – Tenant Directory Module",
+    "description": "Postman/Bruno test collection for Landlord Tenant Directory endpoints.\nIncludes listing with search/status filters, single tenant inspection, creating active & pre-added tenants, updating lease/unit details, deletion, and role guards.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
+    { "key": "landlord_token", "value": "<paste token here>", "type": "string" },
+    { "key": "tenant_token", "value": "<paste token here>", "type": "string" },
+    { "key": "created_tenant_id", "value": "", "type": "string" },
+    { "key": "sample_unit_id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth – Login as Landlord",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "if (res.data && res.data.token) {",
+              "  pm.collectionVariables.set('landlord_token', res.data.token);",
+              "  console.log('Landlord token saved.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"vance.landlord@example.com\",\n  \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "Auth – Login as Tenant",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "if (res.data && res.data.token) {",
+              "  pm.collectionVariables.set('tenant_token', res.data.token);",
+              "  console.log('Tenant token saved.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"tenant@example.com\",\n  \"password\": \"JPTL2026\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "1. Get All Tenants (Full Directory & Summary)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/tenantdirectory",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "tenantdirectory"]
+        },
+        "description": "Returns full directory of tenants belonging to this landlord, including summary metrics (totalTenants, activeLeasesCount, preAddedCount) and unit/property info for each tenant."
+      }
+    },
+    {
+      "name": "2. Search Tenants (by Name, Email, or Unit)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/tenantdirectory?search=Sophia",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "tenantdirectory"],
+          "query": [
+            { "key": "search", "value": "Sophia" }
+          ]
+        },
+        "description": "Filters tenants matching the query string in name, email, unit label, or property name."
+      }
+    },
+    {
+      "name": "3. Filter Tenants by Status – Active Leases",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/tenantdirectory?status=active",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "tenantdirectory"],
+          "query": [
+            { "key": "status", "value": "active" }
+          ]
+        },
+        "description": "Filters tenants having active assigned leases."
+      }
+    },
+    {
+      "name": "4. Filter Tenants by Status – Pre-added / Unassigned",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/tenantdirectory?status=pre_added",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "tenantdirectory"],
+          "query": [
+            { "key": "status", "value": "pre_added" }
+          ]
+        },
+        "description": "Filters tenants pre-added without an active unit assignment."
+      }
+    },
+    {
+      "name": "5. Create Tenant – Pre-Added Unassigned",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "if (res.data && res.data.id) {",
+              "  pm.collectionVariables.set('created_tenant_id', res.data.id);",
+              "  console.log('Saved created_tenant_id:', res.data.id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"firstName\": \"Elena\",\n  \"middleName\": \"\",\n  \"lastName\": \"Rostova\",\n  \"email\": \"elena.rostova@example.com\",\n  \"phone\": \"+1-555-0199\",\n  \"unitId\": \"pre_add_unassigned\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/landlord/tenantdirectory",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "tenantdirectory"]
+        },
+        "description": "Creates a pre-added occupant without an immediate unit assignment. Returns generated temporary password for landlord to share."
+      }
+    },
+    {
+      "name": "6. Create Tenant – Active Lease with Unit Assignment",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"firstName\": \"Marcus\",\n  \"middleName\": \"A.\",\n  \"lastName\": \"Brody\",\n  \"email\": \"marcus.brody@example.com\",\n  \"phone\": \"+1-555-0144\",\n  \"unitId\": \"{{sample_unit_id}}\",\n  \"monthlyRent\": 2400,\n  \"leaseStart\": \"2026-09-01\",\n  \"leaseEnd\": \"2027-08-31\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/landlord/tenantdirectory",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "tenantdirectory"]
+        },
+        "description": "Creates a new tenant and assigns them to a vacant unit, marking unit as occupied and setting lease dates."
+      }
+    },
+    {
+      "name": "7. Get Single Tenant Details",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/tenantdirectory/{{created_tenant_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "tenantdirectory", "{{created_tenant_id}}"]
+        },
+        "description": "Returns full details for a single tenant, including profile, unit, property, recent tickets, and recent payments."
+      }
+    },
+    {
+      "name": "8. Update Tenant Profile & Lease Details",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone\": \"+1-555-9876\",\n  \"monthlyRent\": 2600,\n  \"leaseStart\": \"2026-10-01\",\n  \"leaseEnd\": \"2027-09-30\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/landlord/tenantdirectory/{{created_tenant_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "tenantdirectory", "{{created_tenant_id}}"]
+        },
+        "description": "Updates tenant contact info, lease dates, rent, or status."
+      }
+    },
+    {
+      "name": "9. Delete / Offboard Tenant",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/tenantdirectory/{{created_tenant_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "tenantdirectory", "{{created_tenant_id}}"]
+        },
+        "description": "Removes tenant account, releases assigned unit back to vacant status, and logs audit record."
+      }
+    },
+    {
+      "name": "10. Guard Test – No Token (expect 401)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/tenantdirectory",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "tenantdirectory"]
+        },
+        "description": "Must return 401 – No token provided."
+      }
+    },
+    {
+      "name": "11. Guard Test – Tenant Hits Landlord Route (expect 403)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tenant_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/tenantdirectory",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "tenantdirectory"]
+        },
+        "description": "Tenant JWT sent to landlord tenant directory route. Must return 403 – Forbidden."
+      }
+    },
+    {
+      "name": "12. Validation Test – Invalid Email Format (expect 400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"firstName\": \"Alex\",\n  \"lastName\": \"Test\",\n  \"email\": \"invalid-email-format\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/landlord/tenantdirectory",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "tenantdirectory"]
+        },
+        "description": "Must return 400 – Invalid email format."
+      }
+    }
+  ]
+}

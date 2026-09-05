@@ -1,0 +1,247 @@
+{
+  "info": {
+    "name": "Announcements Module API (Landlord & Tenant)",
+    "description": "Postman / Newman collection testing Landlord announcement broadcasts and Tenant announcement feed consumption, including authorization guards and payload error handling.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
+    { "key": "landlord_token", "value": "", "type": "string" },
+    { "key": "tenant_token", "value": "", "type": "string" },
+    { "key": "created_announcement_id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01. Auth - Login Landlord",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "if (res.token) {",
+              "  pm.collectionVariables.set('landlord_token', res.token);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"landlord@jptl.com\",\n  \"password\": \"Password123!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "02. Auth - Login Tenant",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "const token = res.token || (res.data && res.data.token);",
+              "if (token) {",
+              "  pm.collectionVariables.set('tenant_token', token);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"tenant@jptl.com\",\n  \"password\": \"Password123!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "03. Landlord - Create Broadcast Announcement",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 201 Created', () => pm.response.to.have.status(201));",
+              "pm.test('Returns success true', () => pm.expect(res.success).to.be.true);",
+              "pm.test('Notice title matches', () => pm.expect(res.data.title).to.include('Elevator Inspection'));",
+              "if (res.data && res.data._id) {",
+              "  pm.collectionVariables.set('created_announcement_id', res.data._id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Cookie", "value": "token={{landlord_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Annual Elevator Inspection & Routine Test\",\n  \"content\": \"Routine elevator maintenance and emergency power testing will occur this Friday between 10 AM and 12 PM.\",\n  \"category\": \"Maintenance\",\n  \"isPinned\": true\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/landlord/announcements",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "announcements"]
+        }
+      }
+    },
+    {
+      "name": "04. Landlord - List My Announcements",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Returns announcement list array', () => pm.expect(Array.isArray(res.data)).to.be.true);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Cookie", "value": "token={{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/announcements",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "announcements"]
+        }
+      }
+    },
+    {
+      "name": "05. Tenant - Get Announcements Feed",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Returns announcements array', () => pm.expect(Array.isArray(res.announcements)).to.be.true);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Cookie", "value": "token={{tenant_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/tenant/announcements",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "announcements"]
+        }
+      }
+    },
+    {
+      "name": "06. Tenant - View Single Announcement",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Returns correct announcement data', () => pm.expect(res.data._id || res.data.id).to.equal(pm.collectionVariables.get('created_announcement_id')));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Cookie", "value": "token={{tenant_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/tenant/announcements/{{created_announcement_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "announcements", "{{created_announcement_id}}"]
+        }
+      }
+    },
+    {
+      "name": "07. Error Handling - Tenant Forbidden from Creating Announcements (403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 403 Forbidden', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Cookie", "value": "token={{tenant_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Unauthorized notice attempt\",\n  \"content\": \"Should fail with 403\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/landlord/announcements",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "announcements"]
+        }
+      }
+    },
+    {
+      "name": "08. Error Handling - Missing Required Title (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 400 Bad Request', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Cookie", "value": "token={{landlord_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Missing title payload should be rejected.\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/landlord/announcements",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "announcements"]
+        }
+      }
+    }
+  ]
+}

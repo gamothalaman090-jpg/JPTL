@@ -69,9 +69,19 @@ function sanitizeUser(user) {
     firstName: user.firstName,
     middleName: user.middleName,
     lastName: user.lastName,
+    name: [user.firstName, user.middleName, user.lastName].filter(Boolean).join(' '),
     email: user.email,
     phone: user.phone || '',
     role: user.role,
+    plan: user.plan,
+    onboardingCompleted: user.onboardingCompleted,
+    status: user.status,
+    avatarUrl: user.avatarUrl || null,
+    company: user.company || '',
+    officePhone: user.officePhone || '',
+    emergencyContact: user.emergencyContact || { name: '', phone: '', relationship: '' },
+    twoFactorEnabled: user.twoFactorEnabled || false,
+    preferences: user.preferences || { currency: 'USD', timezone: 'EST (UTC-5)' },
     createdAt: user.createdAt,
   };
 }
@@ -101,7 +111,7 @@ async function signupLandlord({ firstName, middleName, lastName, email, phone, p
 }
 
 async function login({ email, password }) {
-  if (!email?.trim() || !password) {
+  if (typeof email !== 'string' || !email.trim() || !password) {
     throw new AuthError('Email and password are required', 400);
   }
 
@@ -152,4 +162,44 @@ async function changePasswordService(userId, currentPassword, newPassword) {
   return { message: 'Password updated successfully' };
 }
 
-export { signupLandlord, login, changePasswordService, AuthError };
+async function getMeService(userId) {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new AuthError('User not found', 404);
+  }
+  return sanitizeUser(user);
+}
+
+async function updateProfileService(userId, data) {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new AuthError('User not found', 404);
+  }
+
+  if (data.firstName !== undefined) user.firstName = data.firstName.trim();
+  if (data.middleName !== undefined) user.middleName = data.middleName.trim();
+  if (data.lastName !== undefined) user.lastName = data.lastName.trim();
+  if (data.phone !== undefined) user.phone = data.phone.trim();
+  if (data.avatarUrl !== undefined) user.avatarUrl = data.avatarUrl;
+  if (data.company !== undefined) user.company = data.company.trim();
+  if (data.officePhone !== undefined) user.officePhone = data.officePhone.trim();
+  if (data.twoFactorEnabled !== undefined) user.twoFactorEnabled = Boolean(data.twoFactorEnabled);
+  if (data.emergencyContact && typeof data.emergencyContact === 'object') {
+    user.emergencyContact = {
+      name: data.emergencyContact.name?.trim() || '',
+      phone: data.emergencyContact.phone?.trim() || '',
+      relationship: data.emergencyContact.relationship?.trim() || '',
+    };
+  }
+  if (data.preferences && typeof data.preferences === 'object') {
+    user.preferences = {
+      currency: data.preferences.currency || user.preferences?.currency || 'USD',
+      timezone: data.preferences.timezone || user.preferences?.timezone || 'EST (UTC-5)',
+    };
+  }
+
+  await user.save();
+  return sanitizeUser(user);
+}
+
+export { signupLandlord, login, changePasswordService, getMeService, updateProfileService, AuthError };

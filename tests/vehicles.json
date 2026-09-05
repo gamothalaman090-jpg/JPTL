@@ -1,0 +1,193 @@
+{
+  "info": {
+    "name": "Tenant – Vehicle Registration Module",
+    "description": "Postman test collection for Tenant Vehicle Registration CRUD endpoints.\nIncludes vehicle registration, listing, deletion, and role security guards.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
+    { "key": "tenant_token", "value": "", "type": "string" },
+    { "key": "landlord_token", "value": "", "type": "string" },
+    { "key": "created_vehicle_id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01. Auth – Login as Tenant",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "const token = res.token || (res.data && res.data.token);",
+              "if (token) {",
+              "  pm.collectionVariables.set('tenant_token', token);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"tenant@jptl.com\",\n  \"password\": \"Password123!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "02. Auth – Login as Landlord",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "const token = res.token || (res.data && res.data.token);",
+              "if (token) {",
+              "  pm.collectionVariables.set('landlord_token', token);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"landlord@jptl.com\",\n  \"password\": \"Password123!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "03. Vehicles – Register New Vehicle",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 201 Created', () => pm.response.to.have.status(201));",
+              "pm.test('Vehicle registered successfully', () => pm.expect(res.success).to.be.true);",
+              "const vehicleId = res.data?._id || res.data?.id;",
+              "if (vehicleId) {",
+              "  pm.collectionVariables.set('created_vehicle_id', vehicleId);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{tenant_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"make\": \"Honda\",\n  \"model\": \"Civic\",\n  \"color\": \"Silver\",\n  \"licensePlate\": \"TEST-{{$timestamp}}\",\n  \"decalNumber\": \"DEC-999\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/tenant/vehicles",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "vehicles"]
+        }
+      }
+    },
+    {
+      "name": "04. Vehicles – List Registered Vehicles",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Vehicles returned', () => pm.expect(res.data).to.be.an('array'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tenant_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/tenant/vehicles",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "vehicles"]
+        }
+      }
+    },
+    {
+      "name": "05. Security Guard – Landlord Forbidden",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 403 Forbidden', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"make\": \"Ford\",\n  \"model\": \"F-150\",\n  \"licensePlate\": \"LND-001\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/tenant/vehicles",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "vehicles"]
+        }
+      }
+    },
+    {
+      "name": "06. Vehicles – Delete Vehicle",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Vehicle deleted', () => pm.expect(res.success).to.be.true);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tenant_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/tenant/vehicles/{{created_vehicle_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "vehicles", "{{created_vehicle_id}}"]
+        }
+      }
+    }
+  ]
+}

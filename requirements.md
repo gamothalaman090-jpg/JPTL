@@ -115,7 +115,7 @@ beforeState (nullable), afterState (nullable), ipAddress, timestamp
 
 *(17 FRs — exceeds the spec's 10-minimum.)*
 
----
+--- 
 
 ## 5. Nonfunctional Requirements
 

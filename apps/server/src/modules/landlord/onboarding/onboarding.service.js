@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import User from '../../../shared/models/user.model.js';
 import Property from '../../../shared/models/property.model.js';
 import Unit from '../../../shared/models/unit.model.js';
-import TenantProfile from '../../../shared/models/tenatntProfile.model.js';
+import TenantProfile from '../../../shared/models/tenantProfile.model.js';
 import Announcement from '../../../shared/models/announcements.model.js';
 import AuditLog from '../../../shared/models/auditLog.model.js';
 

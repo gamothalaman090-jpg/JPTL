@@ -1,0 +1,257 @@
+{
+  "info": {
+    "name": "Digital Lease & Extension Workflow Module (Tenant & Landlord)",
+    "description": "Postman test collection for Digital Lease Agreement and Renewal Extension endpoints across Tenant and Landlord roles.\nIncludes contract retrieval, extension submission, landlord review (approval/rejection), and validation error handling.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
+    { "key": "landlord_token", "value": "", "type": "string" },
+    { "key": "tenant_token", "value": "", "type": "string" },
+    { "key": "lease_id", "value": "", "type": "string" },
+    { "key": "extension_request_id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01. Auth – Login as Tenant",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "if (res.data && res.data.token) {",
+              "  pm.collectionVariables.set('tenant_token', res.data.token);",
+              "  console.log('Tenant token saved.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"tenant@jptl.com\",\n  \"password\": \"Password123!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "02. Auth – Login as Landlord",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "const token = res.token || (res.data && res.data.token);",
+              "if (token) {",
+              "  pm.collectionVariables.set('landlord_token', token);",
+              "  console.log('Landlord token saved.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"landlord@jptl.com\",\n  \"password\": \"Password123!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "03. Tenant – Get Digital Lease Details",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Lease contains financial and covenant terms', () => {",
+              "  pm.expect(res.data).to.have.property('monthlyRent');",
+              "  pm.expect(Array.isArray(res.data.covenants)).to.be.true;",
+              "});",
+              "if (res.data && (res.data.id || res.data._id)) {",
+              "  pm.collectionVariables.set('lease_id', res.data.id || res.data._id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Cookie", "value": "token={{tenant_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/tenant/lease",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "lease"]
+        }
+      }
+    },
+    {
+      "name": "04. Tenant – Submit Lease Extension Request",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 201 Created', () => pm.response.to.have.status(201));",
+              "pm.test('Extension status is pending', () => pm.expect(res.extensionRequest.status).to.equal('pending'));",
+              "if (res.extensionRequest) {",
+              "  pm.collectionVariables.set('extension_request_id', res.extensionRequest._id || res.extensionRequest.id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Cookie", "value": "token={{tenant_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"termMonths\": 12,\n  \"proposedStartDate\": \"2027-01-15\",\n  \"notes\": \"Requesting standard 12-month extension at existing rental rate.\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/tenant/lease/extension",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "lease", "extension"]
+        }
+      }
+    },
+    {
+      "name": "05. Tenant – Download Digital Signed Lease Document",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Returns contract PDF url', () => pm.expect(res.data.contractPdfUrl).to.be.ok);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Cookie", "value": "token={{tenant_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/tenant/lease/document",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "lease", "document"]
+        }
+      }
+    },
+    {
+      "name": "06. Landlord – List Pending Extension Requests",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Contains extension requests list', () => pm.expect(Array.isArray(res.extensionRequests)).to.be.true);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Cookie", "value": "token={{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/lease/extensions",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "lease", "extensions"]
+        }
+      }
+    },
+    {
+      "name": "07. Landlord – Review & Approve Extension Request",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Lease status set to renewal_approved', () => pm.expect(res.lease.status).to.equal('renewal_approved'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Cookie", "value": "token={{landlord_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"approved\",\n  \"landlordNotes\": \"Extension confirmed for 12 months with locked monthly rate.\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/landlord/lease/{{lease_id}}/extensions/{{extension_request_id}}/review",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "lease", "{{lease_id}}", "extensions", "{{extension_request_id}}", "review"]
+        }
+      }
+    },
+    {
+      "name": "08. Error Handling – Invalid Term Parameter (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 400 Bad Request', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Cookie", "value": "token={{tenant_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"termMonths\": 0\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/tenant/lease/extension",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "lease", "extension"]
+        }
+      }
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 import Property from '../../../shared/models/property.model.js';
 import Unit from '../../../shared/models/unit.model.js';
 import User from '../../../shared/models/user.model.js';
-import TenantProfile from '../../../shared/models/tenatntProfile.model.js';
+import TenantProfile from '../../../shared/models/tenantProfile.model.js';
 import Ticket from '../../../shared/models/ticket.model.js';
 import Payment from '../../../shared/models/payment.model.js';
 import Announcement from '../../../shared/models/announcements.model.js';
@@ -35,29 +35,19 @@ async function getLandlordDashboard(landlordId) {
   const propertyIds = properties.map((p) => p._id);
 
   // 2. Parallel collection queries (all scoped to landlord's properties)
-  const [units, tenants, tickets, payments, pinnedAnnouncement] = await Promise.all([
+  const [units, tenants, pinnedAnnouncement] = await Promise.all([
     Unit.find({ property: { $in: propertyIds } })
       .populate('tenant', 'firstName lastName email')
       .lean(),
     User.find({ landlord: landlordId, role: 'tenant' })
       .select('firstName middleName lastName email createdAt status')
       .lean(),
-    Ticket.find({ unit: { $in: units?.map?.((u) => u._id) ?? [] } })
-      .populate('unit', 'label property')
-      .populate('tenant', 'firstName lastName')
-      .sort({ createdAt: -1 })
-      .lean(),
-    Payment.find({ unit: { $in: units?.map?.((u) => u._id) ?? [] } })
-      .populate('tenant', 'firstName lastName')
-      .populate('unit', 'label')
-      .sort({ createdAt: -1 })
-      .lean(),
     Announcement.findOne({ author: landlordId, isPinned: true })
       .sort({ createdAt: -1 })
       .lean(),
   ]);
 
-  // Re-query tickets and payments after units are resolved
+  // Query tickets and payments after units are resolved
   const unitIds = units.map((u) => u._id);
 
   const [resolvedTickets, resolvedPayments] = await Promise.all([

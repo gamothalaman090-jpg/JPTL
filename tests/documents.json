@@ -1,0 +1,230 @@
+{
+  "info": {
+    "name": "Resident Compliance Vault & Documents Module (Landlord & Tenant)",
+    "description": "Postman test collection for Resident Compliance Vault & Document Upload endpoints across Tenant and Landlord roles.\nIncludes document submission (insurance, ID, income, etc.), Cloudinary URL attachment, compliance queue inspection, verification/rejection workflows, and error handling.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
+    { "key": "landlord_token", "value": "", "type": "string" },
+    { "key": "tenant_token", "value": "", "type": "string" },
+    { "key": "created_document_id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01. Auth – Login as Tenant",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "if (res.data && res.data.token) {",
+              "  pm.collectionVariables.set('tenant_token', res.data.token);",
+              "  console.log('Tenant token saved.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"tenant@jptl.com\",\n  \"password\": \"Password123!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "02. Auth – Login as Landlord",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "const token = res.token || (res.data && res.data.token);",
+              "if (token) {",
+              "  pm.collectionVariables.set('landlord_token', token);",
+              "  console.log('Landlord token saved.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"landlord@jptl.com\",\n  \"password\": \"Password123!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "03. Tenant – Submit Verification Document (Insurance/ID)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 201 Created', () => pm.response.to.have.status(201));",
+              "pm.test('Status initialized to Pending Review', () => pm.expect(res.data.status).to.equal('Pending Review'));",
+              "if (res.data) {",
+              "  pm.collectionVariables.set('created_document_id', res.data._id || res.data.id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Cookie", "value": "token={{tenant_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Renter_Liability_Insurance_Certificate.pdf\",\n  \"type\": \"Proof of Insurance\",\n  \"category\": \"upload\",\n  \"fileSize\": \"1.8 MB\",\n  \"notes\": \"Policy effective 2026-2027 underwritten by Travelers.\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/tenant/documents",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "documents"]
+        }
+      }
+    },
+    {
+      "name": "04. Tenant – List My Submitted Documents",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Returns documents array & metrics', () => {",
+              "  pm.expect(Array.isArray(res.documents)).to.be.true;",
+              "  pm.expect(res.metrics).to.have.property('pending');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Cookie", "value": "token={{tenant_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/tenant/documents",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenant", "documents"]
+        }
+      }
+    },
+    {
+      "name": "05. Landlord – Compliance Vault Inspection Queue",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Contains compliance metrics', () => {",
+              "  pm.expect(res.metrics).to.have.property('complianceRate');",
+              "  pm.expect(res.metrics).to.have.property('pendingReview');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Cookie", "value": "token={{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/documents",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "documents"]
+        }
+      }
+    },
+    {
+      "name": "06. Landlord – Verify Compliance Document",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Document verified', () => pm.expect(res.document.status).to.equal('Verified'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Cookie", "value": "token={{landlord_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"Verified\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/landlord/documents/{{created_document_id}}/verify",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "documents", "{{created_document_id}}", "verify"]
+        }
+      }
+    },
+    {
+      "name": "07. Error Handling – Invalid Verification Status (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 400 Bad Request', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Cookie", "value": "token={{landlord_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"Invalid_Status_Choice\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/landlord/documents/{{created_document_id}}/verify",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "documents", "{{created_document_id}}", "verify"]
+        }
+      }
+    }
+  ]
+}

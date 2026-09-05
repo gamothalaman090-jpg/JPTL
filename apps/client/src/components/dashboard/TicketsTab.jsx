@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Wrench, Clock, CheckCircle2, AlertTriangle, ShieldAlert, User, Building2 } from 'lucide-react';
 
-export const TicketsTab = ({ tickets: initialTickets = [], searchQuery = '', onOpenNewTicket }) => {
+export const TicketsTab = ({ tickets: initialTickets = [], searchQuery = '', onOpenNewTicket, onUpdateStatus }) => {
   const [tickets, setTickets] = useState(initialTickets);
   const [statusFilter, setStatusFilter] = useState('all');
+
+  useEffect(() => {
+    setTickets(initialTickets);
+  }, [initialTickets]);
 
   const handleUpdateStatus = (ticketId, newStatus) => {
     setTickets((prev) =>
@@ -16,11 +20,15 @@ export const TicketsTab = ({ tickets: initialTickets = [], searchQuery = '', onO
             timestamp: new Date().toISOString(),
             note: `Status changed to ${newStatus.replace('_', ' ')}`,
           };
-          return {
+          const updated = {
             ...t,
             status: newStatus,
             statusHistory: [...(t.statusHistory || []), newHistoryItem],
           };
+          if (onUpdateStatus) {
+            onUpdateStatus(ticketId, newStatus, updated);
+          }
+          return updated;
         }
         return t;
       })

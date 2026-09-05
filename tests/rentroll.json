@@ -1,0 +1,485 @@
+{
+  "info": {
+    "name": "Landlord – Rent Roll & Financial Transactions Module",
+    "description": "Postman/Bruno test collection for Landlord Rent Roll endpoints in JPTL.\nIncludes rent roll directory & KPI metrics, status & search filters, single payment inspection, creating invoice charges, manual payment reconciliation ('Mark Paid'), updates, CSV export, and role guards.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
+    { "key": "landlord_token", "value": "<paste token here>", "type": "string" },
+    { "key": "tenant_token", "value": "<paste token here>", "type": "string" },
+    { "key": "sample_payment_id", "value": "", "type": "string" },
+    { "key": "created_payment_id", "value": "", "type": "string" },
+    { "key": "sample_unit_id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "00. Auth – Login as Landlord",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "const token = res.token || (res.data && res.data.token);",
+              "if (token) {",
+              "  pm.collectionVariables.set('landlord_token', token);",
+              "  console.log('Landlord token saved.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"landlord@jptl.com\",\n  \"password\": \"Password123!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "00. Auth – Login as Tenant",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "const token = res.token || (res.data && res.data.token);",
+              "if (token) {",
+              "  pm.collectionVariables.set('tenant_token', token);",
+              "  console.log('Tenant token saved.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"tenant@jptl.com\",\n  \"password\": \"Password123!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "1. Get All Rent Roll (Full Transactions & Summary KPIs)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Response contains summary and data array', function () {",
+              "    pm.expect(res.success).to.be.true;",
+              "    pm.expect(res.summary).to.be.an('object');",
+              "    pm.expect(res.data).to.be.an('array');",
+              "});",
+              "if (res.data && res.data.length > 0) {",
+              "  pm.collectionVariables.set('sample_payment_id', res.data[0].id);",
+              "  if (res.data[0].unit && res.data[0].unit.id) {",
+              "    pm.collectionVariables.set('sample_unit_id', res.data[0].unit.id);",
+              "  }",
+              "  console.log('Sample payment ID saved:', res.data[0].id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/rentroll",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "rentroll"]
+        },
+        "description": "Returns full rent roll transactions for landlord properties with real-time financial KPI metrics (totalCollected, totalPending, totalOverdue, collectionRate)."
+      }
+    },
+    {
+      "name": "2. Get Rent Roll KPI Snapshot",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Contains KPI summary metrics', function () {",
+              "    pm.expect(res.data).to.have.property('totalCollected');",
+              "    pm.expect(res.data).to.have.property('totalPending');",
+              "    pm.expect(res.data).to.have.property('totalOverdue');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/rentroll/kpi",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "rentroll", "kpi"]
+        },
+        "description": "Lightweight endpoint for KPI dashboard summary cards and badge counts."
+      }
+    },
+    {
+      "name": "3. Search Rent Roll (by Tenant, Unit, or Property)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Search results match query', function () {",
+              "    pm.expect(res.success).to.be.true;",
+              "    pm.expect(res.data).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/rentroll?search=Sophia",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "rentroll"],
+          "query": [
+            { "key": "search", "value": "Sophia" }
+          ]
+        },
+        "description": "Filters rent roll records by search query string matching tenant name, unit label, or property name."
+      }
+    },
+    {
+      "name": "4. Filter Rent Roll by Status (e.g. Paid, Pending, Overdue)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('All records match filtered status', function () {",
+              "    res.data.forEach(p => pm.expect(p.status).to.equal('paid'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/rentroll?status=paid",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "rentroll"],
+          "query": [
+            { "key": "status", "value": "paid" }
+          ]
+        },
+        "description": "Filters rent roll records by payment status (all, paid, pending, overdue)."
+      }
+    },
+    {
+      "name": "5. Create Payment Invoice / Charge",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "if (res.data && res.data.id) {",
+              "  pm.collectionVariables.set('created_payment_id', res.data.id);",
+              "  console.log('Saved created_payment_id:', res.data.id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"unitId\": \"{{sample_unit_id}}\",\n  \"amount\": 2595,\n  \"baseRent\": 2400,\n  \"parkingFee\": 150,\n  \"utilityFee\": 45,\n  \"dueDate\": \"2026-10-01T00:00:00.000Z\",\n  \"period\": \"October 2026 Rent Statement\",\n  \"status\": \"pending\",\n  \"notes\": \"Standard monthly billing cycle\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/landlord/rentroll",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "rentroll"]
+        },
+        "description": "Creates a new itemized monthly payment charge / invoice for a unit."
+      }
+    },
+    {
+      "name": "6. Get Payment Invoice by ID",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Response matches requested payment', function () {",
+              "    pm.expect(res.data.id).to.equal(pm.collectionVariables.get('created_payment_id') || pm.collectionVariables.get('sample_payment_id'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/rentroll/{{created_payment_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "rentroll", "{{created_payment_id}}"]
+        },
+        "description": "Retrieves comprehensive details of a single payment invoice."
+      }
+    },
+    {
+      "name": "7. Mark Payment as Paid (Manual Reconciliation)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Payment status updated to paid and has transaction ID', function () {",
+              "    pm.expect(res.data.status).to.equal('paid');",
+              "    pm.expect(res.data.mockTransactionId).to.be.a('string');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"paymentMethod\": \"Direct Bank Transfer / Wire\",\n  \"notes\": \"Reconciled by Alexander Vance\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/landlord/rentroll/{{created_payment_id}}/mark-paid",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "rentroll", "{{created_payment_id}}", "mark-paid"]
+        },
+        "description": "Executes the 'Mark Paid' action from the frontend UI, generating a reference transaction ID and audit log."
+      }
+    },
+    {
+      "name": "8. Update Payment Invoice Details",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Updated notes reflected', function () {",
+              "    pm.expect(res.data.notes).to.include('Updated notes');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"notes\": \"Updated notes and terms for October rent\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/landlord/rentroll/{{created_payment_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "rentroll", "{{created_payment_id}}"]
+        },
+        "description": "Updates invoice properties such as notes, amount, or due date."
+      }
+    },
+    {
+      "name": "9. Export Rent Roll (CSV Report)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Returns CSV text and filename', function () {",
+              "    pm.expect(res.csv).to.be.a('string');",
+              "    pm.expect(res.filename).to.include('.csv');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/rentroll/export",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "rentroll", "export"]
+        },
+        "description": "Generates exportable CSV report content as triggered by the Export CSV download button."
+      }
+    },
+    {
+      "name": "10. Delete / Void Payment Invoice",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Success message returned', function () {",
+              "    pm.expect(res.success).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{landlord_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/rentroll/{{created_payment_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "rentroll", "{{created_payment_id}}"]
+        },
+        "description": "Deletes or voids a payment record with full audit logging."
+      }
+    },
+    {
+      "name": "11. Security Guard – Tenant Forbidden from Landlord Rent Roll",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 403 Forbidden', function () {",
+              "    pm.response.to.have.status(403);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tenant_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/rentroll",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "rentroll"]
+        },
+        "description": "Ensures tenants cannot access landlord financial ledger endpoints (403 Forbidden)."
+      }
+    },
+    {
+      "name": "12. Security Guard – Unauthenticated Request Blocked",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 401 Unauthorized', function () {",
+              "    pm.response.to.have.status(401);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Cookie", "value": "token=" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/landlord/rentroll",
+          "host": ["{{base_url}}"],
+          "path": ["api", "landlord", "rentroll"]
+        },
+        "description": "Ensures requests missing Authorization headers are rejected (401 Unauthorized)."
+      }
+    }
+  ]
+}

@@ -5,6 +5,7 @@ import { OnboardingPage } from './pages/OnboardingPage';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { TenantPortalPage } from './pages/TenantPortalPage';
+import { NotFoundPage } from './pages/NotFoundPage';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -68,6 +69,10 @@ function App() {
   };
 
   const renderContent = () => {
+    if (currentPath === '/' || currentPath === '') {
+      return <LandingPage onNavigate={navigate} />;
+    }
+
     if (currentPath === '/register') {
       return <RegisterPage onNavigate={navigate} />;
     }
@@ -88,7 +93,7 @@ function App() {
       return <DashboardPage onNavigate={navigate} />;
     }
 
-    return <LandingPage onNavigate={navigate} />;
+    return <NotFoundPage onNavigate={navigate} />;
   };
 
   return (
