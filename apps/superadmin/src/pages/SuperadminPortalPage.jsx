@@ -4,9 +4,10 @@ import {
   AlertTriangle, RefreshCw, Download, HardDrive, Cpu, Terminal, Eye,
   CheckCircle2, Clock, LogOut, ArrowRight, ToggleLeft, ToggleRight, Layers, Sliders, ShieldAlert, Sparkles, Search, Filter
 } from 'lucide-react';
+import { UserManagementTab } from '../components/UserManagementTab';
 
 export const SuperadminPortalPage = ({ onLogout = () => {} }) => {
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'monitoring' | 'governance' | 'maintenance'
+  const [activeTab, setActiveTab] = useState('users'); // Default to 'users' to showcase User & Tenant Management
 
   // Subtab selections
   const [monitoringTab, setMonitoringTab] = useState('apiLogs'); // 'apiLogs' | 'healthQueue' | 'etlSync'
@@ -82,6 +83,7 @@ export const SuperadminPortalPage = ({ onLogout = () => {} }) => {
       {/* ─── NAVIGATION MODULE TABS ─── */}
       <div className="bg-[#090D17] border-b border-slate-800/80 px-6 py-2 flex items-center gap-2 overflow-x-auto text-xs font-grotesk font-semibold">
         {[
+          { key: 'users', label: 'User & Tenant Hierarchy', icon: Users },
           { key: 'overview', label: 'Command Overview', icon: Activity },
           { key: 'monitoring', label: 'Platform & Integration Monitoring', icon: Terminal },
           { key: 'governance', label: 'Security & Governance', icon: Lock },
@@ -108,6 +110,11 @@ export const SuperadminPortalPage = ({ onLogout = () => {} }) => {
 
       {/* ─── MAIN CONTENT AREA ─── */}
       <main className="flex-1 p-6 space-y-6 max-w-7xl mx-auto w-full">
+
+        {/* ═════════════════════════════════════════════════ */}
+        {/* ─── TAB: USER & TENANT HIERARCHY ─── */}
+        {/* ═════════════════════════════════════════════════ */}
+        {activeTab === 'users' && <UserManagementTab />}
 
         {/* ═════════════════════════════════════════════════ */}
         {/* ─── TAB 1: COMMAND OVERVIEW ─── */}

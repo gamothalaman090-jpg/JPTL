@@ -16,7 +16,9 @@
     "test:all": "npm run test:integration && npm run test:postman",
     "db:seed": "npm --prefix apps/server run db:seed",
     "db:purge": "npm --prefix apps/server run db:purge",
-    "db:reset": "npm --prefix apps/server run db:reset"
+    "db:reset": "npm --prefix apps/server run db:reset",
+    "env:encrypt": "openssl aes-256-cbc -salt -pbkdf2 -in .env -out .env.enc -k",
+    "env:decrypt": "openssl aes-256-cbc -d -pbkdf2 -in .env.enc -out .env -k"
   },
   "repository": {
     "type": "git",
