@@ -131,8 +131,8 @@ export const UserManagementTab = () => {
     <div className="space-y-6 text-slate-100 font-sans">
       {/* ─── TOP KPI TELEMETRY BAR ─── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-mono">
-        <div className="p-5 rounded-2xl bg-[#0D111D] border border-slate-800 space-y-2 relative overflow-hidden group">
-          <div className="absolute right-3 top-3 w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+        <div className="p-5 rounded-2xl bg-[#0D111D] border border-slate-800 space-y-2 relative overflow-hidden group transition-all duration-200 hover:border-slate-700 hover:shadow-lg hover:shadow-indigo-500/5">
+          <div className="absolute right-3 top-3 w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center transition-transform group-hover:scale-110 duration-200">
             <Building className="w-4 h-4" />
           </div>
           <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Managed Landlords</span>
@@ -140,8 +140,8 @@ export const UserManagementTab = () => {
           <span className="text-emerald-400 text-[10px] font-bold">+1 Registered this month</span>
         </div>
 
-        <div className="p-5 rounded-2xl bg-[#0D111D] border border-slate-800 space-y-2 relative overflow-hidden group">
-          <div className="absolute right-3 top-3 w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+        <div className="p-5 rounded-2xl bg-[#0D111D] border border-slate-800 space-y-2 relative overflow-hidden group transition-all duration-200 hover:border-slate-700 hover:shadow-lg hover:shadow-emerald-500/5">
+          <div className="absolute right-3 top-3 w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center transition-transform group-hover:scale-110 duration-200">
             <Users className="w-4 h-4" />
           </div>
           <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Handled Tenants</span>
@@ -149,8 +149,8 @@ export const UserManagementTab = () => {
           <span className="text-emerald-400 text-[10px] font-bold">100% Assigned to Landlords</span>
         </div>
 
-        <div className="p-5 rounded-2xl bg-[#0D111D] border border-slate-800 space-y-2 relative overflow-hidden group">
-          <div className="absolute right-3 top-3 w-8 h-8 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
+        <div className="p-5 rounded-2xl bg-[#0D111D] border border-slate-800 space-y-2 relative overflow-hidden group transition-all duration-200 hover:border-slate-700 hover:shadow-lg hover:shadow-purple-500/5">
+          <div className="absolute right-3 top-3 w-8 h-8 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center transition-transform group-hover:scale-110 duration-200">
             <DollarSign className="w-4 h-4" />
           </div>
           <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Monthly Rent Portfolio</span>
@@ -160,8 +160,8 @@ export const UserManagementTab = () => {
           <span className="text-slate-500 text-[10px]">Tracked Rent Roll Volume</span>
         </div>
 
-        <div className="p-5 rounded-2xl bg-[#0D111D] border border-slate-800 space-y-2 relative overflow-hidden group">
-          <div className="absolute right-3 top-3 w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+        <div className="p-5 rounded-2xl bg-[#0D111D] border border-slate-800 space-y-2 relative overflow-hidden group transition-all duration-200 hover:border-slate-700 hover:shadow-lg hover:shadow-amber-500/5">
+          <div className="absolute right-3 top-3 w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center transition-transform group-hover:scale-110 duration-200">
             <Home className="w-4 h-4" />
           </div>
           <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Registered Properties</span>
@@ -174,18 +174,18 @@ export const UserManagementTab = () => {
       <div className="p-5 rounded-3xl bg-[#0D111D] border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Search Input */}
         <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+          <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3 transition-colors group-focus-within:text-indigo-400" />
           <input
             type="text"
             placeholder="Search landlord name, company, email, or tenant..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#050811] border border-slate-800 rounded-2xl pl-10 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors font-mono"
+            className="w-full bg-[#050811] border border-slate-800 rounded-2xl pl-10 pr-10 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/80 transition-all font-mono"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-2.5 text-xs text-slate-500 hover:text-white"
+              className="absolute right-3 top-2.5 text-xs text-slate-500 hover:text-white transition-colors"
             >
               Clear
             </button>
@@ -194,7 +194,7 @@ export const UserManagementTab = () => {
 
         {/* Filter Dropdown & Actions */}
         <div className="flex items-center gap-3 flex-wrap text-xs font-mono">
-          <div className="flex items-center gap-2 bg-[#050811] border border-slate-800 rounded-2xl px-3 py-1.5">
+          <div className="flex items-center gap-2 bg-[#050811] border border-slate-800 rounded-2xl px-3 py-1.5 transition-colors focus-within:border-indigo-500/60">
             <Filter className="w-3.5 h-3.5 text-slate-400" />
             <select
               value={statusFilter}
@@ -211,13 +211,13 @@ export const UserManagementTab = () => {
           <div className="flex items-center gap-1 border-l border-slate-800 pl-2">
             <button
               onClick={expandAll}
-              className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition-colors cursor-pointer text-[11px]"
+              className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 btn-press cursor-pointer text-[11px]"
             >
               Expand All
             </button>
             <button
               onClick={collapseAll}
-              className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition-colors cursor-pointer text-[11px]"
+              className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 btn-press cursor-pointer text-[11px]"
             >
               Collapse All
             </button>
@@ -245,7 +245,7 @@ export const UserManagementTab = () => {
         </div>
 
         {filteredLandlords.length === 0 ? (
-          <div className="p-12 text-center space-y-3">
+          <div className="p-12 text-center space-y-3 animate-accordion-expand">
             <Users className="w-10 h-10 text-slate-600 mx-auto" />
             <p className="text-slate-400 font-grotesk font-semibold text-sm">No Landlords or Tenants match your criteria.</p>
             <button
@@ -266,40 +266,46 @@ export const UserManagementTab = () => {
               const propCount = landlord.properties.length;
 
               return (
-                <div key={landlord.id} className="transition-colors">
+                <div key={landlord.id} className="transition-colors duration-150">
                   {/* ─── PARENT LANDLORD ROW ─── */}
                   <div
-                    className={`p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer transition-colors ${
+                    className={`p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer transition-colors duration-150 ${
                       isExpanded ? 'bg-slate-900/40' : 'hover:bg-slate-900/20'
                     }`}
                     onClick={() => toggleExpand(landlord.id)}
                   >
                     {/* Left: Plus Toggle & Landlord Profile */}
                     <div className="flex items-center gap-3">
-                      {/* Plus/Minus Toggle Button */}
+                      {/* Plus/Minus Toggle Button with smooth 135° morphing rotation & scale physics */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleExpand(landlord.id);
                         }}
                         title={isExpanded ? 'Collapse Tenants' : 'Expand Tenants'}
-                        className={`w-7 h-7 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
+                        className={`group/plus w-7 h-7 rounded-xl border flex items-center justify-center transition-all duration-300 btn-press cursor-pointer shrink-0 ${
                           isExpanded
-                            ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30'
-                            : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-white hover:border-slate-500'
+                            ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/40 scale-105'
+                            : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-white hover:border-slate-500 hover:bg-slate-800'
                         }`}
                       >
-                        {isExpanded ? <Minus className="w-4 h-4 stroke-[3]" /> : <Plus className="w-4 h-4 stroke-[3]" />}
+                        <Plus
+                          className={`w-4 h-4 stroke-[3] transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${
+                            isExpanded
+                              ? 'rotate-[135deg] text-white scale-110'
+                              : 'rotate-0 text-slate-400 group-hover/plus:text-white group-hover/plus:rotate-90'
+                          }`}
+                        />
                       </button>
 
                       {/* Landlord Avatar & Main Details */}
                       <img
                         src={landlord.avatar}
                         alt={landlord.name}
-                        className="w-10 h-10 rounded-2xl object-cover border border-slate-700 shadow"
+                        className="w-10 h-10 rounded-2xl object-cover border border-slate-700 shadow shrink-0"
                       />
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-grotesk font-extrabold text-sm text-white hover:text-indigo-400 transition-colors">
                             {landlord.name}
                           </h3>
@@ -307,7 +313,7 @@ export const UserManagementTab = () => {
 
                           {/* Account Status Pill */}
                           <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border transition-colors ${
                               landlord.status === 'active'
                                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                                 : landlord.status === 'pending'
@@ -338,7 +344,7 @@ export const UserManagementTab = () => {
                       {/* Properties Count Badge */}
                       <button
                         onClick={() => setSelectedLandlordForProps(landlord)}
-                        className="px-2.5 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-[11px] flex items-center gap-1.5 transition-colors cursor-pointer"
+                        className="px-2.5 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-[11px] flex items-center gap-1.5 btn-press cursor-pointer"
                       >
                         <Home className="w-3.5 h-3.5 text-indigo-400" />
                         <span>{propCount} Properties</span>
@@ -356,17 +362,17 @@ export const UserManagementTab = () => {
                           setTargetLandlordForTenant(landlord);
                           setIsAddTenantOpen(true);
                         }}
-                        className="px-3 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 text-xs font-grotesk font-bold flex items-center gap-1.5 transition-all btn-press cursor-pointer"
+                        className="group/addbtn px-3 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 text-xs font-grotesk font-bold flex items-center gap-1.5 transition-all duration-200 btn-press cursor-pointer"
                         title="Add tenant directly to this landlord"
                       >
-                        <Plus className="w-3.5 h-3.5" />
+                        <Plus className="w-3.5 h-3.5 transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover/addbtn:rotate-90" />
                         <span>Add Tenant</span>
                       </button>
 
                       {/* Suspend / Activate account toggle */}
                       <button
                         onClick={() => handleToggleStatus(landlord.id)}
-                        className={`p-2 rounded-xl border transition-colors cursor-pointer ${
+                        className={`p-2 rounded-xl border btn-press cursor-pointer ${
                           landlord.status === 'active'
                             ? 'bg-slate-900 hover:bg-red-500/10 text-slate-400 hover:text-red-400 border-slate-800'
                             : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
@@ -378,12 +384,12 @@ export const UserManagementTab = () => {
                     </div>
                   </div>
 
-                  {/* ─── NESTED CHILD TENANTS TABLE (REVEALED ON '+' CLICK) ─── */}
-                  {isExpanded && (
-                    <div className="bg-[#070A12] border-t border-slate-800/80 p-4 pl-8 md:pl-12 space-y-3 font-mono text-xs">
+                  {/* ─── NESTED CHILD TENANTS TABLE (SMOOTH GRID SLIDE EXPAND ON '+' CLICK) ─── */}
+                  <div className="accordion-wrapper" data-expanded={isExpanded}>
+                    <div className="accordion-inner bg-[#070A12] border-t border-slate-800/80 p-4 pl-8 md:pl-12 space-y-3 font-mono text-xs">
                       <div className="flex items-center justify-between text-slate-400 text-[11px] font-bold uppercase tracking-wider pb-2 border-b border-slate-800/60">
                         <span className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                          <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
                           Handled Tenants Under {landlord.name} ({tenantCount})
                         </span>
                         <button
@@ -391,9 +397,9 @@ export const UserManagementTab = () => {
                             setTargetLandlordForTenant(landlord);
                             setIsAddTenantOpen(true);
                           }}
-                          className="text-emerald-400 hover:underline text-[11px] font-normal flex items-center gap-1"
+                          className="group/addhdr text-emerald-400 hover:underline text-[11px] font-normal flex items-center gap-1 transition-colors"
                         >
-                          <Plus className="w-3 h-3" /> Add Tenant
+                          <Plus className="w-3 h-3 transition-transform duration-300 group-hover/addhdr:rotate-90" /> Add Tenant
                         </button>
                       </div>
 
@@ -405,24 +411,25 @@ export const UserManagementTab = () => {
                               setTargetLandlordForTenant(landlord);
                               setIsAddTenantOpen(true);
                             }}
-                            className="px-3 py-1 rounded-xl bg-indigo-600/20 text-indigo-300 font-bold hover:bg-indigo-600 hover:text-white transition-colors"
+                            className="px-3 py-1 rounded-xl bg-indigo-600/20 text-indigo-300 font-bold hover:bg-indigo-600 hover:text-white btn-press transition-colors"
                           >
                             + Assign Tenant Now
                           </button>
                         </div>
                       ) : (
                         <div className="space-y-2">
-                          {landlord.tenants.map((tenant) => (
+                          {landlord.tenants.map((tenant, idx) => (
                             <div
                               key={tenant.id}
-                              className="p-3.5 rounded-2xl bg-[#0B0F1A] border border-slate-800/80 hover:border-slate-700 hover:bg-[#0E1322] transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
+                              style={{ animationDelay: `${idx * 40}ms` }}
+                              className="p-3.5 rounded-2xl bg-[#0B0F1A] border border-slate-800/80 hover:border-slate-700 hover:bg-[#0E1322] transition-all duration-150 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-stagger-item"
                             >
                               {/* Tenant Avatar & Contact */}
                               <div className="flex items-center gap-3">
                                 <img
                                   src={tenant.avatar}
                                   alt={tenant.name}
-                                  className="w-8 h-8 rounded-xl object-cover border border-slate-800"
+                                  className="w-8 h-8 rounded-xl object-cover border border-slate-800 shrink-0"
                                 />
                                 <div>
                                   <div className="flex items-center gap-2">
@@ -462,7 +469,7 @@ export const UserManagementTab = () => {
                                 </span>
                                 <button
                                   onClick={() => alert(`Viewing full lease dossier for tenant: ${tenant.name}`)}
-                                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
+                                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 btn-press cursor-pointer"
                                   title="View Tenant Dossier"
                                 >
                                   <Eye className="w-3.5 h-3.5" />
@@ -473,7 +480,7 @@ export const UserManagementTab = () => {
                         </div>
                       )}
                     </div>
-                  )}
+                  </div>
                 </div>
               );
             })}
@@ -483,8 +490,8 @@ export const UserManagementTab = () => {
 
       {/* ─── PROPERTIES OVERLAY MODAL / DRAWER ─── */}
       {selectedLandlordForProps && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0D111D] border border-slate-800 rounded-3xl w-full max-w-md p-6 space-y-4 font-sans text-slate-100">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-backdrop">
+          <div className="bg-[#0D111D] border border-slate-800 rounded-3xl w-full max-w-md p-6 space-y-4 font-sans text-slate-100 animate-modal-in">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div>
                 <h3 className="font-extrabold font-grotesk text-white text-base">
@@ -494,14 +501,18 @@ export const UserManagementTab = () => {
               </div>
               <button
                 onClick={() => setSelectedLandlordForProps(null)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800"
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 btn-press cursor-pointer"
               >
                 &times;
               </button>
             </div>
             <div className="space-y-2 font-mono text-xs">
-              {selectedLandlordForProps.properties.map((prop) => (
-                <div key={prop.id} className="p-3 rounded-2xl bg-[#070A12] border border-slate-800 flex justify-between items-center">
+              {selectedLandlordForProps.properties.map((prop, idx) => (
+                <div
+                  key={prop.id}
+                  style={{ animationDelay: `${idx * 45}ms` }}
+                  className="p-3 rounded-2xl bg-[#070A12] border border-slate-800 flex justify-between items-center animate-stagger-item"
+                >
                   <div>
                     <strong className="text-white font-grotesk block">{prop.name}</strong>
                     <span className="text-slate-500 text-[10px]">ID: {prop.id}</span>
@@ -514,7 +525,7 @@ export const UserManagementTab = () => {
             </div>
             <button
               onClick={() => setSelectedLandlordForProps(null)}
-              className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-grotesk font-bold text-xs"
+              className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-grotesk font-bold text-xs btn-press cursor-pointer"
             >
               Close Window
             </button>

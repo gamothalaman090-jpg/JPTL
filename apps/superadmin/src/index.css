@@ -8,6 +8,7 @@
     --font-sans: 'DM Sans', system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
     --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   }
 }
 
@@ -23,9 +24,71 @@
   font-family: var(--font-mono);
 }
 
+/* Emil Kowalski Design Eng: Responsive button scale feedback */
 .btn-press {
-  transition: transform 120ms var(--ease-out), opacity 120ms var(--ease-out);
+  transition: transform 140ms var(--ease-out), opacity 140ms var(--ease-out), background-color 140ms var(--ease-out);
 }
 .btn-press:active {
   transform: scale(0.97);
+}
+
+/* CSS Grid 0fr -> 1fr Smooth Accordion Expand/Collapse System */
+.accordion-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 280ms var(--ease-out), opacity 220ms var(--ease-out);
+}
+
+.accordion-wrapper[data-expanded="true"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.accordion-inner {
+  overflow: hidden;
+}
+
+/* Micro-animations following Emil's Animation Decision Framework */
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes backdropFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes staggerItem {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-backdrop {
+  animation: backdropFade 180ms var(--ease-out) forwards;
+}
+
+.animate-modal-in {
+  animation: modalIn 200ms var(--ease-out) forwards;
+}
+
+.animate-stagger-item {
+  animation: staggerItem 200ms var(--ease-out) forwards;
 }

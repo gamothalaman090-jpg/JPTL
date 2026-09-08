@@ -35,8 +35,8 @@ export const AddLandlordModal = ({ isOpen, onClose, onAddLandlord }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[#0D111D] border border-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-6 relative text-slate-100 font-sans">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-backdrop">
+      <div className="bg-[#0D111D] border border-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-6 relative text-slate-100 font-sans animate-modal-in">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
           <div className="flex items-center gap-3">
@@ -50,7 +50,7 @@ export const AddLandlordModal = ({ isOpen, onClose, onAddLandlord }) => {
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors btn-press cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -133,13 +133,13 @@ export const AddLandlordModal = ({ isOpen, onClose, onAddLandlord }) => {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition-colors cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition-colors btn-press cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-all cursor-pointer"
+              className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-all btn-press cursor-pointer"
             >
               <Plus className="w-4 h-4" /> Create Landlord
             </button>
