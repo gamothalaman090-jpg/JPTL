@@ -66,7 +66,7 @@ export async function sendPasswordResetEmail({ to, firstName, resetUrl }) {
               <tr>
                 <td style="padding:40px;">
                   <p style="color:#94A3B8;font-size:12px;font-family:monospace;letter-spacing:2px;text-transform:uppercase;margin:0 0 12px;">Password Reset</p>
-                  <h1 style="color:#F8FAFC;font-size:24px;font-weight:800;margin:0 0 16px;line-height:1.2;">Hi, ${firstName} 👋</h1>
+                  <h1 style="color:#F8FAFC;font-size:24px;font-weight:800;margin:0 0 16px;line-height:1.2;">Hi, ${firstName} </h1>
                   <p style="color:#94A3B8;font-size:14px;line-height:1.7;margin:0 0 24px;">
                     We received a request to reset the password for your JPTL account. Click the button below to create a new password. This link is valid for <strong style="color:#E2E8F0;">30 minutes</strong>.
                   </p>

@@ -81,4 +81,7 @@ const ticketSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+ticketSchema.index({ tenant: 1, createdAt: -1 });
+ticketSchema.index({ unit: 1 });
+
 export default mongoose.model('Ticket', ticketSchema);

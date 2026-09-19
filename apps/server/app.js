@@ -101,12 +101,18 @@ app.use(cookieParser());
 // Swagger Documentation UI (Accessible at /api/docs)
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Apply global rate limiting and disable caching for API routes
+// Caching policy optimized for Vercel Edge & Serverless Workers:
+// - Safe GET reads use short SWR (s-maxage=3, stale-while-revalidate=15) for sub-50ms edge responses
+// - Mutations (POST/PUT/PATCH/DELETE) and auth endpoints strictly bypass cache
 app.use('/api', (req, res, next) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  res.setHeader('Surrogate-Control', 'no-store');
+  if (req.method === 'GET' && !req.path.startsWith('/auth') && !req.path.includes('export')) {
+    res.setHeader('Cache-Control', 'public, s-maxage=3, stale-while-revalidate=15');
+  } else {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+  }
   next();
 });
 app.use('/api', generalLimiter);

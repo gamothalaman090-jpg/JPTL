@@ -29,4 +29,6 @@ const propertySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+propertySchema.index({ landlord: 1 });
+
 export default mongoose.model('Property', propertySchema);

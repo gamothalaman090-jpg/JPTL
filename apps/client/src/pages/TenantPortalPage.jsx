@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Home, Bell, Sun, Moon, LogOut, Search, Sparkles, User, ShieldCheck, 
   ChevronDown, CreditCard, Wrench, FileText, Megaphone, ArrowRight 
@@ -6,6 +6,7 @@ import {
 import { useTheme } from '../hooks/useTheme';
 import { useAuth } from '../context/AuthContext';
 import { tenantApi } from '../services/api';
+import { fetchConcurrent } from '../services/workerClient';
 import { 
   MOCK_PROPERTIES, 
   MOCK_UNITS, 
@@ -74,6 +75,16 @@ export const TenantPortalPage = ({ onNavigate = () => {} }) => {
   const [payments, setPayments] = useState([]);
   const [tickets, setTickets] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
+  const [openTicketsCount, setOpenTicketsCount] = useState(0);
+
+  // Track if full secondary datasets are loaded
+  const [isFullPaymentsLoaded, setIsFullPaymentsLoaded] = useState(false);
+  const [isFullTicketsLoaded, setIsFullTicketsLoaded] = useState(false);
+  const [isFullAnnouncementsLoaded, setIsFullAnnouncementsLoaded] = useState(false);
+
+  // Request guard and cooldown tracking
+  const isFetchingRef = useRef(false);
+  const lastFetchTimeRef = useRef(0);
 
   // Modals & Drawers
   const [isPayRentOpen, setIsPayRentOpen] = useState(false);
@@ -81,77 +92,91 @@ export const TenantPortalPage = ({ onNavigate = () => {} }) => {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
-  // Load live data from server on mount + auto-refresh polling
-  useEffect(() => {
-    let isMounted = true;
+  // Concurrent fetching via Web Worker off the main UI thread
+  const loadTenantDataConcurrent = useCallback(async () => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    lastFetchTimeRef.current = Date.now();
 
-    async function loadTenantData() {
-      try {
-        const [dashRes, paymentsRes, ticketsRes, ancRes] = await Promise.allSettled([
-          tenantApi.getDashboard(),
-          tenantApi.getPayments(),
-          tenantApi.getTickets(),
-          tenantApi.getAnnouncements(),
-        ]);
+    try {
+      const results = await fetchConcurrent([
+        { key: 'dash', endpoint: '/tenant/dash' },
+        { key: 'payments', endpoint: '/tenant/payments' },
+        { key: 'tickets', endpoint: '/tenant/tickets' },
+        { key: 'announcements', endpoint: '/tenant/announcements' },
+      ]);
 
-        if (!isMounted) return;
+      const dashRes = results.dash;
+      const paymentsRes = results.payments;
+      const ticketsRes = results.tickets;
+      const ancRes = results.announcements;
 
-        if (dashRes.status === 'fulfilled' && dashRes.value?.data) {
-          const d = dashRes.value.data;
-          if (d.tenant) setTenantData(d.tenant);
-          if (d.unit) setUnitData(d.unit);
-          if (d.property) setPropertyData(d.property);
-          if (d.landlord) setLandlordData(d.landlord);
-          if (d.lease) setLeaseData(d.lease);
-          if (Array.isArray(d.payments?.recent)) setPayments(d.payments.recent);
-          if (Array.isArray(d.tickets?.recent)) setTickets(d.tickets.recent);
-          if (Array.isArray(d.announcements)) setAnnouncements(d.announcements);
-        }
-
-        if (ticketsRes.status === 'fulfilled') {
-          const tList = ticketsRes.value?.tickets || ticketsRes.value?.data || (Array.isArray(ticketsRes.value) ? ticketsRes.value : []);
-          if (Array.isArray(tList) && tList.length > 0) setTickets(tList);
-        }
-
-        if (ancRes.status === 'fulfilled') {
-          const aList = ancRes.value?.announcements || ancRes.value?.data || (Array.isArray(ancRes.value) ? ancRes.value : []);
-          if (Array.isArray(aList) && aList.length > 0) setAnnouncements(aList);
-        }
-
-        if (paymentsRes.status === 'fulfilled') {
-          const pList = paymentsRes.value?.payments || paymentsRes.value?.data?.recentPayments || paymentsRes.value?.data || (Array.isArray(paymentsRes.value) ? paymentsRes.value : []);
-          if (Array.isArray(pList) && pList.length > 0) setPayments(pList);
-        }
-      } catch (err) {
-        console.warn('Tenant live data fetch fallback:', err.message);
+      if (dashRes?.ok && dashRes.data?.data) {
+        const d = dashRes.data.data;
+        if (d.tenant) setTenantData(d.tenant);
+        if (d.unit) setUnitData(d.unit);
+        if (d.property) setPropertyData(d.property);
+        if (d.landlord) setLandlordData(d.landlord);
+        if (d.lease) setLeaseData(d.lease);
+        if (d.tickets?.totalOpen !== undefined) setOpenTicketsCount(d.tickets.totalOpen);
       }
+
+      if (paymentsRes?.ok) {
+        const pList = paymentsRes.data?.payments || paymentsRes.data?.data?.recentPayments || paymentsRes.data?.data || (Array.isArray(paymentsRes.data) ? paymentsRes.data : []);
+        if (Array.isArray(pList) && pList.length > 0) {
+          setPayments(pList);
+          setIsFullPaymentsLoaded(true);
+        }
+      }
+
+      if (ticketsRes?.ok) {
+        const tList = ticketsRes.data?.tickets || ticketsRes.data?.data || (Array.isArray(ticketsRes.data) ? ticketsRes.data : []);
+        if (Array.isArray(tList) && tList.length > 0) {
+          setTickets(tList);
+          const open = tList.filter((t) => !['resolved', 'cancelled'].includes(t.status)).length;
+          setOpenTicketsCount(open);
+          setIsFullTicketsLoaded(true);
+        }
+      }
+
+      if (ancRes?.ok) {
+        const aList = ancRes.data?.announcements || ancRes.data?.data || (Array.isArray(ancRes.data) ? ancRes.data : []);
+        if (Array.isArray(aList) && aList.length > 0) {
+          setAnnouncements(aList);
+          setIsFullAnnouncementsLoaded(true);
+        }
+      }
+    } catch (err) {
+      console.warn('Tenant concurrent worker fetch fallback:', err.message);
+    } finally {
+      isFetchingRef.current = false;
     }
+  }, []);
 
-    loadTenantData();
+  // Initial mount + controlled background refresh (no spurious focus double-firing)
+  useEffect(() => {
+    loadTenantDataConcurrent();
 
-    // Auto-refresh polling every 10 seconds when tab is visible
+    // Auto-refresh polling every 60s when visible
     const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        loadTenantData();
+      if (document.visibilityState === 'visible' && Date.now() - lastFetchTimeRef.current >= 60000) {
+        loadTenantDataConcurrent();
       }
-    }, 30000);
+    }, 60000);
 
-    const onVisibilityOrFocus = () => {
-      if (document.visibilityState === 'visible') {
-        loadTenantData();
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && Date.now() - lastFetchTimeRef.current >= 60000) {
+        loadTenantDataConcurrent();
       }
     };
 
-    window.addEventListener('focus', onVisibilityOrFocus);
-    document.addEventListener('visibilitychange', onVisibilityOrFocus);
+    document.addEventListener('visibilitychange', onVisibilityChange);
 
     return () => {
-      isMounted = false;
       clearInterval(interval);
-      window.removeEventListener('focus', onVisibilityOrFocus);
-      document.removeEventListener('visibilitychange', onVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-  }, []);
+  }, [loadTenantDataConcurrent]);
 
   // Compute active tenant, unit, and property (live only, no fallback to mock tenants/units)
   const currentTenant = {
@@ -429,7 +454,7 @@ export const TenantPortalPage = ({ onNavigate = () => {} }) => {
         items={[
           { key: 'overview', label: 'Home', icon: LayoutDashboard },
           { key: 'payments', label: 'Rent', icon: CreditCard },
-          { key: 'maintenance', label: 'Repairs', icon: Wrench, badge: tickets.filter((t) => t.status !== 'resolved').length || undefined },
+          { key: 'maintenance', label: 'Repairs', icon: Wrench, badge: tickets.filter((t) => !['resolved', 'cancelled'].includes(t.status)).length || openTicketsCount || undefined },
           { key: 'lease', label: 'My Lease', icon: FileText },
         ]}
         activeKey={activeTab}
@@ -447,7 +472,7 @@ export const TenantPortalPage = ({ onNavigate = () => {} }) => {
         items={[
           { key: 'overview', label: 'Home Overview', icon: LayoutDashboard },
           { key: 'payments', label: 'Rent & Payments', icon: CreditCard },
-          { key: 'maintenance', label: 'Maintenance Requests', icon: Wrench, badge: tickets.filter((t) => t.status !== 'resolved').length || undefined },
+          { key: 'maintenance', label: 'Maintenance Requests', icon: Wrench, badge: tickets.filter((t) => !['resolved', 'cancelled'].includes(t.status)).length || openTicketsCount || undefined },
           { key: 'lease', label: 'My Lease Agreement', icon: FileText },
           { key: 'announcements', label: 'Building Announcements', icon: Megaphone },
           { key: 'documents', label: 'Documents & Verification', icon: FileCheck },

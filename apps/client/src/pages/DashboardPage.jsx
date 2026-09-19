@@ -35,6 +35,7 @@ import { MobileNavDrawer } from '../components/common/MobileNavDrawer';
 import { LayoutDashboard, FileCheck, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { landlordApi } from '../services/api';
+import { fetchConcurrent } from '../services/workerClient';
 
 export const DashboardPage = ({ onNavigate = () => {} }) => {
   const { theme, toggleTheme } = useTheme();
@@ -368,26 +369,33 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Load live data from server
+  // Load live data from server concurrently via Web Worker
   useEffect(() => {
     let isMounted = true;
 
     async function loadLiveDashboardData() {
       try {
-        const [dashRes, propsRes, ticketsRes, tenantsRes, docsRes, rentRollRes, ancRes] = await Promise.allSettled([
-          landlordApi.getDashboard(),
-          landlordApi.getProperties(),
-          landlordApi.getTickets(),
-          landlordApi.getTenants(),
-          landlordApi.getDocuments(),
-          landlordApi.getRentRoll(),
-          landlordApi.getAnnouncements(),
+        const results = await fetchConcurrent([
+          { key: 'dash', endpoint: '/landlord/dash' },
+          { key: 'properties', endpoint: '/landlord/properties' },
+          { key: 'tickets', endpoint: '/landlord/tickets' },
+          { key: 'tenants', endpoint: '/landlord/tenantdirectory' },
+          { key: 'documents', endpoint: '/landlord/documents' },
+          { key: 'rentroll', endpoint: '/landlord/rentroll' },
+          { key: 'announcements', endpoint: '/landlord/announcements' },
         ]);
 
         if (!isMounted) return;
 
-        if (propsRes.status === 'fulfilled') {
-          const liveProps = propsRes.value?.data || [];
+        const propsRes = results.properties;
+        const ticketsRes = results.tickets;
+        const tenantsRes = results.tenants;
+        const docsRes = results.documents;
+        const rentRollRes = results.rentroll;
+        const ancRes = results.announcements;
+
+        if (propsRes?.ok) {
+          const liveProps = propsRes.data?.data || [];
           setProperties(liveProps);
           const liveUnits = liveProps.flatMap((p) =>
             (p.units || []).map((u) => ({
@@ -401,13 +409,13 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
           setUnits(liveUnits);
         }
 
-        if (ticketsRes.status === 'fulfilled') {
-          const tList = ticketsRes.value?.tickets || ticketsRes.value?.data || (Array.isArray(ticketsRes.value) ? ticketsRes.value : []);
+        if (ticketsRes?.ok) {
+          const tList = ticketsRes.data?.tickets || ticketsRes.data?.data || (Array.isArray(ticketsRes.data) ? ticketsRes.data : []);
           setTickets(Array.isArray(tList) ? tList : []);
         }
 
-        if (tenantsRes.status === 'fulfilled') {
-          const serverTenants = tenantsRes.value?.data || [];
+        if (tenantsRes?.ok) {
+          const serverTenants = tenantsRes.data?.data || [];
           const map = new Map();
           const emailSet = new Set();
           serverTenants.forEach((t) => {
@@ -436,33 +444,28 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
           setTenants(Array.from(map.values()));
         }
 
-        if (docsRes.status === 'fulfilled') {
-          const dList = docsRes.value?.documents || docsRes.value?.data || (Array.isArray(docsRes.value) ? docsRes.value : []);
+        if (docsRes?.ok) {
+          const dList = docsRes.data?.documents || docsRes.data?.data || (Array.isArray(docsRes.data) ? docsRes.data : []);
           setDocuments(Array.isArray(dList) ? dList : []);
         }
 
-        if (rentRollRes.status === 'fulfilled') {
-          setPayments(rentRollRes.value?.data || []);
+        if (rentRollRes?.ok) {
+          setPayments(rentRollRes.data?.data || []);
         }
 
-        if (ancRes.status === 'fulfilled') {
-          const ancList = ancRes.value?.data || [];
+        if (ancRes?.ok) {
+          const ancList = ancRes.data?.data || [];
           setAnnouncements(ancList);
           const pinned = ancList.find((a) => a.isPinned) || ancList[0];
           if (pinned) {
             setAnnouncement({
               subject: pinned.title,
               body: pinned.content || pinned.body,
+              time: pinned.createdAt ? new Date(pinned.createdAt).toLocaleDateString() : 'Recent',
             });
           } else {
             setAnnouncement(null);
           }
-        } else if (dashRes.status === 'fulfilled' && dashRes.value?.data?.pinnedAnnouncement) {
-          const p = dashRes.value.data.pinnedAnnouncement;
-          setAnnouncement({
-            subject: p.title,
-            body: p.content || p.body,
-          });
         }
       } catch (err) {
         console.warn('Dashboard live data fetch fallback:', err.message);
@@ -471,27 +474,25 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
 
     loadLiveDashboardData();
 
-    // Auto-refresh polling every 10s for real-time sync
+    // Auto-refresh polling every 60s when visible
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
         loadLiveDashboardData();
       }
-    }, 30000);
+    }, 60000);
 
-    const onVisibilityOrFocus = () => {
+    const onVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         loadLiveDashboardData();
       }
     };
 
-    window.addEventListener('focus', onVisibilityOrFocus);
-    document.addEventListener('visibilitychange', onVisibilityOrFocus);
+    document.addEventListener('visibilitychange', onVisibilityChange);
 
     return () => {
       isMounted = false;
       clearInterval(interval);
-      window.removeEventListener('focus', onVisibilityOrFocus);
-      document.removeEventListener('visibilitychange', onVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, []);
 
@@ -749,7 +750,7 @@ export const DashboardPage = ({ onNavigate = () => {} }) => {
               {/* Hero Greeting */}
               <div>
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-grotesk tracking-tight text-slate-900 dark:text-white leading-tight break-words">
-                  {greeting}, <span className="bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">{user?.firstName || 'Landlord'}</span> 👋
+                  {greeting}, <span className="bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">{user?.firstName || 'Landlord'}</span> 
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Here's what's happening with your properties today.</p>
               </div>

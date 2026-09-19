@@ -3,6 +3,7 @@ import Unit from '../../../shared/models/unit.model.js';
 import Property from '../../../shared/models/property.model.js';
 import AuditLog from '../../../shared/models/auditLog.model.js';
 import { createNotification } from '../../../shared/services/notification.service.js';
+import { invalidateTenantDashboard } from '../dash/dash.service.js';
 
 export class TenantTicketError extends Error {
   constructor(message, statusCode = 400) {
@@ -167,6 +168,8 @@ export async function submitTenantTicket(tenantId, payload, ipAddress = '') {
     });
   }
 
+  invalidateTenantDashboard(tenantId);
+
   return {
     ...ticket.toObject(),
     id: ticket._id,
@@ -223,6 +226,8 @@ export async function cancelTenantTicket(tenantId, ticketId, reason = '', ipAddr
   } catch (err) {
     console.error('Error notifying landlord of cancellation:', err.message);
   }
+
+  invalidateTenantDashboard(tenantId);
 
   return {
     success: true,
@@ -281,6 +286,8 @@ export async function deleteTenantTicket(tenantId, ticketId, ipAddress = '') {
     beforeState,
     ipAddress,
   });
+
+  invalidateTenantDashboard(tenantId);
 
   return { success: true, message: 'Ticket deleted successfully', ticketId };
 }

@@ -47,18 +47,37 @@ export const tokenStorage = {
   },
 };
 
+const inflightGetRequests = new Map();
+
 /**
- * Low-level HTTP client wrapper
+ * Low-level HTTP client wrapper with in-flight deduplication
  */
 async function request(endpoint, options = {}) {
+  const method = options.method || 'GET';
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
-  
+
+  if (method === 'GET') {
+    const token = tokenStorage.getToken();
+    const cacheKey = `${url}:${token || ''}`;
+    if (inflightGetRequests.has(cacheKey)) {
+      return inflightGetRequests.get(cacheKey);
+    }
+    const reqPromise = executeRequest(endpoint, url, options, token).finally(() => {
+      inflightGetRequests.delete(cacheKey);
+    });
+    inflightGetRequests.set(cacheKey, reqPromise);
+    return reqPromise;
+  }
+
+  return executeRequest(endpoint, url, options, tokenStorage.getToken());
+}
+
+async function executeRequest(endpoint, url, options, token) {
   const headers = {
     'Content-Type': 'application/json',
     ...(options.headers || {}),
   };
 
-  const token = tokenStorage.getToken();
   if (token && !headers.Authorization) {
     headers.Authorization = `Bearer ${token}`;
   }

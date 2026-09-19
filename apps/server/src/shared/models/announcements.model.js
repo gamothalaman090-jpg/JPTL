@@ -21,6 +21,8 @@ const announcementSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+announcementSchema.index({ author: 1, isPinned: -1, createdAt: -1 });
+
 const Announcement = mongoose.model('Announcement', announcementSchema);
 
 export { Announcement, ANNOUNCEMENT_CATEGORIES };

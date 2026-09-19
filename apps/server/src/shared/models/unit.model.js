@@ -31,4 +31,7 @@ const unitSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+unitSchema.index({ property: 1 });
+unitSchema.index({ tenant: 1 });
+
 export default mongoose.model('Unit', unitSchema);

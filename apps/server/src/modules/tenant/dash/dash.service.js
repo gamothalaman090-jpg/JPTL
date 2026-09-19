@@ -51,22 +51,22 @@ async function getTenantDashboard(tenantId) {
   const unitId = profile?.unit?._id ?? null;
   const landlordId = tenantUser.landlord || profile?.property?.landlord || null;
 
-  // 2. Fetch landlord user details for property contacts
-  const landlordUser = landlordId
-    ? await User.findById(landlordId).select('firstName lastName email phone officePhone company').lean()
-    : null;
-
-  // 3. Parallel secondary queries — query tickets by tenant regardless of unitId
-  const [tickets, payments, announcements] = await Promise.all([
+  // 2. Secondary queries executed in parallel (landlord, tickets, payments, announcements)
+  const [landlordUser, tickets, payments, announcements] = await Promise.all([
+    landlordId
+      ? User.findById(landlordId).select('firstName lastName email phone officePhone company').lean()
+      : Promise.resolve(null),
     Ticket.find({ tenant: tenantId })
-      .populate('unit')
+      .select('title category priority status createdAt')
       .sort({ createdAt: -1 })
       .lean(),
     Payment.find({ tenant: tenantId })
+      .select('amount dueDate status paidAt createdAt')
       .sort({ dueDate: 1 })
       .lean(),
     landlordId
       ? Announcement.find({ author: landlordId })
+          .select('title content category isPinned createdAt')
           .sort({ isPinned: -1, createdAt: -1 })
           .limit(10)
           .lean()
@@ -250,4 +250,47 @@ async function getTenantKpi(tenantId) {
   };
 }
 
-export { TenantDashError, getTenantDashboard, getTenantKpi };
+// In-memory SWR cache + in-flight deduplication
+const dashCache = new Map();
+const inflightDash = new Map();
+const DASH_CACHE_TTL_MS = 15000; // 15 seconds cache
+
+function invalidateTenantDashboard(tenantId) {
+  if (tenantId) {
+    dashCache.delete(String(tenantId));
+  }
+}
+
+async function getTenantDashboardCached(tenantId) {
+  const idStr = String(tenantId);
+  const now = Date.now();
+  const cached = dashCache.get(idStr);
+
+  if (cached && cached.expiresAt > now) {
+    return cached.data;
+  }
+
+  if (inflightDash.has(idStr)) {
+    return inflightDash.get(idStr);
+  }
+
+  const promise = getTenantDashboard(tenantId)
+    .then((data) => {
+      dashCache.set(idStr, { data, expiresAt: Date.now() + DASH_CACHE_TTL_MS });
+      return data;
+    })
+    .finally(() => {
+      inflightDash.delete(idStr);
+    });
+
+  inflightDash.set(idStr, promise);
+  return promise;
+}
+
+export { 
+  TenantDashError, 
+  getTenantDashboardCached as getTenantDashboard, 
+  getTenantDashboard as getTenantDashboardDirect,
+  getTenantKpi,
+  invalidateTenantDashboard
+};

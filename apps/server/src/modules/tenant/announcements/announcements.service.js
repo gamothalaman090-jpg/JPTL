@@ -4,7 +4,7 @@ import TenantProfile from '../../../shared/models/tenantProfile.model.js';
 
 export async function getTenantFeed(tenantId, { category, search, page = 1, limit = 20 }) {
   // 1. Find tenant to extract their assigned landlord ID
-  const tenant = await User.findById(tenantId);
+  const tenant = await User.findById(tenantId).select('landlord').lean();
   if (!tenant) {
     return { announcements: [], meta: { total: 0, page: 1, pages: 0 } };
   }

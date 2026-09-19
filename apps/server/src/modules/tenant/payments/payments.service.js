@@ -5,6 +5,7 @@ import Unit from '../../../shared/models/unit.model.js';
 import Property from '../../../shared/models/property.model.js';
 import Payment from '../../../shared/models/payment.model.js';
 import AuditLog from '../../../shared/models/auditLog.model.js';
+import { invalidateTenantDashboard } from '../dash/dash.service.js';
 
 class TenantPaymentError extends Error {
   constructor(message, statusCode = 400) {
@@ -59,7 +60,15 @@ async function resolveTenantContext(tenantId) {
  * Get complete tenant ledger, itemized monthly statement, autoPay settings, and payment history.
  */
 export async function getTenantLedger(tenantId) {
-  const { userDoc, profile, unit, property } = await resolveTenantContext(tenantId);
+  // Query tenant context and payments in parallel
+  const [{ userDoc, profile, unit, property }, payments] = await Promise.all([
+    resolveTenantContext(tenantId),
+    Payment.find({ tenant: tenantId })
+      .populate('unit', 'label')
+      .populate('property', 'name address city')
+      .sort({ dueDate: -1, createdAt: -1 })
+      .lean(),
+  ]);
 
   const rentAmount = profile?.monthlyRent || unit?.monthlyRent || 2400;
   const hasParking = Boolean(profile?.hasParking ?? unit?.hasParking ?? false);
@@ -67,13 +76,6 @@ export async function getTenantLedger(tenantId) {
   const parkingFee = hasParking ? Number(profile?.parkingFee ?? unit?.parkingFee ?? 0) : 0;
   const utilityFee = 45;
   const totalMonthlyDue = rentAmount + parkingFee + utilityFee;
-
-  // Query tenant payments
-  const payments = await Payment.find({ tenant: tenantId })
-    .populate('unit', 'label')
-    .populate('property', 'name address city')
-    .sort({ dueDate: -1, createdAt: -1 })
-    .lean();
 
   // Find upcoming pending or overdue invoice
   const now = new Date();
@@ -343,6 +345,9 @@ export async function payRent(tenantId, data = {}, ipAddress = '') {
 
   const receipt = await getPaymentReceipt(tenantId, payment._id);
 
+  // Invalidate cached dashboard so fresh payment status is reflected
+  invalidateTenantDashboard(tenantId);
+
   return {
     receipt,
     payment,
@@ -362,6 +367,8 @@ export async function toggleAutoPay(tenantId, enabled) {
     profile.autoPayEnabled = Boolean(enabled);
   }
   await profile.save();
+
+  invalidateTenantDashboard(tenantId);
 
   return {
     autoPayEnabled: profile.autoPayEnabled,
