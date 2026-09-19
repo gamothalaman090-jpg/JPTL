@@ -56,7 +56,7 @@ export async function sendPushToUsers(userIds, payload) {
     icon: payload.icon || '/favicon.svg',
     badge: '/favicon.svg',
     url: payload.url || '/',
-    timestamp: Date.now(),
+    timestamp: new Date().toISOString(),
   });
 
   const results = await Promise.allSettled(

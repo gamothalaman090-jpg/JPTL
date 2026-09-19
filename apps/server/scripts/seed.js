@@ -508,15 +508,15 @@ log.section('Seeding Audit Logs');
 const auditDefs = [
   {
     actor: landlord._id, actorRole: 'landlord', action: 'TICKET_STATUS_UPDATE',
-    entityKind: 'Ticket', ipAddress: '192.168.1.45',
+    entityKind: 'Ticket', ipAddress: '203.0.113.45',
   },
   {
     actor: liamUser._id, actorRole: 'tenant', action: 'PAYMENT_CONFIRMED_EVENT',
-    entityKind: 'Payment', ipAddress: '10.0.0.12',
+    entityKind: 'Payment', ipAddress: '203.0.113.12',
   },
   {
     actor: landlord._id, actorRole: 'landlord', action: 'TENANT_CREATED',
-    entityKind: 'User', ipAddress: '192.168.1.45',
+    entityKind: 'User', ipAddress: '203.0.113.45',
   },
 ];
 

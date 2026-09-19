@@ -346,7 +346,7 @@ export const MOCK_AUDIT_LOGS = [
     entityKind: 'Ticket',
     entityId: 'tkt-801',
     timestamp: '2026-08-23T09:30:00Z',
-    ipAddress: '192.168.1.45',
+    ipAddress: '203.0.113.45',
   },
   {
     id: 'aud-902',
@@ -356,7 +356,7 @@ export const MOCK_AUDIT_LOGS = [
     entityKind: 'Payment',
     entityId: 'pay-302',
     timestamp: '2026-07-29T16:22:10Z',
-    ipAddress: '10.0.0.12',
+    ipAddress: '203.0.113.12',
   },
 ];
 

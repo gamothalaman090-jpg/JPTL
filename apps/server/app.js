@@ -1,4 +1,5 @@
 import express from 'express';
+import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { corsOptions } from './src/shared/config/cors.js';
@@ -28,6 +29,70 @@ import { getMaintenanceState } from './src/shared/services/systemState.service.j
 
 const app = express();
 
+// Disable X-Powered-By explicitly
+app.disable('x-powered-by');
+
+// Early path traversal and invalid sequence shield
+app.use((req, res, next) => {
+  const urlToCheck = req.originalUrl || req.url || '';
+  // Check for path traversal sequences (raw, urlencoded, or backslash variants)
+  if (
+    urlToCheck.includes('..') ||
+    /%2e%2e/i.test(urlToCheck) ||
+    /%2f%2e%2e/i.test(urlToCheck) ||
+    /%5c/i.test(urlToCheck) ||
+    /\0|%00/.test(urlToCheck)
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: 'Bad Request: Invalid path traversal sequence detected',
+    });
+  }
+  next();
+});
+
+// Suppress server fingerprinting headers on all responses
+app.use((req, res, next) => {
+  res.removeHeader('X-Powered-By');
+  res.removeHeader('Server');
+  next();
+});
+
+// Strict Cross-Domain Flash / Silverlight discovery block (OWASP ZAP Cross-Domain Misconfiguration fix)
+app.get(['/crossdomain.xml', '/clientaccesspolicy.xml'], (req, res) => {
+  res.setHeader('Content-Type', 'application/xml');
+  res.status(200).send('<cross-domain-policy><site-control permitted-cross-domain-policies="none"/></cross-domain-policy>');
+});
+
+// Security Headers with Helmet
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com', 'https://validator.swagger.io'],
+        connectSrc: ["'self'", 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:8000', 'https:'],
+        frameAncestors: ["'none'"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
+      },
+    },
+    hsts: {
+      maxAge: 63072000,
+      includeSubDomains: true,
+      preload: true,
+    },
+    frameguard: { action: 'deny' }, // Anti-clickjacking: X-Frame-Options: DENY
+    noSniff: true,                  // X-Content-Type-Options: nosniff
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+  })
+);
+
 // Apply middleware
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -38,9 +103,10 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Apply global rate limiting and disable caching for API routes
 app.use('/api', (req, res, next) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
   next();
 });
 app.use('/api', generalLimiter);
@@ -57,7 +123,7 @@ app.get('/api/system/status', async (req, res) => {
     success: true,
     maintenance: state.enabled,
     message: state.message,
-    timestamp: state.updatedAt,
+    timestamp: state.updatedAt ? new Date(state.updatedAt).toISOString() : new Date().toISOString(),
   });
 });
 

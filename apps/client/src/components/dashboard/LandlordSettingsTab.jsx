@@ -18,9 +18,9 @@ const INITIAL_VENDORS = [
 ];
 
 const INITIAL_AUDIT_LOGS = [
-  { id: 'log-1', timestamp: '2026-08-27 09:12:04', user: 'Alexander Vance (Landlord)', action: 'Updated Unit Rent', target: 'Unit 4B ($2,450/mo)', ip: '192.168.1.104' },
-  { id: 'log-2', timestamp: '2026-08-26 16:45:22', user: 'Alexander Vance (Landlord)', action: 'Assigned Ticket #102', target: 'Apex Plumbing Services', ip: '192.168.1.112' },
-  { id: 'log-3', timestamp: '2026-08-25 11:30:00', user: 'Alexander Vance (Landlord)', action: 'Exported Rent Roll', target: 'August_Rent_Roll_2026.csv', ip: '192.168.1.104' },
+  { id: 'log-1', timestamp: '2026-08-27 09:12:04', user: 'Alexander Vance (Landlord)', action: 'Updated Unit Rent', target: 'Unit 4B ($2,450/mo)', ip: '203.0.113.104' },
+  { id: 'log-2', timestamp: '2026-08-26 16:45:22', user: 'Alexander Vance (Landlord)', action: 'Assigned Ticket #102', target: 'Apex Plumbing Services', ip: '203.0.113.112' },
+  { id: 'log-3', timestamp: '2026-08-25 11:30:00', user: 'Alexander Vance (Landlord)', action: 'Exported Rent Roll', target: 'August_Rent_Roll_2026.csv', ip: '203.0.113.104' },
   { id: 'log-4', timestamp: '2026-08-24 14:15:10', user: 'System Automated', action: 'Generated Monthly Invoice', target: 'Unit 2A Sept Rent Invoice', ip: '127.0.0.1' },
 ];
 
@@ -231,7 +231,7 @@ export const LandlordSettingsTab = ({
           user: 'Alexander Vance (Landlord)',
           action: 'VERIFIED_DOCUMENT',
           target: `${targetDoc.name} (${targetDoc.tenantName})`,
-          ip: '192.168.1.104'
+          ip: '203.0.113.104'
         },
         ...prev
       ]);
@@ -262,7 +262,7 @@ export const LandlordSettingsTab = ({
           user: 'Alexander Vance (Landlord)',
           action: 'REJECTED_DOCUMENT',
           target: `${targetDoc.name} (${targetDoc.tenantName}) - Reason: ${reason}`,
-          ip: '192.168.1.104'
+          ip: '203.0.113.104'
         },
         ...prev
       ]);
