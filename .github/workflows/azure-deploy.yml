@@ -1,0 +1,66 @@
+name: Build and deploy Node.js app to Azure Web App - jptl-api
+
+on:
+  push:
+    branches:
+      - kpi                  # matches your Azure-selected branch
+    paths:
+      - 'apps/server/**'    # only runs when server files change
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build apps/server
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js version
+        uses: actions/setup-node@v3
+        with:
+          node-version: '24.x'
+
+      # ✅ KEY FIX: scope all commands to apps/server
+      - name: npm install, build, and test
+        working-directory: apps/server
+        run: |
+          npm install --omit=dev
+          npm run build --if-present
+          npm run test --if-present
+
+      - name: Zip apps/server for deployment
+        working-directory: apps/server
+        run: zip -r ../../../server-deploy.zip . --exclude "*.env" --exclude ".env*"
+
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-app
+          path: server-deploy.zip
+
+  deploy:
+    name: Deploy to Azure
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: 'Production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: node-app
+
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'jptl-api'
+          slot-name: 'Production'
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: server-deploy.zip
