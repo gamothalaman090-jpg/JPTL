@@ -9,7 +9,9 @@ import Unit from '../../../shared/models/unit.model.js';
 
 let mongoServer;
 let landlordToken;
+let tenantToken;
 let landlordUser;
+let tenantUser;
 
 beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();
@@ -26,9 +28,24 @@ beforeAll(async () => {
     status: 'active',
   });
 
+  tenantUser = await User.create({
+    firstName: 'Sophia',
+    lastName: 'Lin',
+    email: 'sophia.prop@example.com',
+    password: 'Password123!',
+    role: 'tenant',
+    landlord: landlordUser._id,
+    status: 'active',
+  });
+
   process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret-key-12345';
   landlordToken = jwt.sign(
     { _id: landlordUser._id, id: landlordUser._id, role: 'landlord', email: landlordUser.email },
+    process.env.JWT_SECRET,
+    { expiresIn: '1d' }
+  );
+  tenantToken = jwt.sign(
+    { _id: tenantUser._id, id: tenantUser._id, role: 'tenant', email: tenantUser.email },
     process.env.JWT_SECRET,
     { expiresIn: '1d' }
   );
@@ -106,3 +123,34 @@ describe('Landlord Properties & Units Management API', () => {
     expect(unitsInDb.length).toBe(0);
   });
 });
+
+describe('Error Handling', () => {
+  it('returns 401 when no auth token is provided', async () => {
+    const res = await request(app).get('/api/landlord/properties');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 403 when wrong role accesses route', async () => {
+    const res = await request(app)
+      .get('/api/landlord/properties')
+      .set('Cookie', [`token=${tenantToken}`]);
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 404 when property does not exist', async () => {
+    const fakeId = new mongoose.Types.ObjectId();
+    const res = await request(app)
+      .delete(`/api/landlord/properties/${fakeId}`)
+      .set('Cookie', [`token=${landlordToken}`]);
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 400 when missing required fields on property creation', async () => {
+    const res = await request(app)
+      .post('/api/landlord/properties')
+      .set('Cookie', [`token=${landlordToken}`])
+      .send({});
+    expect(res.status).toBe(400);
+  });
+});
+

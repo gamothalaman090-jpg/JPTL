@@ -113,3 +113,27 @@ describe('Landlord Onboarding Module API (/api/landlord/onboarding)', () => {
     expect(res.body.data.title).toContain('Welcome');
   });
 });
+
+describe('Error Handling', () => {
+  it('returns 401 when no auth token is provided', async () => {
+    const res = await request(app).get('/api/landlord/onboarding/status');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 400 when selecting an invalid plan', async () => {
+    const res = await request(app)
+      .post('/api/landlord/onboarding/plan')
+      .set('Cookie', [`token=${landlordToken}`])
+      .send({ plan: 'invalid-ultra-plan' });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 when adding unit without required propertyId', async () => {
+    const res = await request(app)
+      .post('/api/landlord/onboarding/units')
+      .set('Cookie', [`token=${landlordToken}`])
+      .send({ label: '101A', monthlyRent: 1500 });
+    expect(res.status).toBe(400);
+  });
+});
+

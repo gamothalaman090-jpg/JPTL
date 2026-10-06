@@ -159,3 +159,26 @@ describe('Digital Lease & Extension Workflow API (Tenant & Landlord)', () => {
     expect(new Date(updatedUnit.leaseEnd).getFullYear()).toBe(2028);
   });
 });
+
+describe('Error Handling', () => {
+  it('returns 401 when no auth token is provided', async () => {
+    const res = await request(app).get('/api/tenant/lease');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 403 when wrong role accesses tenant route', async () => {
+    const res = await request(app)
+      .get('/api/tenant/lease')
+      .set('Cookie', [`token=${landlordToken}`]);
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 400 when extension request has invalid termMonths', async () => {
+    const res = await request(app)
+      .post('/api/tenant/lease/extension')
+      .set('Cookie', [`token=${tenantToken}`])
+      .send({ termMonths: 0 });
+    expect(res.status).toBe(400);
+  });
+});
+

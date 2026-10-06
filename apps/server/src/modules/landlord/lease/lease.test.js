@@ -122,3 +122,37 @@ describe('Landlord Digital Lease Management API (/api/landlord/lease)', () => {
     expect(res.body.lease.status).toBe('renewal_approved');
   });
 });
+
+describe('Error Handling', () => {
+  it('returns 401 when no auth token is provided', async () => {
+    const res = await request(app).get('/api/landlord/lease/extensions');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 400 when invalid review status is provided', async () => {
+    const res = await request(app)
+      .patch(`/api/landlord/lease/${lease._id}/extensions/${requestId}/review`)
+      .set('Cookie', [`token=${landlordToken}`])
+      .send({ status: 'maybe' });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 404 when reviewing non-existent lease', async () => {
+    const fakeLeaseId = new mongoose.Types.ObjectId();
+    const res = await request(app)
+      .patch(`/api/landlord/lease/${fakeLeaseId}/extensions/${requestId}/review`)
+      .set('Cookie', [`token=${landlordToken}`])
+      .send({ status: 'approved' });
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 404 when extension request does not exist on lease', async () => {
+    const fakeReqId = new mongoose.Types.ObjectId();
+    const res = await request(app)
+      .patch(`/api/landlord/lease/${lease._id}/extensions/${fakeReqId}/review`)
+      .set('Cookie', [`token=${landlordToken}`])
+      .send({ status: 'approved' });
+    expect(res.status).toBe(404);
+  });
+});
+

@@ -159,3 +159,26 @@ describe('Tenant Payments & Ledger API (/api/tenant/payments)', () => {
     expect(res.body.data.length).toBeGreaterThanOrEqual(1);
   });
 });
+
+describe('Error Handling', () => {
+  it('returns 401 when no auth token is provided', async () => {
+    const res = await request(app).get('/api/tenant/payments');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 400 when invalid monthsAhead is provided to pay-advance', async () => {
+    const res = await request(app)
+      .post('/api/tenant/payments/pay-advance')
+      .set('Cookie', [`token=${tenantToken}`])
+      .send({ monthsAhead: 0 });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 404 when receipt transaction does not exist', async () => {
+    const res = await request(app)
+      .get('/api/tenant/payments/receipt/TXN_NONEXISTENT')
+      .set('Cookie', [`token=${tenantToken}`]);
+    expect(res.status).toBe(404);
+  });
+});
+

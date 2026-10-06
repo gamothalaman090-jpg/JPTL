@@ -1,0 +1,348 @@
+{
+  "info": {
+    "name": "Superadmin Module",
+    "description": "Postman collection for platform superadmin management and monitoring endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
+    { "key": "superadmin_token", "value": "", "type": "string" },
+    { "key": "created_property_id", "value": "", "type": "string" },
+    { "key": "created_unit_id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Superadmin – Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Returns success true and token', () => {",
+              "  pm.expect(res.success).to.be.true;",
+              "  pm.expect(res.token).to.be.a('string');",
+              "  pm.expect(res.user.role).to.eql('superadmin');",
+              "});",
+              "if (res.token) {",
+              "  pm.collectionVariables.set('superadmin_token', res.token);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"superadmin@jptl.sys\",\n  \"password\": \"admin123\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/superadmin/login",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "superadmin", "login"]
+        }
+      }
+    },
+    {
+      "name": "Superadmin – List Users",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Users list returned', () => {",
+              "  pm.expect(res.success).to.be.true;",
+              "  pm.expect(Array.isArray(res.users)).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{superadmin_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/superadmin/users",
+          "host": ["{{base_url}}"],
+          "path": ["api", "superadmin", "users"]
+        }
+      }
+    },
+    {
+      "name": "Superadmin – Create Property",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 201 Created', () => pm.response.to.have.status(201));",
+              "const res = pm.response.json();",
+              "pm.test('Property created successfully', () => {",
+              "  pm.expect(res.success).to.be.true;",
+              "  pm.expect(res.property).to.be.an('object');",
+              "});",
+              "if (res.property && res.property._id) {",
+              "  pm.collectionVariables.set('created_property_id', res.property._id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{superadmin_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Postman Superadmin Plaza\",\n  \"address\": \"777 Test Parkway\",\n  \"city\": \"Metro East\",\n  \"category\": \"Commercial\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/superadmin/properties",
+          "host": ["{{base_url}}"],
+          "path": ["api", "superadmin", "properties"]
+        }
+      }
+    },
+    {
+      "name": "Superadmin – List Properties",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Properties list returned', () => {",
+              "  pm.expect(res.success).to.be.true;",
+              "  pm.expect(Array.isArray(res.properties)).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{superadmin_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/superadmin/properties",
+          "host": ["{{base_url}}"],
+          "path": ["api", "superadmin", "properties"]
+        }
+      }
+    },
+    {
+      "name": "Superadmin – Create Unit",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 201 Created', () => pm.response.to.have.status(201));",
+              "const res = pm.response.json();",
+              "pm.test('Unit created successfully', () => {",
+              "  pm.expect(res.success).to.be.true;",
+              "  pm.expect(res.unit).to.be.an('object');",
+              "});",
+              "if (res.unit && res.unit._id) {",
+              "  pm.collectionVariables.set('created_unit_id', res.unit._id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{superadmin_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"label\": \"Unit SA-101\",\n  \"property\": \"{{created_property_id}}\",\n  \"rentAmount\": 2200,\n  \"status\": \"vacant\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/superadmin/units",
+          "host": ["{{base_url}}"],
+          "path": ["api", "superadmin", "units"]
+        }
+      }
+    },
+    {
+      "name": "Superadmin – List Units",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Units list returned', () => {",
+              "  pm.expect(res.success).to.be.true;",
+              "  pm.expect(Array.isArray(res.units)).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{superadmin_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/superadmin/units",
+          "host": ["{{base_url}}"],
+          "path": ["api", "superadmin", "units"]
+        }
+      }
+    },
+    {
+      "name": "Superadmin – Session Logs",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Sessions returned with activeCount', () => {",
+              "  pm.expect(res.success).to.be.true;",
+              "  pm.expect(Array.isArray(res.sessions)).to.be.true;",
+              "  pm.expect(typeof res.activeCount).to.eql('number');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{superadmin_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/superadmin/sessions",
+          "host": ["{{base_url}}"],
+          "path": ["api", "superadmin", "sessions"]
+        }
+      }
+    },
+    {
+      "name": "Superadmin – Delete Unit",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Unit deleted', () => pm.expect(res.success).to.be.true);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{superadmin_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/superadmin/units/{{created_unit_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "superadmin", "units", "{{created_unit_id}}"]
+        }
+      }
+    },
+    {
+      "name": "Superadmin – Delete Property",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Property deleted', () => pm.expect(res.success).to.be.true);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{superadmin_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/superadmin/properties/{{created_property_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "superadmin", "properties", "{{created_property_id}}"]
+        }
+      }
+    },
+    {
+      "name": "Superadmin – Maintenance Mode Toggle",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Maintenance state updated', () => {",
+              "  pm.expect(res.success).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{superadmin_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"enabled\": false,\n  \"message\": \"Normal operations\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/superadmin/system/maintenance",
+          "host": ["{{base_url}}"],
+          "path": ["api", "superadmin", "system", "maintenance"]
+        }
+      }
+    },
+    {
+      "name": "Guard Test – Superadmin Route without Token (expect 401)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 401 Unauthorized', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/superadmin/properties",
+          "host": ["{{base_url}}"],
+          "path": ["api", "superadmin", "properties"]
+        }
+      }
+    }
+  ]
+}

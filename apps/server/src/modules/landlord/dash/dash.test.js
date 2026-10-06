@@ -123,3 +123,18 @@ describe('Dashboard & KPI Aggregation API (Landlord & Tenant)', () => {
     expect(res.body.success).toBe(true);
   });
 });
+
+describe('Error Handling', () => {
+  it('returns 401 when no auth token is provided', async () => {
+    const res = await request(app).get('/api/landlord/dash');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 403 when tenant accesses landlord route', async () => {
+    const res = await request(app)
+      .get('/api/landlord/dash')
+      .set('Cookie', [`token=${tenantToken}`]);
+    expect(res.status).toBe(403);
+  });
+});
+

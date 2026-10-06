@@ -10,6 +10,7 @@ import Document from '../../../shared/models/document.model.js';
 
 let mongoServer;
 let landlordToken;
+let tenantToken;
 let landlordUser;
 let tenantUser;
 let property;
@@ -53,6 +54,12 @@ beforeAll(async () => {
     landlord: landlordUser._id,
     status: 'active',
   });
+
+  tenantToken = jwt.sign(
+    { _id: tenantUser._id, id: tenantUser._id, role: 'tenant', email: tenantUser.email },
+    process.env.JWT_SECRET,
+    { expiresIn: '1d' }
+  );
 
   unit = await Unit.create({
     label: 'Unit 14B',
@@ -118,3 +125,35 @@ describe('Landlord Resident Compliance Vault API (/api/landlord/documents)', () 
     expect(res.body.success).toBe(true);
   });
 });
+
+describe('Error Handling', () => {
+  it('returns 401 when no auth token is provided', async () => {
+    const res = await request(app).get('/api/landlord/documents');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 403 when wrong role accesses route', async () => {
+    const res = await request(app)
+      .get('/api/landlord/documents')
+      .set('Cookie', [`token=${tenantToken}`]);
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 404 when verifying non-existent document', async () => {
+    const fakeId = new mongoose.Types.ObjectId();
+    const res = await request(app)
+      .patch(`/api/landlord/documents/${fakeId}/verify`)
+      .set('Cookie', [`token=${landlordToken}`])
+      .send({ status: 'Verified' });
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 400 when invalid status is provided on verification', async () => {
+    const res = await request(app)
+      .patch(`/api/landlord/documents/${sampleDoc._id}/verify`)
+      .set('Cookie', [`token=${landlordToken}`])
+      .send({ status: 'InvalidStatus' });
+    expect(res.status).toBe(400);
+  });
+});
+

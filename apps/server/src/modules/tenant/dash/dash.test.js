@@ -10,6 +10,7 @@ import TenantProfile from '../../../shared/models/tenantProfile.model.js';
 
 let mongoServer;
 let tenantToken;
+let landlordToken;
 let landlordUser;
 let tenantUser;
 let property;
@@ -29,6 +30,12 @@ beforeAll(async () => {
     role: 'landlord',
     status: 'active',
   });
+
+  landlordToken = jwt.sign(
+    { _id: landlordUser._id, id: landlordUser._id, role: 'landlord', email: landlordUser.email },
+    process.env.JWT_SECRET,
+    { expiresIn: '1d' }
+  );
 
   property = await Property.create({
     name: 'Aura Sky Towers',
@@ -98,3 +105,18 @@ describe('Tenant Dashboard Module API (/api/tenant/dash)', () => {
     expect(res.body.success).toBe(true);
   });
 });
+
+describe('Error Handling', () => {
+  it('returns 401 when no auth token is provided', async () => {
+    const res = await request(app).get('/api/tenant/dash');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 403 when landlord accesses tenant route', async () => {
+    const res = await request(app)
+      .get('/api/tenant/dash')
+      .set('Cookie', [`token=${landlordToken}`]);
+    expect(res.status).toBe(403);
+  });
+});
+

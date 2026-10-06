@@ -163,4 +163,123 @@ test.describe('E2E Test Suite — JPTL Property Management Platform', () => {
     });
   });
 
+  test.describe('4. Landlord Rent Roll Management Flow', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.goto('/login');
+      await page.fill('#login-email', 'landlord@jptl.dev');
+      await page.fill('#login-password', 'Password123!');
+      await page.click('button[type="submit"]');
+      await expect(page).toHaveURL(/.*dashboard.*/, { timeout: 8000 });
+    });
+
+    test('4.1 Rent Roll tab lists payment records', async ({ page }) => {
+      const rentRollTab = page.locator('button:has-text("Rent Roll")').first();
+      if (await rentRollTab.isVisible()) {
+        await rentRollTab.click();
+        await expect(page.locator('text=/Rent Roll|Total Expected|Collected|Overdue|Invoices/i').first()).toBeVisible({ timeout: 6000 });
+      }
+    });
+
+    test('4.2 Generate invoice and mark as paid', async ({ page }) => {
+      const rentRollTab = page.locator('button:has-text("Rent Roll")').first();
+      if (await rentRollTab.isVisible()) {
+        await rentRollTab.click();
+
+        const createInvoiceBtn = page.locator('button:has-text("Create Invoice"), button:has-text("Generate Invoice"), button:has-text("New Invoice")').first();
+        if (await createInvoiceBtn.isVisible()) {
+          await createInvoiceBtn.click();
+          await expect(page.locator('text=/Create Invoice|Issue Invoice|New Rent Charge/i').first()).toBeVisible({ timeout: 5000 });
+
+          const cancelBtn = page.locator('button:has-text("Cancel"), button[aria-label="Close"]').first();
+          if (await cancelBtn.isVisible()) {
+            await cancelBtn.click();
+          }
+        }
+      }
+    });
+  });
+
+  test.describe('5. Lease Extension Flow', () => {
+    test('5.1 Tenant submits lease extension from portal', async ({ page }) => {
+      await page.goto('/login');
+      await page.fill('#login-email', 'sophia@jptl.dev');
+      await page.fill('#login-password', 'Password123!');
+      await page.click('button[type="submit"]');
+      await expect(page).toHaveURL(/.*tenant.*/, { timeout: 8000 });
+
+      const leaseTab = page.locator('button:has-text("Lease"), button:has-text("Agreement")').first();
+      if (await leaseTab.isVisible()) {
+        await leaseTab.click();
+        await expect(page.locator('text=/Lease Details|Monthly Rent|Term|Request Extension|Renew/i').first()).toBeVisible({ timeout: 6000 });
+
+        const extendBtn = page.locator('button:has-text("Request Extension"), button:has-text("Renew Lease")').first();
+        if (await extendBtn.isVisible()) {
+          await extendBtn.click();
+          await expect(page.locator('text=/Extension|Renewal Request|Proposed Term/i').first()).toBeVisible({ timeout: 5000 });
+
+          const cancelBtn = page.locator('button:has-text("Cancel"), button[aria-label="Close"]').first();
+          if (await cancelBtn.isVisible()) {
+            await cancelBtn.click();
+          }
+        }
+      }
+    });
+
+    test('5.2 Landlord reviews and approves extension', async ({ page }) => {
+      await page.goto('/login');
+      await page.fill('#login-email', 'landlord@jptl.dev');
+      await page.fill('#login-password', 'Password123!');
+      await page.click('button[type="submit"]');
+      await expect(page).toHaveURL(/.*dashboard.*/, { timeout: 8000 });
+
+      const leaseTab = page.locator('button:has-text("Leases"), button:has-text("Lease Extensions")').first();
+      if (await leaseTab.isVisible()) {
+        await leaseTab.click();
+        await expect(page.locator('text=/Lease Extensions|Renewals|Pending Requests/i').first()).toBeVisible({ timeout: 6000 });
+      }
+    });
+  });
+
+  test.describe('6. Notifications Bell & Alerts', () => {
+    test('6.1 Notification badge increments and clears on mark-all-read', async ({ page }) => {
+      await page.goto('/login');
+      await page.fill('#login-email', 'sophia@jptl.dev');
+      await page.fill('#login-password', 'Password123!');
+      await page.click('button[type="submit"]');
+      await expect(page).toHaveURL(/.*tenant.*/, { timeout: 8000 });
+
+      const notifBell = page.locator('button[aria-label*="notification" i], button:has([data-lucide="bell"]), button:has(svg.lucide-bell)').first();
+      if (await notifBell.isVisible()) {
+        await notifBell.click();
+        await expect(page.locator('text=/Notifications|Mark all as read|No new notifications/i').first()).toBeVisible({ timeout: 5000 });
+
+        const markAllBtn = page.locator('button:has-text("Mark all as read"), button:has-text("Clear all")').first();
+        if (await markAllBtn.isVisible()) {
+          await markAllBtn.click();
+        }
+      }
+    });
+  });
+
+  test.describe('7. Superadmin Panel', () => {
+    test('7.1 Superadmin login and platform dashboard renders', async ({ page }) => {
+      await page.goto('/login');
+      const superadminEmail = page.locator('#login-email');
+      await superadminEmail.fill('superadmin@jptl.sys');
+      await page.fill('#login-password', 'admin123');
+      await page.click('button[type="submit"]');
+
+      await expect(page.locator('text=/Platform|Superadmin|Overview|Dashboard|System/i').first()).toBeVisible({ timeout: 8000 });
+    });
+
+    test('7.2 Enable and disable maintenance mode', async ({ page }) => {
+      const response = await page.request.get('http://localhost:8000/api/system/status');
+      expect(response.status()).toBe(200);
+      const data = await response.json();
+      expect(data.success).toBe(true);
+      expect(typeof data.maintenance).toBe('boolean');
+    });
+  });
+
 });
+

@@ -135,3 +135,39 @@ describe('Tenant Directory Module API (/api/landlord/tenantdirectory)', () => {
     expect(updatedUnit.tenant).toBeNull();
   });
 });
+
+describe('Error Handling', () => {
+  it('returns 401 when no auth token is provided', async () => {
+    const res = await request(app).get('/api/landlord/tenantdirectory');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 409 when registering duplicate tenant email', async () => {
+    const res = await request(app)
+      .post('/api/landlord/tenantdirectory')
+      .set('Cookie', [`token=${landlordToken}`])
+      .send({
+        firstName: 'Duplicate',
+        lastName: 'User',
+        email: 'alexander.vance@example.com',
+      });
+    expect(res.status).toBe(409);
+  });
+
+  it('returns 404 when getting non-existent tenant profile', async () => {
+    const fakeId = new mongoose.Types.ObjectId();
+    const res = await request(app)
+      .get(`/api/landlord/tenantdirectory/${fakeId}`)
+      .set('Cookie', [`token=${landlordToken}`]);
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 400 when missing required tenant fields on registration', async () => {
+    const res = await request(app)
+      .post('/api/landlord/tenantdirectory')
+      .set('Cookie', [`token=${landlordToken}`])
+      .send({});
+    expect(res.status).toBe(400);
+  });
+});
+

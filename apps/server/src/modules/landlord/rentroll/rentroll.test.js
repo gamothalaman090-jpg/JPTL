@@ -10,6 +10,7 @@ import Payment from '../../../shared/models/payment.model.js';
 
 let mongoServer;
 let landlordToken;
+let tenantToken;
 let landlordUser;
 let tenantUser;
 let property;
@@ -52,6 +53,12 @@ beforeAll(async () => {
     landlord: landlordUser._id,
     status: 'active',
   });
+
+  tenantToken = jwt.sign(
+    { _id: tenantUser._id, id: tenantUser._id, role: 'tenant', email: tenantUser.email },
+    process.env.JWT_SECRET,
+    { expiresIn: '1d' }
+  );
 
   unit = await Unit.create({
     label: 'Unit 14B',
@@ -149,3 +156,35 @@ describe('Rent Roll Module API (/api/landlord/rentroll)', () => {
     expect(paymentInDb).toBeNull();
   });
 });
+
+describe('Error Handling', () => {
+  it('returns 401 when no auth token is provided', async () => {
+    const res = await request(app).get('/api/landlord/rentroll');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 403 when wrong role accesses route', async () => {
+    const res = await request(app)
+      .get('/api/landlord/rentroll')
+      .set('Cookie', [`token=${tenantToken}`]);
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 404 when marking non-existent invoice as paid', async () => {
+    const fakeId = new mongoose.Types.ObjectId();
+    const res = await request(app)
+      .patch(`/api/landlord/rentroll/${fakeId}/mark-paid`)
+      .set('Cookie', [`token=${landlordToken}`])
+      .send({ paymentMethod: 'cash' });
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 400 when missing required unitId or amount on invoice creation', async () => {
+    const res = await request(app)
+      .post('/api/landlord/rentroll')
+      .set('Cookie', [`token=${landlordToken}`])
+      .send({ description: 'Incomplete invoice' });
+    expect(res.status).toBe(400);
+  });
+});
+

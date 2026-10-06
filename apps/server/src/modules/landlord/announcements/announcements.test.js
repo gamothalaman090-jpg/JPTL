@@ -129,3 +129,27 @@ describe('Announcements Module API (Landlord & Tenant)', () => {
     expect(res.status).toBe(403);
   });
 });
+
+describe('Error Handling', () => {
+  it('returns 401 when no auth token is provided', async () => {
+    const res = await request(app).get('/api/landlord/announcements');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 400 when missing required title or content on announcement creation', async () => {
+    const res = await request(app)
+      .post('/api/landlord/announcements')
+      .set('Cookie', [`token=${landlordToken}`])
+      .send({});
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 when deleting non-existent announcement', async () => {
+    const fakeId = new mongoose.Types.ObjectId();
+    const res = await request(app)
+      .delete(`/api/landlord/announcements/${fakeId}`)
+      .set('Cookie', [`token=${landlordToken}`]);
+    expect(res.status).toBe(400);
+  });
+});
+

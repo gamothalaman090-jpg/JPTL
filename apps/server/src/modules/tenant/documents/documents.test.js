@@ -158,3 +158,27 @@ describe('Resident Compliance Vault & Documents API (Tenant & Landlord)', () => 
     expect(dbDoc).toBeNull();
   });
 });
+
+describe('Error Handling', () => {
+  it('returns 401 when no auth token is provided', async () => {
+    const res = await request(app).post('/api/tenant/documents').send({});
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 400 when document type is missing or empty', async () => {
+    const res = await request(app)
+      .post('/api/tenant/documents')
+      .set('Cookie', [`token=${tenantToken}`])
+      .send({ type: '' });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 404 when landlord deletes non-existent document', async () => {
+    const fakeId = new mongoose.Types.ObjectId();
+    const res = await request(app)
+      .delete(`/api/landlord/documents/${fakeId}`)
+      .set('Cookie', [`token=${landlordToken}`]);
+    expect(res.status).toBe(404);
+  });
+});
+

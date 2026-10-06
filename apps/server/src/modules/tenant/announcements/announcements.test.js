@@ -89,3 +89,19 @@ describe('Tenant Announcements Feed API (/api/tenant/announcements)', () => {
     expect(res.body.data.title).toBe('Water Main Maintenance Notice');
   });
 });
+
+describe('Error Handling', () => {
+  it('returns 401 when no auth token is provided', async () => {
+    const res = await request(app).get('/api/tenant/announcements');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 404 when announcement does not exist', async () => {
+    const fakeId = new mongoose.Types.ObjectId();
+    const res = await request(app)
+      .get(`/api/tenant/announcements/${fakeId}`)
+      .set('Cookie', [`token=${tenantToken}`]);
+    expect(res.status).toBe(404);
+  });
+});
+
