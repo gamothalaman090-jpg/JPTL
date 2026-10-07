@@ -36,6 +36,7 @@ The current payment workflow records and reviews **off-platform** transfers or o
 | P1 | Payment reconciliation and accounting exports | Landlords can verify collections and reconcile what was actually received |
 | P1 | Maintenance work orders and vendor coordination | Requests move from report to completion with clear responsibility and cost |
 | P1 | Lease and document workflow completion | Agreements, signatures, renewals, and compliance evidence have a complete history |
+| P1 | Property discovery and applications | Signed-in applicants can find available rentals; landlords review applications and approved applicants become tenants |
 | P2 | JPTL AI Property Assistant (SLM + retrieval) | Users can find answers and prepare routine work from permitted JPTL records |
 | P2 | Reporting, portfolio analytics, and integrations | Landlords can understand portfolio performance and move data into other tools |
 | P2 | Mobile/PWA and customer support workspace | Residents can complete common tasks on mobile and get help when stuck |
@@ -246,6 +247,38 @@ Make routine tenant actions easy on a phone and give customers a clear path to s
 
 - Residents can complete the top mobile workflows without desktop-only controls.
 - Support actions are attributable and visible in the audit history where they affect customer data.
+
+## 10. Tenant property discovery and applications (P1)
+
+### Goal
+
+Let a signed-in prospective renter browse units that landlords have explicitly listed as available and apply. The landlord receives the application in **Property Applications**. When the landlord approves the application and confirms the lease assignment, the applicant's account is promoted to the **tenant** role.
+
+### Plan
+
+- Add a landlord-controlled listing state for each property/unit, separate from occupancy. Landlords choose which vacant units are visible, set the advertised rent and listing details, and can pause or close a listing without changing the unit's operational status.
+- Add a prospective-renter account role (for example, `applicant`) with a sign-in experience that can access the **Find a home** feed and the applicant's own applications, but cannot access tenant lease, payment, or maintenance features before approval. Show only active, available listings with property/unit details, rent, photos, amenities, location, and availability date. Add search, filters, sorting, and responsive listing detail pages.
+- Add a tenant application form with configurable fields for contact details, household members, move-in date, references, and required documents. Collect only the information needed for screening and explain how it will be used.
+- Track application lifecycle states such as draft, submitted, under review, more information requested, approved, declined, withdrawn, and expired. Keep the applicant's submission history and status visible.
+- Add a landlord **Property Applications** page with new-application notifications, filters by listing/status/date, applicant and document review, internal notes, and clear approve/decline/request-information actions.
+- On approval, have the landlord confirm the proposed rent, lease type/dates, deposit, and unit assignment. After confirmation, atomically promote the applicant account from `applicant` to `tenant`, create/link the tenant profile and lease, assign the unit, and notify the new tenant. If the assignment fails, leave the application and applicant role unchanged. Do not mark the unit occupied before the assignment succeeds.
+- Enforce listing ownership and application visibility in every API operation. Applicants can access only their own applications; landlords can access only applications for their listings. Staff permissions must be explicit and separately configurable. Record role promotion and assignment as auditable events.
+- Add consent, data retention, deletion/export, document access controls, and audit history for application decisions. Avoid collecting sensitive identity or financial data until the screening provider and legal requirements are selected.
+
+### Acceptance criteria
+
+- Signed-in applicants see only active listings and can submit, withdraw, and track their own applications; before approval they cannot use tenant-only modules.
+- Landlords receive each submitted application once, can review its documents, and can record a decision with an audit trail.
+- A landlord cannot view or change an application for another landlord's listing, and a tenant cannot view another tenant's application.
+- Approval and assignment promote the applicant to the tenant role only after landlord confirmation and successful creation of the lease, profile, and unit assignment; failure leaves the applicant unchanged.
+- Listing visibility, application permissions, and retention behavior are covered by API and end-to-end tests.
+
+### Suggested delivery phases
+
+1. Add the applicant role and build landlord listing controls plus the signed-in applicant feed using only public listing fields.
+2. Add tenant application submission, document upload, status tracking, and notifications.
+3. Add landlord review tools and audited decision actions.
+4. Add the landlord-confirmed approval-to-lease conversion, including the applicant-to-tenant role promotion, after validating screening and local privacy requirements with pilot customers.
 
 ## Suggested launch sequence
 
