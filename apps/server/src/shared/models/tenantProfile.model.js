@@ -31,6 +31,7 @@ const tenantProfileSchema = new mongoose.Schema(
     parkingSpot: { type: String, default: null },
     parkingFee: { type: Number, default: 0 },
     leaseStart: { type: Date, default: null },
+    leaseType: { type: String, enum: ['fixed_term', 'indefinite'], default: 'fixed_term' },
     leaseEnd: { type: Date, default: null },
     status: {
       type: String,

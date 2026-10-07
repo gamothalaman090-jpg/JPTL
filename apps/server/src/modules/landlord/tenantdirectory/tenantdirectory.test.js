@@ -12,6 +12,7 @@ let landlordToken;
 let landlordUser;
 let property;
 let unit;
+let indefiniteUnit;
 
 beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();
@@ -50,6 +51,10 @@ beforeAll(async () => {
     sqft: 1200,
     status: 'vacant',
   });
+  indefiniteUnit = await Unit.create({
+    label: 'Unit 19C', property: property._id, monthlyRent: 2700, bedrooms: 1,
+    bathrooms: 1, sqft: 800, status: 'vacant',
+  });
 });
 
 afterAll(async () => {
@@ -85,6 +90,24 @@ describe('Tenant Directory Module API (/api/landlord/tenantdirectory)', () => {
     // Verify unit became occupied
     const updatedUnit = await Unit.findById(unit._id);
     expect(updatedUnit.status).toBe('occupied');
+  });
+
+  it('creates an indefinite lease assignment without an expiration date', async () => {
+    const res = await request(app)
+      .post('/api/landlord/tenantdirectory')
+      .set('Cookie', [`token=${landlordToken}`])
+      .send({
+        firstName: 'Ari', lastName: 'Rivera', email: 'ari.rivera@example.com',
+        propertyId: property._id, unitId: indefiniteUnit._id, monthlyRent: 2700,
+        leaseStart: '2026-10-01', leaseType: 'indefinite', leaseEnd: null, status: 'active',
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.leaseType).toBe('indefinite');
+    expect(res.body.data.leaseEnd).toBeNull();
+    const updatedUnit = await Unit.findById(indefiniteUnit._id);
+    expect(updatedUnit.leaseType).toBe('indefinite');
+    expect(updatedUnit.leaseEnd).toBeNull();
   });
 
   it('GET /api/landlord/tenantdirectory - should list all tenants', async () => {
@@ -170,4 +193,3 @@ describe('Error Handling', () => {
     expect(res.status).toBe(400);
   });
 });
-

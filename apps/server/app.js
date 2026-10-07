@@ -11,6 +11,7 @@ import landlordOnboardingRoutes from './src/modules/landlord/onboarding/onboardi
 import landlordDashRoutes from './src/modules/landlord/dash/dash.routers.js';
 import landlordTenantDirectoryRoutes from './src/modules/landlord/tenantdirectory/tenantdirectory.routes.js';
 import landlordRentRollRoutes from './src/modules/landlord/rentroll/rentroll.routes.js';
+import landlordPaymentOptionsRoutes from './src/modules/landlord/paymentOptions/paymentOptions.routes.js';
 import landlordPropertyRoutes from './src/modules/landlord/properties/properties.routes.js';
 import landlordTicketRoutes from './src/modules/landlord/tickets/tickets.routes.js';
 import landlordLeaseRoutes from './src/modules/landlord/lease/lease.routes.js';
@@ -23,7 +24,10 @@ import tenantTicketRoutes from './src/modules/tenant/tickets/tickets.routes.js';
 import tenantLeaseRoutes from './src/modules/tenant/lease/lease.routes.js';
 import tenantDocumentRoutes from './src/modules/tenant/documents/documents.routes.js';
 import notificationRoutes from './src/modules/notifications/notification.routes.js';
+import landlordStaffRoutes from './src/modules/landlord/staff/staff.routes.js';
+import staffRoutes from './src/modules/staff/staff.routes.js';
 import vehicleRoutes from './src/modules/tenant/vehicle/vehicle.routes.js';
+import { landlordEvictionsRouter, tenantEvictionsRouter } from './src/modules/landlord/evictions/evictions.routes.js';
 import { generalLimiter, authLimiter } from './src/shared/middleware/rateLimiter.middleware.js';
 import { checkMaintenanceMode } from './src/shared/middleware/maintenance.middleware.js';
 import { securityHeaders } from './src/shared/middleware/securityHeaders.middleware.js';
@@ -97,10 +101,13 @@ app.use('/api/landlord/properties', landlordPropertyRoutes);
 app.use('/api/landlord/tickets', landlordTicketRoutes);
 app.use('/api/landlord/lease', landlordLeaseRoutes);
 app.use('/api/landlord/lease-extensions', landlordLeaseExtensionRoutes);
+app.use('/api/landlord/eviction-notices', landlordEvictionsRouter);
 app.use('/api/landlord/documents', landlordDocumentRoutes);
+app.use('/api/landlord/staff', landlordStaffRoutes);
 app.use('/api/landlord/announcements', landlordAnnouncementRoutes);
 app.use('/api/landlord/tenantdirectory', landlordTenantDirectoryRoutes);
 app.use('/api/landlord/rentroll', landlordRentRollRoutes);
+app.use('/api/landlord/payment-options', landlordPaymentOptionsRoutes);
 
 // Tenant routes
 app.use('/api/tenant/dash', tenantDashRoutes);
@@ -108,8 +115,12 @@ app.use('/api/tenant/announcements', tenantAnnouncementRoutes);
 app.use('/api/tenant/payments', tenantPaymentsRoutes);
 app.use('/api/tenant/tickets', tenantTicketRoutes);
 app.use('/api/tenant/lease', tenantLeaseRoutes);
+app.use('/api/tenant/eviction-notices', tenantEvictionsRouter);
 app.use('/api/tenant/documents', tenantDocumentRoutes);
 app.use('/api/tenant/vehicles', vehicleRoutes);
+
+// Limited staff portal data. All write actions remain under the scoped landlord modules.
+app.use('/api/staff', staffRoutes);
 
 // Shared notification routes (VAPID key + push subscribe)
 app.use('/api/notifications', notificationRoutes);

@@ -90,6 +90,32 @@ export async function sendTenantWelcomeEmail({ email, name, landlordName = 'Your
   }
 }
 
+/** Send a staff invitation with a temporary password. */
+export async function sendStaffInviteEmail({ email, name, landlordName, password }) {
+  const clientUrl = ((process.env.CLIENT_URL || 'http://localhost:5173').split(',')[0]).replace(/\/$/, '');
+  if (process.env.NODE_ENV !== 'test' && (!process.env.SMTP_USER || !process.env.SMTP_PASS)) {
+    return { success: false, error: 'Email delivery is not configured. Set SMTP_USER and SMTP_PASS before inviting staff.' };
+  }
+  const escapeHtml = (value = '') => String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+  const safeName = escapeHtml(name || 'Staff member');
+  const safeLandlord = escapeHtml(landlordName || 'Your landlord');
+  const safeEmail = escapeHtml(email);
+  const safePassword = escapeHtml(password);
+  const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1e293b;line-height:1.6"><h2>JPTL Staff Account</h2><p>Hello <strong>${safeName}</strong>,</p><p>${safeLandlord} invited you to manage rent roll, maintenance, and resident announcements in JPTL.</p><div style="padding:16px;background:#f1f5f9;border-radius:10px"><p><strong>Sign in:</strong> <a href="${clientUrl}/login">${clientUrl}/login</a></p><p><strong>Email:</strong> ${safeEmail}</p><p><strong>Temporary password:</strong> <code>${safePassword}</code></p></div><p>After signing in, change this temporary password using Forgot Password on the login page.</p><p>Your account only has access to Rent Roll, Maintenance, and Announcements.</p></div>`;
+  try {
+    const client = getTransporter();
+    const info = await client.sendMail({
+      from: process.env.SMTP_FROM || '"JPTL Property Management" <noreply@jptl.com>',
+      to: email,
+      subject: 'Your JPTL staff account invitation',
+      html,
+    });
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
 /**
  * Sends broadcast email notifications for new announcements.
  */

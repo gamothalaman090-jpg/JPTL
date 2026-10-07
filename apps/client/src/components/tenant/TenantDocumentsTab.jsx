@@ -6,7 +6,7 @@ import {
 import { MOCK_DOCUMENTS } from '../../data/mockData';
 import { DocumentInspectionModal } from '../dashboard/DocumentInspectionModal';
 import { SubmitDocumentModal } from './SubmitDocumentModal';
-import { tenantApi } from '../../services/api';
+import { tenantApi, notificationApi } from '../../services/api';
 
 export const TenantDocumentsTab = ({
   tenant,
@@ -76,6 +76,18 @@ export const TenantDocumentsTab = ({
 
   const currentTenantName = tenant?.name || 'Sophia Lin';
   const currentTenantId = tenant?.id || tenant?._id || 'usr-tenant-1';
+  const [liveExpirationReminder, setLiveExpirationReminder] = useState(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    notificationApi.streamComplianceReminders({
+      signal: controller.signal,
+      onReminder: (notification) => setLiveExpirationReminder(notification),
+    }).catch((error) => {
+      if (!controller.signal.aborted) console.warn('Compliance reminder stream disconnected:', error.message);
+    });
+    return () => controller.abort();
+  }, []);
 
   // Filter documents to show submitted documents by this tenant or building-wide published rules
   const tenantDocs = documents.filter(d => 
@@ -86,7 +98,6 @@ export const TenantDocumentsTab = ({
     d.tenantId === 'all'
   );
 
-  const [docExpirationReminderDays, setDocExpirationReminderDays] = useState('30');
   const [docStatusFilter, setDocStatusFilter] = useState('all'); // 'all' | 'Pending Review' | 'Verified' | 'Rejected'
   const [docCategoryFilter, setDocCategoryFilter] = useState('all');
   const [docSearchQuery, setDocSearchQuery] = useState('');
@@ -102,6 +113,7 @@ export const TenantDocumentsTab = ({
         formData.append('file', docData.file);
         formData.append('name', docData.name);
         formData.append('type', docData.type);
+        if (docData.expirationDate) formData.append('expirationDate', docData.expirationDate);
         formData.append('notes', docData.notes || '');
         const res = await tenantApi.uploadDocument(formData);
         createdDoc = res.data;
@@ -109,6 +121,7 @@ export const TenantDocumentsTab = ({
         const res = await tenantApi.uploadDocument({
           name: docData.name,
           type: docData.type,
+          expirationDate: docData.expirationDate,
           notes: docData.notes || '',
         });
         createdDoc = res.data;
@@ -125,6 +138,7 @@ export const TenantDocumentsTab = ({
       propertyName: unit?.propertyName || 'Aura Sky Towers & Residences',
       name: docData.name,
       type: docData.type,
+      expirationDate: docData.expirationDate,
       category: 'upload',
       size: docData.fileSize || '1.4 MB',
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
@@ -148,6 +162,16 @@ export const TenantDocumentsTab = ({
 
   return (
     <div className="space-y-6">
+
+      {liveExpirationReminder && (
+        <div role="status" className="p-4 rounded-2xl border border-amber-400/40 bg-amber-50 dark:bg-amber-500/10 text-amber-900 dark:text-amber-200 flex items-start justify-between gap-3">
+          <div>
+            <strong className="block font-grotesk text-sm">{liveExpirationReminder.title}</strong>
+            <span className="text-xs">{liveExpirationReminder.body}</span>
+          </div>
+          <button type="button" onClick={() => setLiveExpirationReminder(null)} className="text-xs underline">Dismiss</button>
+        </div>
+      )}
       
       {/* Header & Title */}
       <div className="p-6 rounded-3xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -413,15 +437,7 @@ export const TenantDocumentsTab = ({
             <strong className="text-slate-900 dark:text-white block font-grotesk text-sm">Expiration Reminder Notice Lead Time</strong>
             <span className="text-slate-500 text-xs">Automatically notify residents before their renter insurance policies or occupancy permits expire.</span>
           </div>
-          <select
-            value={docExpirationReminderDays}
-            onChange={(e) => setDocExpirationReminderDays(e.target.value)}
-            className="bg-white dark:bg-[#10131F] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-slate-900 dark:text-white text-xs font-mono shrink-0"
-          >
-            <option value="15">15 Days Before Expiry</option>
-            <option value="30">30 Days Before Expiry</option>
-            <option value="60">60 Days Before Expiry</option>
-          </select>
+          <span className="text-indigo-600 dark:text-indigo-300 font-semibold text-xs shrink-0">Your landlord sets the reminder lead time</span>
         </div>
       </div>
 

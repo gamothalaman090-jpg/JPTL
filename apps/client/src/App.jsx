@@ -10,6 +10,7 @@ const RegisterPage = lazy(() => import('./pages/RegisterPage').then(m => ({ defa
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage').then(m => ({ default: m.OnboardingPage })));
 const LoginPage = lazy(() => import('./pages/LoginPage').then(m => ({ default: m.LoginPage })));
 const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
+const StaffPortalPage = lazy(() => import('./pages/StaffPortalPage').then(m => ({ default: m.StaffPortalPage })));
 const TenantPortalPage = lazy(() => import('./pages/TenantPortalPage').then(m => ({ default: m.TenantPortalPage })));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage').then(m => ({ default: m.ForgotPasswordPage })));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
@@ -131,6 +132,8 @@ export const isLandlordRoute = (path) => {
          p.startsWith('/landlord') || p === '/landlord' || p.startsWith('/landlord-') || p.startsWith('/landlord/');
 };
 
+export const isStaffRoute = (path) => Boolean(path && path.toLowerCase().split('?')[0].replace(/\/$/, '') === '/staff');
+
 function RouteLoadingFallback({ currentPath }) {
   if (isTenantRoute(currentPath)) {
     return (
@@ -197,6 +200,7 @@ function AppRouter() {
   useEffect(() => {
     if (loading) return;
     const role = user?.role;
+    const isStaff = isStaffRoute(currentPath);
 
     if (!isAuthenticated) {
       const publicPaths = ['/login', '/', '/register', '/forgot-password'];
@@ -215,7 +219,7 @@ function AppRouter() {
 
     // Authenticated
     if (currentPath === '/login' || currentPath === '/') {
-      const target = role === 'tenant' ? '/tenant' : '/dashboard';
+      const target = role === 'tenant' ? '/tenant' : role === 'staff' ? '/staff' : '/dashboard';
       window.history.replaceState({}, '', target);
       setCurrentPath(target);
       return;
@@ -224,6 +228,19 @@ function AppRouter() {
     if (role === 'tenant' && isLandlordRoute(currentPath)) {
       window.history.replaceState({}, '', '/tenant');
       setCurrentPath('/tenant');
+      return;
+    }
+
+    if (role === 'staff' && !isStaff) {
+      window.history.replaceState({}, '', '/staff');
+      setCurrentPath('/staff');
+      return;
+    }
+
+    if (role !== 'staff' && isStaff) {
+      const target = role === 'tenant' ? '/tenant' : '/dashboard';
+      window.history.replaceState({}, '', target);
+      setCurrentPath(target);
       return;
     }
 
@@ -277,7 +294,7 @@ function AppRouter() {
 
   // 3. Unauthenticated user on protected route
   if (!isAuthenticated) {
-    const protectedPrefixes = ['/dashboard', '/tenant', '/onboarding'];
+    const protectedPrefixes = ['/dashboard', '/tenant', '/staff', '/onboarding'];
     const isProtected = protectedPrefixes.some(p => currentPath.startsWith(p));
     if (isProtected) {
       return <LoginPage onNavigate={navigate} />;
@@ -293,6 +310,7 @@ function AppRouter() {
         if (currentPath === '/login') return <LoginPage onNavigate={navigate} />;
         if (currentPath === '/forgot-password' || currentPath.startsWith('/reset-password')) return <ForgotPasswordPage onNavigate={navigate} />;
         if (isTenantRoute(currentPath)) return <TenantPortalPage currentPath={currentPath} onNavigate={navigate} />;
+        if (isStaffRoute(currentPath)) return <StaffPortalPage onNavigate={navigate} />;
         if (isLandlordRoute(currentPath)) return <DashboardPage currentPath={currentPath} onNavigate={navigate} />;
         if (currentPath === '/') return <LandingPage onNavigate={navigate} />;
         return <NotFoundPage onNavigate={navigate} />;

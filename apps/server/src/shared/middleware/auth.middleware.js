@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
+import User from '../models/user.model.js';
 
-function requireAuth(req, res, next) {
+async function requireAuth(req, res, next) {
   const bearerToken = req.headers.authorization?.startsWith('Bearer ')
     ? req.headers.authorization.split(' ')[1]
     : null;
@@ -12,13 +13,24 @@ function requireAuth(req, res, next) {
     return res.status(401).json({ success: false, message: 'No token provided' });
   }
 
+  let decoded;
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // { id, role }
-    return next();
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
   } catch (err) {
     return res.status(401).json({ success: false, message: 'Invalid or expired token' });
   }
+
+  if (decoded.role === 'staff') {
+    try {
+      const staff = await User.findOne({ _id: decoded.id, role: 'staff', status: 'active' }).select('landlord').lean();
+      if (!staff?.landlord) return res.status(401).json({ success: false, message: 'Staff account is suspended or no longer active.' });
+      decoded.landlord = staff.landlord.toString();
+    } catch (error) {
+      return next(error);
+    }
+  }
+  req.user = decoded;
+  return next();
 }
 
 function requireRole(...allowedRoles) {

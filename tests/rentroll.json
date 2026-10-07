@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Landlord – Rent Roll & Financial Transactions Module",
-    "description": "Postman/Bruno test collection for Landlord Rent Roll endpoints in JPTL.\nIncludes rent roll directory & KPI metrics, status & search filters, single payment inspection, creating invoice charges, manual payment reconciliation ('Mark Paid'), updates, CSV export, and role guards.",
+    "description": "Postman/Bruno test collection for Landlord Rent Roll endpoints in JPTL.\nIncludes rent roll directory & KPI metrics, status & search filters, single payment inspection, invoice creation, onsite-only payment confirmation, updates, CSV export, and role guards.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -292,19 +292,16 @@
       }
     },
     {
-      "name": "7. Mark Payment as Paid (Manual Reconciliation)",
+      "name": "7. Reject Mark Paid Without an Onsite Review Request",
       "event": [
         {
           "listen": "test",
           "script": {
             "exec": [
               "const res = pm.response.json();",
-              "pm.test('Status code is 200', function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "pm.test('Payment status updated to paid and has transaction ID', function () {",
-              "    pm.expect(res.data.status).to.equal('paid');",
-              "    pm.expect(res.data.mockTransactionId).to.be.a('string');",
+              "pm.test('Cannot mark an unsubmitted invoice as paid', function () {",
+              "    pm.response.to.have.status(409);",
+              "    pm.expect(res.message).to.include('onsite payment');",
               "});"
             ]
           }
@@ -325,7 +322,7 @@
           "host": ["{{base_url}}"],
           "path": ["api", "landlord", "rentroll", "{{created_payment_id}}", "mark-paid"]
         },
-        "description": "Executes the 'Mark Paid' action from the frontend UI, generating a reference transaction ID and audit log."
+        "description": "Prevents the legacy direct mark-paid action from bypassing tenant submission and landlord review."
       }
     },
     {

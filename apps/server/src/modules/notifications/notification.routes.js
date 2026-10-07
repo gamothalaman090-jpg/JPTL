@@ -30,6 +30,49 @@ router.get('/vapid-key', (req, res) => {
   return res.status(200).json({ success: true, publicKey: key });
 });
 
+// Stream new persisted compliance reminders to the authenticated resident.
+// Polling MongoDB keeps this reliable when the API runs in multiple workers.
+router.get('/stream', requireAuth, async (req, res) => {
+  if (req.user.role !== 'tenant') return res.status(403).end();
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders?.();
+  res.write(`event: connected\ndata: ${JSON.stringify({ timestamp: new Date().toISOString() })}\n\n`);
+  res.flush?.();
+
+  const userId = req.user._id || req.user.id;
+  let cursor = new Date(Date.now() - 5000);
+  let cursorId = null;
+  let active = true;
+  const poll = async () => {
+    if (!active) return;
+    try {
+      const cursorFilter = cursorId
+        ? { $or: [{ createdAt: { $gt: cursor } }, { createdAt: cursor, _id: { $gt: cursorId } }] }
+        : { createdAt: { $gte: cursor } };
+      const notifications = await Notification.find({ user: userId, type: 'compliance', ...cursorFilter })
+        .sort({ createdAt: 1, _id: 1 }).limit(50).lean();
+      for (const notification of notifications) {
+        const id = String(notification._id);
+        res.write(`id: ${id}\nevent: compliance-expiration-reminder\ndata: ${JSON.stringify(notification)}\n\n`);
+        cursor = new Date(notification.createdAt);
+        cursorId = notification._id;
+      }
+      res.flush?.();
+    } catch (error) {
+      console.error('Compliance reminder SSE poll failed:', error.message);
+    }
+  };
+  const interval = setInterval(poll, 3000);
+  const heartbeat = setInterval(() => { if (active) { res.write(': heartbeat\n\n'); res.flush?.(); } }, 20000);
+  req.on('close', () => {
+    active = false;
+    clearInterval(interval);
+    clearInterval(heartbeat);
+  });
+});
+
 /**
  * @swagger
  * /api/notifications/subscribe:

@@ -22,6 +22,14 @@ async function getLandlordUnitIds(landlordId) {
   return { propertyIds, units, unitIds: units.map((u) => u._id) };
 }
 
+function visiblePaymentScope(unitIds, propertyIds) {
+  return { $and: [
+    { $or: [{ unit: { $in: unitIds } }, { property: { $in: propertyIds } }] },
+    { status: { $ne: 'draft' } },
+    { $or: [{ isAdvancePayment: { $ne: true } }, { status: 'paid' }, { submittedAt: { $ne: null } }] },
+  ] };
+}
+
 /**
  * Format a single payment object for client response
  */
@@ -52,6 +60,13 @@ function formatPayment(p) {
     processingFee: p.processingFee ?? 0,
     dueDate: p.dueDate,
     status: p.status,
+    reviewStatus: p.reviewStatus || null,
+    paymentChannel: p.paymentChannel || null,
+    submittedAt: p.submittedAt || null,
+    transferReference: p.transferReference || '',
+    tenantPaymentNote: p.tenantPaymentNote || '',
+    rejectionReason: p.rejectionReason || '',
+    hasReceipt: Boolean(p.receiptPublicId),
     period: p.period || `Rent Due ${p.dueDate ? new Date(p.dueDate).toISOString().slice(0, 7) : 'Current'}`,
     paymentMethod: p.paymentMethod || null,
     mockTransactionId: p.mockTransactionId || null,
@@ -118,30 +133,24 @@ export async function getRentRoll(landlordId, query = {}, context = {}) {
   }
 
   // Base match filter scoped to landlord's units and properties
-  const baseLandlordScope = {
-    $or: [
-      { unit: { $in: unitIds } },
-      { property: { $in: propertyIds } },
-    ],
-  };
+  const baseLandlordScope = visiblePaymentScope(unitIds, propertyIds);
 
-  const filter = { ...baseLandlordScope };
+  const filter = { $and: [...baseLandlordScope.$and] };
 
   // Status filter ('all', 'paid', 'pending', 'overdue', 'failed')
   if (query.status && query.status !== 'all') {
-    filter.status = query.status;
+    if (query.status === 'pending_review') filter.$and.push({ reviewStatus: 'pending_review' });
+    else filter.$and.push({ status: query.status });
   }
 
   // Specific property filter
   if (query.propertyId) {
-    delete filter.$or;
-    filter.property = query.propertyId;
+    filter.$and.push({ property: query.propertyId });
   }
 
   // Specific unit filter
   if (query.unitId) {
-    delete filter.$or;
-    filter.unit = query.unitId;
+    filter.$and.push({ unit: query.unitId });
   }
 
   // Date range filter on dueDate
@@ -239,13 +248,7 @@ export async function getPaymentById(landlordId, paymentId) {
 
   const { propertyIds, unitIds } = await getLandlordUnitIds(landlordId);
 
-  const payment = await Payment.findOne({
-    _id: paymentId,
-    $or: [
-      { unit: { $in: unitIds } },
-      { property: { $in: propertyIds } },
-    ],
-  })
+  const payment = await Payment.findOne({ _id: paymentId, ...visiblePaymentScope(unitIds, propertyIds) })
     .populate('tenant', 'firstName middleName lastName email phone')
     .populate({
       path: 'unit',
@@ -272,6 +275,8 @@ export async function createPaymentInvoice(landlordId, data, ipAddress = '') {
   if (!unitId || !mongoose.Types.ObjectId.isValid(unitId)) {
     throw new RentRollError('Valid unitId is required', 400);
   }
+  if (status === 'draft') throw new RentRollError('Draft invoices are reserved for tenant advance payment preparation.', 400);
+  if (status === 'paid') throw new RentRollError('Invoices must be approved through payment review before they can be marked paid', 400);
 
   // Validate unit belongs to landlord
   const unit = await Unit.findById(unitId).populate('property').lean();
@@ -321,12 +326,6 @@ export async function createPaymentInvoice(landlordId, data, ipAddress = '') {
     notes: notes || '',
   });
 
-  if (status === 'paid') {
-    payment.paidAt = new Date();
-    payment.mockTransactionId = `TXN_MANUAL_${Math.floor(10000000 + Math.random() * 90000000)}`;
-    payment.paymentMethod = 'Landlord Direct Entry';
-  }
-
   await payment.save();
 
   // Audit log
@@ -353,40 +352,62 @@ export async function markPaymentAsPaid(landlordId, paymentId, data = {}, ipAddr
 
   const { propertyIds, unitIds } = await getLandlordUnitIds(landlordId);
 
-  const payment = await Payment.findOne({
-    _id: paymentId,
-    $or: [
-      { unit: { $in: unitIds } },
-      { property: { $in: propertyIds } },
-    ],
-  });
+  const payment = await Payment.findOne({ _id: paymentId, ...visiblePaymentScope(unitIds, propertyIds) });
   if (!payment) {
     throw new RentRollError('Payment record not found or access denied', 404);
   }
 
-  const txId = data.mockTransactionId || `TXN_MANUAL_${Math.floor(10000000 + Math.random() * 90000000)}`;
-  const paidAt = data.paidAt ? new Date(data.paidAt) : new Date();
-  const paymentMethod = data.paymentMethod || 'Direct Payment / Cash';
+  if (payment.reviewStatus !== 'pending_review' || payment.paymentChannel !== 'onsite') {
+    throw new RentRollError('Only an onsite payment awaiting review can be confirmed here', 409);
+  }
+  return reviewPayment(landlordId, paymentId, { action: 'approve', notes: data.notes }, ipAddress);
+}
 
-  payment.status = 'paid';
-  payment.mockTransactionId = txId;
-  payment.paidAt = paidAt;
-  payment.paymentMethod = paymentMethod;
-  if (data.notes) payment.notes = data.notes;
+export async function reviewPayment(landlordId, paymentId, data = {}, ipAddress = '') {
+  if (!mongoose.Types.ObjectId.isValid(paymentId)) throw new RentRollError('Invalid payment ID format', 400);
+  const action = data.action;
+  if (!['approve', 'reject'].includes(action)) throw new RentRollError('Action must be approve or reject', 400);
+  const { propertyIds, unitIds } = await getLandlordUnitIds(landlordId);
+  const payment = await Payment.findOne({ _id: paymentId, ...visiblePaymentScope(unitIds, propertyIds) });
+  if (!payment) throw new RentRollError('Payment record not found or access denied', 404);
+  if (payment.reviewStatus !== 'pending_review') throw new RentRollError('Payment is not awaiting review', 409);
+  if (action === 'approve' && payment.paymentChannel !== 'onsite' && !payment.receiptPublicId) throw new RentRollError('Transfer receipt is required before approval', 409);
+  if (action === 'reject' && !String(data.reason || '').trim()) throw new RentRollError('A rejection reason is required', 400);
 
+  payment.reviewStatus = action === 'approve' ? 'approved' : 'rejected';
+  payment.reviewedAt = new Date();
+  payment.reviewedBy = landlordId;
+  if (action === 'approve') {
+    payment.status = 'paid';
+    payment.paidAt = payment.reviewedAt;
+    payment.receiptNumber = payment.receiptNumber || `RCP-${payment._id.toString().slice(-8).toUpperCase()}`;
+    payment.rejectionReason = '';
+    payment.paymentMethod = payment.paymentOptionSnapshot?.displayName || (payment.paymentChannel === 'onsite' ? 'Pay Onsite' : 'Bank Transfer');
+  } else {
+    payment.rejectionReason = String(data.reason).trim().slice(0, 1000);
+  }
+  if (data.notes) payment.notes = String(data.notes).trim().slice(0, 1000);
   await payment.save();
-
-  // Audit log
-  await AuditLog.create({
-    actor: landlordId,
-    actorRole: 'landlord',
-    action: 'PAYMENT_MARKED_PAID',
-    entityKind: 'Payment',
-    entityId: payment._id,
-    ipAddress,
-  });
-
+  await AuditLog.create({ actor: landlordId, actorRole: 'landlord', action: action === 'approve' ? 'PAYMENT_REVIEW_APPROVED' : 'PAYMENT_REVIEW_REJECTED', entityKind: 'Payment', entityId: payment._id, afterState: { reviewStatus: payment.reviewStatus, reason: payment.rejectionReason }, ipAddress });
+  if (payment.tenant) {
+    const { createNotification } = await import('../../../shared/services/notification.service.js');
+    await createNotification({ userId: payment.tenant, title: action === 'approve' ? 'Payment approved' : 'Payment needs attention', body: action === 'approve' ? `Your payment for ${payment.period || 'rent'} was approved.` : `Your payment for ${payment.period || 'rent'} was declined: ${payment.rejectionReason}`, type: 'payment', refModel: 'Payment', refId: payment._id });
+  }
   return getPaymentById(landlordId, payment._id);
+}
+
+export async function getLandlordPaymentEvidence(landlordId, paymentId) {
+  if (!mongoose.Types.ObjectId.isValid(paymentId)) throw new RentRollError('Invalid payment ID format', 400);
+  const { propertyIds, unitIds } = await getLandlordUnitIds(landlordId);
+  const payment = await Payment.findOne({ _id: paymentId, ...visiblePaymentScope(unitIds, propertyIds) }).lean();
+  if (!payment?.receiptPublicId) throw new RentRollError('Payment evidence not found', 404);
+  const { getPrivatePaymentAssetUrl } = await import('../../../shared/config/cloudinary.js');
+  const format = payment.receiptFormat;
+  const url = await getPrivatePaymentAssetUrl(payment.receiptPublicId, format, format === 'pdf' ? 'raw' : 'image');
+  if (!url) throw new RentRollError('Payment evidence storage is unavailable', 404);
+  const response = await fetch(url);
+  if (!response.ok) throw new RentRollError('Payment evidence could not be loaded', 502);
+  return { stream: response.body, name: payment.receiptOriginalName || 'payment-receipt', mimeType: response.headers.get('content-type') || 'application/octet-stream' };
 }
 
 /**
@@ -400,13 +421,7 @@ export async function updatePayment(landlordId, paymentId, data = {}, ipAddress 
 
   const { propertyIds, unitIds } = await getLandlordUnitIds(landlordId);
 
-  const payment = await Payment.findOne({
-    _id: paymentId,
-    $or: [
-      { unit: { $in: unitIds } },
-      { property: { $in: propertyIds } },
-    ],
-  });
+  const payment = await Payment.findOne({ _id: paymentId, ...visiblePaymentScope(unitIds, propertyIds) });
   if (!payment) {
     throw new RentRollError('Payment record not found or access denied', 404);
   }
@@ -428,13 +443,8 @@ export async function updatePayment(landlordId, paymentId, data = {}, ipAddress 
     if (!validStatuses.includes(data.status)) {
       throw new RentRollError(`Status must be one of: ${validStatuses.join(', ')}`, 400);
     }
+    if (data.status === 'paid' && payment.status !== 'paid') throw new RentRollError('Use payment review to approve a submitted payment', 409);
     payment.status = data.status;
-    if (data.status === 'paid' && !payment.paidAt) {
-      payment.paidAt = new Date();
-      if (!payment.mockTransactionId) {
-        payment.mockTransactionId = `TXN_MANUAL_${Math.floor(10000000 + Math.random() * 90000000)}`;
-      }
-    }
   }
 
   if (data.period !== undefined) payment.period = data.period;
@@ -470,13 +480,7 @@ export async function deletePayment(landlordId, paymentId, ipAddress = '') {
 
   const { propertyIds, unitIds } = await getLandlordUnitIds(landlordId);
 
-  const payment = await Payment.findOne({
-    _id: paymentId,
-    $or: [
-      { unit: { $in: unitIds } },
-      { property: { $in: propertyIds } },
-    ],
-  });
+  const payment = await Payment.findOne({ _id: paymentId, ...visiblePaymentScope(unitIds, propertyIds) });
   if (!payment) {
     throw new RentRollError('Payment record not found or access denied', 404);
   }

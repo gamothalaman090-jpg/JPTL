@@ -9,6 +9,7 @@ router.use(requireAuth, requireRole('tenant'));
 
 router.get('/', leaseController.getLease);
 router.post('/extension', leaseController.requestExtension);
+router.post('/end-early', leaseController.requestEarlyTermination);
 router.get('/document', leaseController.getLeaseDocument);
 
 export default router;

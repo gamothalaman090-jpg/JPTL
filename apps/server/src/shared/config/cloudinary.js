@@ -133,4 +133,36 @@ export async function uploadAvatarToCloudinary(fileBuffer, originalName = 'avata
   });
 }
 
+/** Upload payment assets; tenant evidence uses authenticated Cloudinary delivery. */
+export async function uploadPaymentAssetToCloudinary(fileBuffer, originalName, { privateAsset = false, folder = 'jptl_payment_assets' } = {}) {
+  const client = getCloudinaryClient();
+  const safeName = String(originalName || 'payment-file').replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_.-]/g, '_');
+  const extension = String(originalName || '').split('.').pop()?.toLowerCase() || '';
+  if (!client) {
+    throw new Error('Payment file storage is not configured. Configure Cloudinary before accepting QR images or payment receipts.');
+  }
+  return new Promise((resolve, reject) => {
+    client.uploader.upload_stream({
+      folder,
+      resource_type: 'auto',
+      type: privateAsset ? 'authenticated' : 'upload',
+      public_id: `${Date.now()}_${safeName}`,
+      overwrite: false,
+    }, (error, result) => {
+      if (error) return reject(error);
+      resolve(result);
+    }).end(fileBuffer);
+  });
+}
+
+export async function getPrivatePaymentAssetUrl(publicId, format, resourceType = 'image') {
+  const client = getCloudinaryClient();
+  if (!client) return null;
+  const downloadUrl = client.utils.private_download_url(publicId, format, {
+    resource_type: resourceType,
+    type: 'authenticated',
+  });
+  return downloadUrl;
+}
+
 export { cloudinary };

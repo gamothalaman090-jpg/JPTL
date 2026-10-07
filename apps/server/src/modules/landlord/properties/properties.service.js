@@ -1,6 +1,8 @@
 import Property from '../../../shared/models/property.model.js';
 import Unit from '../../../shared/models/unit.model.js';
 import AuditLog from '../../../shared/models/auditLog.model.js';
+import Lease from '../../../shared/models/lease.model.js';
+import User from '../../../shared/models/user.model.js';
 
 export class PropertyError extends Error {
   constructor(message, statusCode = 400) {
@@ -50,6 +52,17 @@ export async function getLandlordProperties(landlordId, context = {}) {
   const propertyIds = context.propertyIds || properties.map((p) => p._id);
 
   const units = context.units || (await Unit.find({ property: { $in: propertyIds } }).lean());
+  const tenantIds = units.map((unit) => unit.tenant?._id || unit.tenant).filter(Boolean);
+  const tenants = context.tenants || (await User.find({ _id: { $in: tenantIds } }).select('firstName middleName lastName email').lean());
+  const tenantMap = new Map(tenants.map((tenant) => [String(tenant._id || tenant.id), tenant]));
+  const unitIds = units.map((unit) => unit._id);
+  const activeLeases = await Lease.find({
+    landlord: landlordId,
+    unit: { $in: unitIds },
+    status: { $in: ['active', 'renewal_pending', 'renewal_approved'] },
+  }).select('unit tenant leaseStart leaseEnd leaseType').sort({ updatedAt: -1 }).lean();
+  const leaseByUnit = new Map();
+  for (const lease of activeLeases) if (!leaseByUnit.has(String(lease.unit))) leaseByUnit.set(String(lease.unit), lease);
 
   const propertiesWithUnits = properties.map((prop) => {
     const propUnits = units.filter((u) => u.property.toString() === prop._id.toString());
@@ -62,7 +75,27 @@ export async function getLandlordProperties(landlordId, context = {}) {
       unitsCount: propUnits.length,
       occupancyRate: propUnits.length > 0 ? Math.round((occupiedUnits / propUnits.length) * 100) : 0,
       totalRentValue,
-      units: propUnits.map((u) => ({ ...u, id: u._id })),
+      units: propUnits.map((u) => {
+        const tenantId = u.tenant?._id || u.tenant;
+        const tenant = (tenantId && typeof tenantId === 'object' && (tenantId.firstName || tenantId.email) ? tenantId : null)
+          || tenantMap.get(String(tenantId))
+          || null;
+        const lease = leaseByUnit.get(String(u._id));
+        const tenantName = tenant
+          ? [tenant.firstName, tenant.middleName, tenant.lastName].filter(Boolean).join(' ').trim() || tenant.email
+          : null;
+        const leaseType = lease?.leaseType || u.leaseType || ((lease?.leaseEnd || u.leaseEnd) ? 'fixed_term' : 'indefinite');
+        return {
+          ...u,
+          id: u._id,
+          tenantId: tenantId ? String(tenantId) : null,
+          tenantName: tenantName || u.tenantName || null,
+          tenantEmail: tenant?.email || u.tenantEmail || null,
+          leaseStart: lease?.leaseStart || u.leaseStart || null,
+          leaseType,
+          leaseEnd: leaseType === 'indefinite' ? null : lease?.leaseEnd || u.leaseEnd || null,
+        };
+      }),
     };
   });
 
@@ -78,17 +111,30 @@ export async function getPropertyById(landlordId, propertyId) {
     throw new PropertyError('Property not found or access denied', 404);
   }
 
-  const units = await Unit.find({ property: propertyId }).populate('tenant', 'name email').lean();
+  const units = await Unit.find({ property: propertyId }).lean();
+  const tenants = await User.find({ _id: { $in: units.map((unit) => unit.tenant).filter(Boolean) } }).select('firstName middleName lastName email').lean();
+  const tenantMap = new Map(tenants.map((tenant) => [String(tenant._id), tenant]));
+  const leases = await Lease.find({ landlord: landlordId, unit: { $in: units.map((unit) => unit._id) }, status: { $in: ['active', 'renewal_pending', 'renewal_approved'] } }).select('unit leaseStart leaseEnd leaseType').sort({ updatedAt: -1 }).lean();
+  const leaseByUnit = new Map();
+  for (const lease of leases) if (!leaseByUnit.has(String(lease.unit))) leaseByUnit.set(String(lease.unit), lease);
 
   return {
     ...property,
     id: property._id,
-    units: units.map((u) => ({
-      ...u,
-      id: u._id,
-      tenantName: u.tenant?.name || null,
-      tenantEmail: u.tenant?.email || null,
-    })),
+    units: units.map((u) => {
+      const lease = leaseByUnit.get(String(u._id));
+      const leaseType = lease?.leaseType || u.leaseType || ((lease?.leaseEnd || u.leaseEnd) ? 'fixed_term' : 'indefinite');
+      return {
+        ...u,
+        id: u._id,
+        tenantName: tenantMap.has(String(u.tenant)) ? [tenantMap.get(String(u.tenant)).firstName, tenantMap.get(String(u.tenant)).middleName, tenantMap.get(String(u.tenant)).lastName].filter(Boolean).join(' ').trim() || tenantMap.get(String(u.tenant)).email : null,
+        tenantEmail: tenantMap.get(String(u.tenant))?.email || null,
+        tenantId: u.tenant || null,
+        leaseStart: lease?.leaseStart || u.leaseStart || null,
+        leaseType,
+        leaseEnd: leaseType === 'indefinite' ? null : lease?.leaseEnd || u.leaseEnd || null,
+      };
+    }),
   };
 }
 

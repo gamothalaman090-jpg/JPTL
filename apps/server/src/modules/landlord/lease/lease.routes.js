@@ -9,5 +9,6 @@ router.use(requireAuth, requireRole('landlord'));
 
 router.get('/extensions', landlordLeaseController.getLeasesAndExtensions);
 router.patch('/:leaseId/extensions/:requestId/review', landlordLeaseController.reviewExtension);
+router.patch('/:leaseId/termination-requests/:requestId/review', landlordLeaseController.reviewEarlyTermination);
 
 export default router;

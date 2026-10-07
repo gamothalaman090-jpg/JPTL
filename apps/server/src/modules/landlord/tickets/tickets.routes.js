@@ -17,7 +17,7 @@ const upload = multer({
 const router = Router();
 
 // Protect all routes: Landlord only
-router.use(requireAuth, requireRole('landlord'));
+router.use(requireAuth, requireRole('landlord', 'staff'));
 
 // Photo upload — must be declared BEFORE /:id routes
 router.post('/upload-photos', upload.array('photos', 5), ticketController.uploadPhotos);

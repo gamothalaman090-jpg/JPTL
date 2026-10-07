@@ -89,6 +89,7 @@ async function getTenantDashboard(tenantId) {
   const property = profile?.property || null;
   const leaseStart = profile?.leaseStart ?? unit?.leaseStart ?? null;
   const leaseEnd = profile?.leaseEnd ?? unit?.leaseEnd ?? null;
+  const leaseType = profile?.leaseType ?? unit?.leaseType ?? (leaseEnd ? 'fixed_term' : 'indefinite');
   let leaseStatus = 'no_lease';
   if (leaseStart && leaseEnd) {
     const end = new Date(leaseEnd);
@@ -154,6 +155,7 @@ async function getTenantDashboard(tenantId) {
       status: leaseStatus,
       leaseStart,
       leaseEnd,
+      leaseType,
       monthlyRent: profile?.monthlyRent ?? unit?.monthlyRent ?? 0,
       hasParking: profile?.hasParking ?? unit?.hasParking ?? false,
       parkingSpot: profile?.parkingSpot ?? unit?.parkingSpot ?? null,

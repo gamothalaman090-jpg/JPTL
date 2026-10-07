@@ -89,10 +89,15 @@ export async function getTenantDocuments(tenantId, query = {}) {
  * SUBMIT a compliance / verification document (Tenant)
  */
 export async function submitTenantDocument(tenantId, payload, file = null, ipAddress = '') {
-  const { name, type = 'Proof of Insurance', category = 'upload', notes = '', fileSize, fileUrl } = payload;
+  const { name, type = 'Proof of Insurance', category = 'upload', notes = '', fileSize, fileUrl, expirationDate } = payload;
 
   if (!type?.trim()) {
     throw new DocumentError('Document classification / type is required', 400);
+  }
+  const requiresExpiration = /renter insurance|proof of insurance|occupancy permit/i.test(type);
+  const parsedExpiration = expirationDate ? new Date(expirationDate) : null;
+  if (requiresExpiration && (!parsedExpiration || Number.isNaN(parsedExpiration.getTime()))) {
+    throw new DocumentError('A valid expiration date is required for renter insurance and occupancy permits.', 400);
   }
 
   // Find tenant unit
@@ -125,6 +130,7 @@ export async function submitTenantDocument(tenantId, payload, file = null, ipAdd
     unit: targetUnit._id,
     name: docName,
     type: type.trim(),
+    expirationDate: parsedExpiration,
     category: ['lease', 'upload', 'receipt'].includes(category) ? category : 'upload',
     size: resolvedSize,
     fileUrl: resolvedUrl,
@@ -219,4 +225,3 @@ export async function getDocumentStream(tenantId, documentId) {
 
   throw new DocumentError('Document file stream unavailable', 404);
 }
-

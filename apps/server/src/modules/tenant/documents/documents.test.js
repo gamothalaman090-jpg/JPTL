@@ -7,6 +7,8 @@ import User from '../../../shared/models/user.model.js';
 import Property from '../../../shared/models/property.model.js';
 import Unit from '../../../shared/models/unit.model.js';
 import Document from '../../../shared/models/document.model.js';
+import Notification from '../../../shared/models/notification.model.js';
+import { runComplianceExpirationReminders } from '../../../shared/services/complianceReminder.service.js';
 
 let mongoServer;
 let landlordToken;
@@ -93,6 +95,7 @@ describe('Resident Compliance Vault & Documents API (Tenant & Landlord)', () => 
       .send({
         name: 'State_Farm_Renter_Insurance_Policy.pdf',
         type: 'Proof of Insurance',
+        expirationDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
         category: 'upload',
         notes: 'Annual policy active through December 2027.',
         fileSize: '2.1 MB',
@@ -102,6 +105,7 @@ describe('Resident Compliance Vault & Documents API (Tenant & Landlord)', () => 
     expect(res.body.success).toBe(true);
     expect(res.body.data.name).toBe('State_Farm_Renter_Insurance_Policy.pdf');
     expect(res.body.data.status).toBe('Pending Review');
+    expect(res.body.data.expirationDate).toBeTruthy();
     expect(res.body.data.fileUrl).toContain('cloudinary');
     createdDocId = res.body.data._id || res.body.data.id;
   });
@@ -146,6 +150,15 @@ describe('Resident Compliance Vault & Documents API (Tenant & Landlord)', () => 
     expect(dbDoc.status).toBe('Verified');
   });
 
+  it('creates one persisted compliance expiration reminder within the landlord lead time', async () => {
+    const result = await runComplianceExpirationReminders();
+    expect(result.createdCount).toBe(1);
+    await runComplianceExpirationReminders();
+    const reminders = await Notification.find({ user: tenantUser._id, type: 'compliance' });
+    expect(reminders).toHaveLength(1);
+    expect(reminders[0].refId.toString()).toBe(createdDocId);
+  });
+
   it('DELETE /api/landlord/documents/:id - landlord purges/removes document', async () => {
     const res = await request(app)
       .delete(`/api/landlord/documents/${createdDocId}`)
@@ -181,4 +194,3 @@ describe('Error Handling', () => {
     expect(res.status).toBe(404);
   });
 });
-

@@ -24,6 +24,15 @@ export async function requestExtension(req, res) {
   }
 }
 
+export async function requestEarlyTermination(req, res) {
+  try {
+    const result = await leaseService.requestEarlyTermination(req.user._id || req.user.id, req.body, req.ip || '');
+    return res.status(201).json(result);
+  } catch (err) {
+    return res.status(err.statusCode || 400).json({ success: false, message: err.message });
+  }
+}
+
 export async function getLeaseDocument(req, res) {
   try {
     const tenantId = req.user._id || req.user.id;
@@ -41,4 +50,3 @@ export async function getLeaseDocument(req, res) {
     return res.status(statusCode).json({ success: false, message: err.message });
   }
 }
-

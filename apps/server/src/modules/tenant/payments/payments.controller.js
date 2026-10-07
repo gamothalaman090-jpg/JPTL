@@ -7,6 +7,43 @@ export const getTenantLedger = asyncHandler(async (req, res) => {
   return res.status(200).json({ success: true, data: ledger });
 });
 
+export const getPaymentOptions = asyncHandler(async (req, res) => {
+  res.json({ success: true, data: await tenantPaymentService.getTenantPaymentOptions(req.user.id) });
+});
+
+export const getOrCreateCurrentInvoice = asyncHandler(async (req, res) => {
+  const invoice = await tenantPaymentService.getOrCreateCurrentRentInvoice(req.user.id, req.ip || '');
+  res.status(200).json({ success: true, data: invoice });
+});
+
+export const createAdvanceInvoice = asyncHandler(async (req, res) => {
+  const invoice = await tenantPaymentService.createAdvanceRentInvoice(req.user.id, req.body, req.ip || '');
+  res.status(201).json({ success: true, data: invoice });
+});
+
+export const discardAdvanceRentDraft = asyncHandler(async (req, res) => {
+  const result = await tenantPaymentService.discardAdvanceRentDraft(req.user.id, req.params.id, req.ip || '');
+  res.status(200).json({ success: true, data: result });
+});
+
+export const submitPaymentEvidence = asyncHandler(async (req, res) => {
+  const result = await tenantPaymentService.submitPaymentEvidence(req.user.id, req.params.id, req.body, req.file, req.ip || '');
+  res.status(201).json({ success: true, data: result });
+});
+
+export const submitOnsitePayment = asyncHandler(async (req, res) => {
+  const result = await tenantPaymentService.submitOnsitePayment(req.user.id, req.params.id, req.body, req.ip || '');
+  res.status(201).json({ success: true, data: result });
+});
+
+export const getPaymentEvidence = asyncHandler(async (req, res) => {
+  const evidence = await tenantPaymentService.getTenantPaymentEvidence(req.user.id, req.params.id);
+  const safeName = evidence.name.replace(/[\r\n"\\]/g, '_');
+  res.setHeader('Content-Type', evidence.mimeType);
+  res.setHeader('Content-Disposition', `inline; filename="${safeName}"`);
+  evidence.stream.pipe(res);
+});
+
 export async function getPaymentReceipt(req, res) {
   try {
     const tenantId = req.user.id;
@@ -112,4 +149,3 @@ export const payAdvance = asyncHandler(async (req, res) => {
     data: result,
   });
 });
-

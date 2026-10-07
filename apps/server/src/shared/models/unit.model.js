@@ -26,6 +26,7 @@ const unitSchema = new mongoose.Schema(
       default: 'vacant',
     },
     leaseStart: { type: Date, default: null },
+    leaseType: { type: String, enum: ['fixed_term', 'indefinite'], default: 'fixed_term' },
     leaseEnd: { type: Date, default: null },
   },
   { timestamps: true }

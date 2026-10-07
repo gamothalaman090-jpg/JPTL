@@ -474,7 +474,9 @@ export const TenantSettingsTab = ({
                 <div className="p-3 rounded-xl bg-white dark:bg-[#10131F] border border-slate-200 dark:border-slate-800 col-span-2 sm:col-span-1">
                   <span className="text-xs text-slate-400 block">Lease Expiry</span>
                   <strong className="text-slate-900 dark:text-white font-grotesk text-sm block">
-                    {lease?.leaseEnd || unit?.leaseEnd
+                    {(lease?.leaseType || unit?.leaseType) === 'indefinite' || (!(lease?.leaseEnd || unit?.leaseEnd) && Boolean(lease?.leaseStart || unit?.leaseStart))
+                      ? 'No fixed expiration'
+                      : lease?.leaseEnd || unit?.leaseEnd
                       ? new Date(lease?.leaseEnd || unit?.leaseEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                       : 'No Active Lease'}
                   </strong>

@@ -77,6 +77,7 @@ function sanitizeUser(user) {
     email: user.email,
     phone: user.phone || '',
     role: user.role,
+    landlordId: user.role === 'staff' ? user.landlord : undefined,
     avatarUrl: user.avatarUrl || '',
     createdAt: user.createdAt,
   };
@@ -128,6 +129,10 @@ async function login({ email, password, ip = '', userAgent = '' }) {
     throw new AuthError('Invalid email or password', 401);
   }
 
+  if (user.status !== 'active') {
+    throw new AuthError('This account is suspended. Contact your landlord or administrator.', 403);
+  }
+
   // Check maintenance mode: non-superadmin users are blocked when active
   if (state.enabled && user.role !== 'superadmin') {
     throw new AuthError(state.message || 'Platform is currently undergoing scheduled maintenance. Non-administrative logins are temporarily paused.', 503);
@@ -139,7 +144,7 @@ async function login({ email, password, ip = '', userAgent = '' }) {
     throw new AuthError('Invalid email or password', 401);
   }
 
-  const token = signToken({ id: user._id.toString(), role: user.role });
+  const token = signToken({ id: user._id.toString(), role: user.role, ...(user.role === 'staff' ? { landlord: user.landlord?.toString() } : {}) });
 
   // Record login session asynchronously (non-blocking for ultra-fast response)
   recordLoginSession({

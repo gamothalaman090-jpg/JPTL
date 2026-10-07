@@ -1,22 +1,13 @@
 /**
- * JPTL - Database Purge Script
- * -----------------------------
- * ⚠ WARNING: This permanently deletes ALL data from every collection.
+ * Remove only the local demo account and records directly linked to it.
  *
- * Usage (inside the container):
- *   bun run purge       - Asks for confirmation before purging
- *   bun run purge:force - Purges immediately without prompt
- *
- * Run outside container:
- *   docker exec server bun run purge
- *   docker exec server bun run purge:force
+ * Default: dry-run, no MongoDB connection.
+ * Execution is denied for production targets, and additionally requires an
+ * explicit dev database name, --confirm-database <name>, and
+ * ALLOW_DEMO_PURGE=1. This is not a general-purpose production data purge.
  */
-
 import 'dotenv/config';
 import mongoose from 'mongoose';
-import readline from 'readline';
-
-// Models
 import User from '../src/shared/models/user.model.js';
 import Property from '../src/shared/models/property.model.js';
 import Unit from '../src/shared/models/unit.model.js';
@@ -27,88 +18,78 @@ import Ticket from '../src/shared/models/ticket.model.js';
 import Announcement from '../src/shared/models/announcements.model.js';
 import AuditLog from '../src/shared/models/auditLog.model.js';
 import Document from '../src/shared/models/document.model.js';
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-const log = {
-  info:    (m) => console.log(`  \x1b[36mℹ\x1b[0m  ${m}`),
-  success: (m) => console.log(`  \x1b[32m✔\x1b[0m  ${m}`),
-  error:   (m) => console.log(`  \x1b[31m✘\x1b[0m  ${m}`),
-  warn:    (m) => console.log(`  \x1b[33m⚠\x1b[0m  ${m}`),
-  section: (m) => console.log(`\n\x1b[1m\x1b[35m▸ ${m}\x1b[0m`),
-  done:    (m) => console.log(`\n\x1b[1m\x1b[32m✔ ${m}\x1b[0m\n`),
-};
-
-function confirm(question) {
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      rl.close();
-      resolve(answer.trim().toLowerCase());
-    });
-  });
-}
-
-// ─── Connect ─────────────────────────────────────────────────────────────────
+import EvictionNotice from '../src/shared/models/evictionNotice.model.js';
+import PaymentOption from '../src/shared/models/paymentOption.model.js';
+import Notification from '../src/shared/models/notification.model.js';
+import PushSubscription from '../src/shared/models/pushSubscription.model.js';
+import SessionLog from '../src/shared/models/sessionLog.model.js';
 
 const MONGO_URI = process.env.MONGO_URI;
-if (!MONGO_URI) {
-  log.error('MONGO_URI is not set in .env');
-  process.exit(1);
+const DEMO_EMAIL = 'landlord@jptl.dev';
+const execute = process.argv.includes('--execute');
+const confirmIndex = process.argv.indexOf('--confirm-database');
+const confirmedDatabase = confirmIndex >= 0 ? process.argv[confirmIndex + 1] : '';
+let databaseName = '';
+let databaseHost = '';
+try {
+  const parsed = new URL(MONGO_URI);
+  databaseName = parsed.pathname.replace(/^\//, '').split('/')[0];
+  databaseHost = parsed.hostname;
+} catch {}
+
+const isProduction = process.env.NODE_ENV === 'production' || /prod/i.test(databaseName) || /prod/i.test(databaseHost);
+const isDemoDatabase = /(dev|test|demo|local)/i.test(databaseName);
+
+if (!execute) {
+  console.log('Purge dry-run only. No database connection was opened and no data was deleted.');
+  console.log(`Planned scope: demo landlord ${DEMO_EMAIL} and records linked to that account.`);
+  console.log('To execute against a non-production demo database, pass --execute --confirm-database <database-name> and set ALLOW_DEMO_PURGE=1.');
+  process.exit(0);
 }
 
-console.log('\n\x1b[1m\x1b[31m══════════════════════════════════════\x1b[0m');
-console.log('\x1b[1m\x1b[31m  JPTL Database Purge\x1b[0m');
-console.log('\x1b[1m\x1b[31m══════════════════════════════════════\x1b[0m\n');
-
-// ─── Confirmation Guard ───────────────────────────────────────────────────────
-
-const FORCE = process.argv.includes('--force') || process.env.PURGE_FORCE === '1';
-
-if (!FORCE) {
-  log.warn('This will permanently delete ALL data from every collection.');
-  log.warn('This action is IRREVERSIBLE.');
-  const answer = await confirm('\n  Type "yes" to confirm: ');
-  if (answer !== 'yes') {
-    log.info('Purge aborted — no data was deleted.');
-    process.exit(0);
-  }
+if (!MONGO_URI) throw new Error('MONGO_URI is required when --execute is specified.');
+if (isProduction || !isDemoDatabase || confirmedDatabase !== databaseName || process.env.ALLOW_DEMO_PURGE !== '1') {
+  throw new Error('Purge execution blocked. It requires ALLOW_DEMO_PURGE=1, a matching --confirm-database value, and a dev/test/demo/local database. Production targets are never allowed.');
 }
 
-log.info('Connecting to MongoDB…');
 await mongoose.connect(MONGO_URI);
-log.success('Connected.\n');
+try {
+  const landlord = await User.findOne({ email: DEMO_EMAIL, role: 'landlord' }).select('_id').lean();
+  if (!landlord) {
+    console.log(`No ${DEMO_EMAIL} demo account found; nothing was deleted.`);
+    process.exitCode = 0;
+  } else {
+    const linkedUsers = await User.find({ landlord: landlord._id, role: { $in: ['tenant', 'staff'] } }).select('_id').lean();
+    const userIds = [landlord._id, ...linkedUsers.map(({ _id }) => _id)];
+    const properties = await Property.find({ landlord: landlord._id }).select('_id').lean();
+    const propertyIds = properties.map(({ _id }) => _id);
+    const units = await Unit.find({ property: { $in: propertyIds } }).select('_id').lean();
+    const unitIds = units.map(({ _id }) => _id);
+    const leases = await Lease.find({ $or: [{ landlord: landlord._id }, { tenant: { $in: userIds } }, { property: { $in: propertyIds } }, { unit: { $in: unitIds } }] }).select('_id').lean();
+    const leaseIds = leases.map(({ _id }) => _id);
 
-// ─── Collections to Purge (order matters for clarity, no FK cascade needed in Mongo) ──
-
-const collections = [
-  { name: 'AuditLogs',      model: AuditLog },
-  { name: 'Documents',      model: Document },
-  { name: 'Payments',       model: Payment },
-  { name: 'Tickets',        model: Ticket },
-  { name: 'Announcements',  model: Announcement },
-  { name: 'Leases',         model: Lease },
-  { name: 'TenantProfiles', model: TenantProfile },
-  { name: 'Units',          model: Unit },
-  { name: 'Properties',     model: Property },
-  { name: 'Users',          model: User },
-];
-
-log.section('Purging Collections');
-
-let totalDeleted = 0;
-
-for (const col of collections) {
-  try {
-    const result = await col.model.deleteMany({});
-    const n = result.deletedCount;
-    totalDeleted += n;
-    log.success(`${col.name.padEnd(16)} — ${n} document${n !== 1 ? 's' : ''} deleted`);
-  } catch (err) {
-    log.error(`${col.name.padEnd(16)} — FAILED: ${err.message}`);
+    const operations = [
+      ['Eviction notices', EvictionNotice.deleteMany({ $or: [{ landlord: landlord._id }, { tenant: { $in: userIds } }, { property: { $in: propertyIds } }, { unit: { $in: unitIds } }, { lease: { $in: leaseIds } }] })],
+      ['Payments', Payment.deleteMany({ $or: [{ tenant: { $in: userIds } }, { property: { $in: propertyIds } }, { unit: { $in: unitIds } }] })],
+      ['Tickets', Ticket.deleteMany({ $or: [{ tenant: { $in: userIds } }, { unit: { $in: unitIds } }] })],
+      ['Documents', Document.deleteMany({ $or: [{ tenant: { $in: userIds } }, { unit: { $in: unitIds } }] })],
+      ['Notifications', Notification.deleteMany({ user: { $in: userIds } })],
+      ['Push subscriptions', PushSubscription.deleteMany({ user: { $in: userIds } })],
+      ['Session logs', SessionLog.deleteMany({ userId: { $in: userIds } })],
+      ['Audit logs', AuditLog.deleteMany({ actor: { $in: userIds } })],
+      ['Announcements', Announcement.deleteMany({ author: landlord._id })],
+      ['Payment options', PaymentOption.deleteMany({ landlord: landlord._id })],
+      ['Leases', Lease.deleteMany({ _id: { $in: leaseIds } })],
+      ['Tenant profiles', TenantProfile.deleteMany({ user: { $in: userIds } })],
+      ['Units', Unit.deleteMany({ _id: { $in: unitIds } })],
+      ['Properties', Property.deleteMany({ _id: { $in: propertyIds } })],
+      ['Demo users', User.deleteMany({ _id: { $in: userIds } })],
+    ];
+    for (const [label, operation] of operations) {
+      const result = await operation;
+      console.log(`${label}: ${result.deletedCount} deleted`);
+    }
   }
+} finally {
+  await mongoose.disconnect();
 }
-
-await mongoose.disconnect();
-
-log.done(`Purge complete — ${totalDeleted} total documents removed. Database is now empty.`);

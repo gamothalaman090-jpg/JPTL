@@ -12,6 +12,7 @@ export const SubmitDocumentModal = ({
   unit,
 }) => {
   const [docType, setDocType] = useState('Proof of Insurance');
+  const [expirationDate, setExpirationDate] = useState('');
   const [fileTitle, setFileTitle] = useState('');
   const [notes, setNotes] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
@@ -46,6 +47,7 @@ export const SubmitDocumentModal = ({
       onSubmit({
         name: fileName,
         type: docType,
+        expirationDate: expirationDate || null,
         notes: notes,
         fileSize: selectedFile ? `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB` : '1.4 MB',
         file: selectedFile,
@@ -54,6 +56,7 @@ export const SubmitDocumentModal = ({
       setIsSubmitting(false);
       // Reset form
       setDocType('Proof of Insurance');
+      setExpirationDate('');
       setFileTitle('');
       setNotes('');
       setSelectedFile(null);
@@ -111,6 +114,7 @@ export const SubmitDocumentModal = ({
               required
             >
               <option value="Proof of Insurance">Proof of Renter Insurance</option>
+              <option value="Occupancy Permit">Occupancy Permit</option>
               <option value="Government ID">Government ID (Passport / Driver License)</option>
               <option value="Income Verification">Proof of Income / Pay Stub</option>
               <option value="Pet Registration">Pet Vaccination / Registration</option>
@@ -118,6 +122,23 @@ export const SubmitDocumentModal = ({
               <option value="Other">Other Compliance Document</option>
             </select>
           </div>
+
+          {(/insurance|occupancy permit/i.test(docType)) && (
+            <div className="space-y-1">
+              <label className="block text-slate-700 dark:text-slate-300 font-bold font-grotesk">
+                Expiration Date <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="date"
+                value={expirationDate}
+                onChange={(event) => setExpirationDate(event.target.value)}
+                min={new Date().toISOString().slice(0, 10)}
+                className="w-full bg-slate-50 dark:bg-[#101426] border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-mono text-xs"
+                required
+              />
+              <span className="text-slate-500">We’ll remind you before this document expires.</span>
+            </div>
+          )}
 
           {/* Custom File Title */}
           <div className="space-y-1">

@@ -1,9 +1,10 @@
 import * as ticketService from './tickets.service.js';
 import { uploadTicketPhotoToCloudinary } from '../../../shared/config/cloudinary.js';
+import { getLandlordScopeId } from '../../../shared/utils/landlordScope.js';
 
 export async function getTickets(req, res) {
   try {
-    const landlordId = req.user._id || req.user.id;
+    const landlordId = getLandlordScopeId(req.user);
     const result = await ticketService.getLandlordTickets(landlordId, req.query);
     return res.status(200).json({ success: true, data: result.tickets, tickets: result.tickets, ...result });
   } catch (err) {
@@ -14,7 +15,7 @@ export async function getTickets(req, res) {
 
 export async function getTicketById(req, res) {
   try {
-    const landlordId = req.user._id || req.user.id;
+    const landlordId = getLandlordScopeId(req.user);
     const ticket = await ticketService.getTicketById(landlordId, req.params.id);
     return res.status(200).json({ success: true, data: ticket });
   } catch (err) {
@@ -25,7 +26,7 @@ export async function getTicketById(req, res) {
 
 export async function createTicket(req, res) {
   try {
-    const landlordId = req.user._id || req.user.id;
+    const landlordId = getLandlordScopeId(req.user);
     const ipAddress = req.ip || req.connection?.remoteAddress || '';
     const ticket = await ticketService.createLandlordTicket(landlordId, req.body, ipAddress);
     return res.status(201).json({ success: true, message: 'Ticket created successfully', data: ticket });
@@ -37,7 +38,7 @@ export async function createTicket(req, res) {
 
 export async function updateTicketStatus(req, res) {
   try {
-    const landlordId = req.user._id || req.user.id;
+    const landlordId = getLandlordScopeId(req.user);
     const ipAddress = req.ip || req.connection?.remoteAddress || '';
     const ticket = await ticketService.updateTicketStatus(landlordId, req.params.id, req.body, ipAddress);
     return res.status(200).json({ success: true, message: 'Ticket status updated', data: ticket });
@@ -49,7 +50,7 @@ export async function updateTicketStatus(req, res) {
 
 export async function assignTechnician(req, res) {
   try {
-    const landlordId = req.user._id || req.user.id;
+    const landlordId = getLandlordScopeId(req.user);
     const ipAddress = req.ip || req.connection?.remoteAddress || '';
     const ticket = await ticketService.assignTechnician(landlordId, req.params.id, req.body, ipAddress);
     return res.status(200).json({ success: true, message: 'Technician assigned successfully', data: ticket });
@@ -61,7 +62,7 @@ export async function assignTechnician(req, res) {
 
 export async function deleteTicket(req, res) {
   try {
-    const landlordId = req.user._id || req.user.id;
+    const landlordId = getLandlordScopeId(req.user);
     const ipAddress = req.ip || req.connection?.remoteAddress || '';
     const result = await ticketService.deleteTicket(landlordId, req.params.id, ipAddress);
     return res.status(200).json(result);

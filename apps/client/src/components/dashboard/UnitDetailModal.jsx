@@ -11,6 +11,9 @@ export const UnitDetailModal = ({
   if (!isOpen || !unit) return null;
 
   const isVacant = unit.status === 'vacant';
+  const formatDate = (value) => value
+    ? new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : '—';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
@@ -97,13 +100,13 @@ export const UnitDetailModal = ({
             </div>
           ) : (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-white font-medium text-xs">
+              <div className="flex items-center gap-2 text-slate-800 dark:text-white font-medium text-xs">
                 <User className="w-4 h-4 text-blue-400" />
-                <span>Occupant: <strong>{unit.tenantName}</strong></span>
+                <span>Occupant: <strong>{unit.tenantName || 'Tenant details unavailable'}</strong></span>
               </div>
-              <div className="flex items-center gap-2 text-slate-400 text-xs">
+              <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-xs">
                 <Calendar className="w-4 h-4 text-slate-500" />
-                <span>Lease term: {unit.leaseStart} &rarr; {unit.leaseEnd}</span>
+                <span>Lease term: {formatDate(unit.leaseStart)} &rarr; {unit.leaseType === 'indefinite' ? 'No fixed expiration' : formatDate(unit.leaseEnd)}</span>
               </div>
             </div>
           )}

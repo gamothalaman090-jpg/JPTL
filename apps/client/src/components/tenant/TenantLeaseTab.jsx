@@ -24,6 +24,8 @@ export const TenantLeaseTab = ({
   // Resolve real values — prefer lease profile data, fall back to unit
   const leaseStart = lease?.leaseStart || unit?.leaseStart || null;
   const leaseEnd = lease?.leaseEnd || unit?.leaseEnd || null;
+  const leaseType = lease?.leaseType || unit?.leaseType || (leaseEnd ? 'fixed_term' : 'indefinite');
+  const isIndefiniteLease = leaseType === 'indefinite';
   const monthlyRent = lease?.monthlyRent ?? unit?.monthlyRent ?? null;
   const securityDeposit = lease?.securityDeposit ?? (monthlyRent ? monthlyRent * 1.5 : null);
 
@@ -144,7 +146,7 @@ export const TenantLeaseTab = ({
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          <button
+          {!isIndefiniteLease && <button
             type="button"
             disabled={Boolean(pendingExtension)}
             onClick={() => setIsRenewalOpen(true)}
@@ -156,7 +158,7 @@ export const TenantLeaseTab = ({
           >
             {pendingExtension ? <Clock className="w-4 h-4 text-amber-500" /> : <Plus className="w-4 h-4" />}
             <span>{pendingExtension ? 'Extension Pending Review' : 'Request Extension'}</span>
-          </button>
+          </button>}
 
           <button
             type="button"
@@ -194,10 +196,10 @@ export const TenantLeaseTab = ({
         <div className="p-5 rounded-2xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 space-y-1">
           <span className="text-xs font-mono text-slate-400 uppercase tracking-wider block">Lease Term</span>
           <strong className="text-sm text-slate-900 dark:text-white font-mono block">
-            {leaseTerm ? `${leaseTerm} (Standard)` : '—'}
+            {isIndefiniteLease ? 'Indefinite' : leaseTerm ? `${leaseTerm} (Standard)` : '—'}
           </strong>
           <p className="text-xs text-emerald-600 dark:text-emerald-400 font-mono">
-            {leaseStart ? formatDate(leaseStart) : '—'} → {leaseEnd ? formatDate(leaseEnd) : '—'}
+            {leaseStart ? formatDate(leaseStart) : '—'} → {isIndefiniteLease ? 'No fixed expiration' : leaseEnd ? formatDate(leaseEnd) : '—'}
           </p>
         </div>
 
@@ -220,7 +222,7 @@ export const TenantLeaseTab = ({
         <div className="p-5 rounded-2xl apple-glass top-shade border border-slate-200 dark:border-slate-800/80 space-y-1">
           <span className="text-xs font-mono text-slate-400 uppercase tracking-wider block">Renewal Window</span>
           <strong className="text-sm text-slate-900 dark:text-white font-mono block">
-            {renewalWindowDate ? `Opens ${renewalWindowDate}` : '—'}
+            {isIndefiniteLease ? 'Not required' : renewalWindowDate ? `Opens ${renewalWindowDate}` : '—'}
           </strong>
           <p className="text-xs text-indigo-400 font-mono">60-day notice period</p>
         </div>
