@@ -417,24 +417,28 @@ ab -n 500 -c 25 -H "Authorization: Bearer YOUR_JWT_TOKEN" http://localhost:8000/
 
 ## 🌱 7. Database Utilities (Seed & Purge)
 
-Database scripts run inside the Docker container or on the host machine:
+Database utilities default to dry-run and do not connect to MongoDB unless
+explicit execution flags are provided. They must only target a non-production
+database named with `dev`, `test`, `demo`, or `local`. Production execution is
+blocked in the scripts.
 
 ```bash
-# Seed all collections with demo data (idempotent — safe to re-run)
+# Print the seeder plan (no connection, no writes)
 npm run seed --prefix apps/server
-# or in Docker:
-docker exec server npm run seed
 
-# Wipe everything and re-seed in one shot
-npm run seed:fresh --prefix apps/server
-# or in Docker:
-docker exec server npm run seed:fresh
+# Execute demo seeding only on an explicitly named non-production database
+ALLOW_DEMO_SEED=1 npm run seed --prefix apps/server -- --execute
 
-# Purge immediately without interactive prompt
-npm run purge:force --prefix apps/server
-# or in Docker:
-docker exec server npm run purge:force
+# Print the scoped demo purge plan (no connection, no deletion)
+npm run purge --prefix apps/server
+
+# Execute scoped demo cleanup only on an explicitly confirmed non-production database
+ALLOW_DEMO_PURGE=1 npm run purge --prefix apps/server -- --execute --confirm-database <database-name>
 ```
+
+The purge only targets the `landlord@jptl.dev` demo account and records linked to
+that account. It does not delete all collections. Never point either utility at
+the production database.
 
 ### Seeded Demo Accounts
 
@@ -474,5 +478,5 @@ The seeder also creates three active leases, five payment records covering paid,
 | **Playwright UI Debugger** | `npx playwright test --ui` | Repo root |
 | **Server Integration** | `npm run test:integration` | Repo root or `apps/server` (host machine) |
 | **Load Benchmark** | `npm run test:load` | Repo root (runs against port 8000) |
-| **Seed Database** | `npm run seed --prefix apps/server` | Idempotent initial seed |
-| **Fresh Reset** | `npm run seed:fresh --prefix apps/server` | Purge + re-seed from scratch |
+| **Seed Database** | `npm run seed --prefix apps/server` | Dry-run; explicit non-production opt-in required to write |
+| **Purge Database** | `npm run purge --prefix apps/server` | Dry-run; scoped demo cleanup with explicit non-production opt-in to execute |

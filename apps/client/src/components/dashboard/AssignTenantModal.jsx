@@ -18,6 +18,7 @@ export const AssignTenantModal = ({
   const [monthlyRent, setMonthlyRent] = useState('');
   const [leaseStart, setLeaseStart] = useState('');
   const [leaseEnd, setLeaseEnd] = useState('');
+  const [leaseType, setLeaseType] = useState('fixed_term');
   const [durationMonths, setDurationMonths] = useState(12);
 
   // Parking state
@@ -61,6 +62,8 @@ export const AssignTenantModal = ({
       const today = new Date().toISOString().split('T')[0];
       const start = tenant.leaseStart ? new Date(tenant.leaseStart).toISOString().split('T')[0] : today;
       setLeaseStart(start);
+      const initialLeaseType = tenant.leaseType || 'fixed_term';
+      setLeaseType(initialLeaseType);
 
       // 5. Initial parking settings
       setHasParking(Boolean(tenant.hasParking));
@@ -72,7 +75,10 @@ export const AssignTenantModal = ({
       setVehicleMake(tenant.vehicles?.[0]?.make || '');
       setVehiclePlate(tenant.vehicles?.[0]?.plate || '');
 
-      if (tenant.leaseEnd) {
+      if (initialLeaseType === 'indefinite') {
+        setLeaseEnd('');
+        setDurationMonths(12);
+      } else if (tenant.leaseEnd) {
         const end = new Date(tenant.leaseEnd).toISOString().split('T')[0];
         setLeaseEnd(end);
         // Calculate duration
@@ -114,14 +120,20 @@ export const AssignTenantModal = ({
 
   const handleDurationPreset = (months) => {
     setDurationMonths(months);
-    if (leaseStart) {
+    if (leaseType === 'fixed_term' && leaseStart) {
       setLeaseEnd(calculateEndDate(leaseStart, months));
     }
   };
 
+  const handleLeaseTypeChange = (type) => {
+    setLeaseType(type);
+    if (type === 'indefinite') setLeaseEnd('');
+    else setLeaseEnd(calculateEndDate(leaseStart, durationMonths));
+  };
+
   const handleStartDateChange = (dateVal) => {
     setLeaseStart(dateVal);
-    if (durationMonths && dateVal) {
+    if (leaseType === 'fixed_term' && durationMonths && dateVal) {
       setLeaseEnd(calculateEndDate(dateVal, durationMonths));
     }
   };
@@ -172,11 +184,11 @@ export const AssignTenantModal = ({
       setError('Lease start date is required');
       return;
     }
-    if (!leaseEnd) {
+    if (leaseType === 'fixed_term' && !leaseEnd) {
       setError('Lease expiration date is required');
       return;
     }
-    if (new Date(leaseEnd) <= new Date(leaseStart)) {
+    if (leaseType === 'fixed_term' && new Date(leaseEnd) <= new Date(leaseStart)) {
       setError('Lease expiration date must be after the lease start date');
       return;
     }
@@ -198,7 +210,8 @@ export const AssignTenantModal = ({
           unitId: selectedUnitId,
           monthlyRent: Number(monthlyRent) || targetUnit?.monthlyRent || 0,
           leaseStart,
-          leaseEnd,
+          leaseType,
+          leaseEnd: leaseType === 'indefinite' ? null : leaseEnd,
           hasParking,
           parkingSpot: hasParking ? parkingSpot : null,
           parkingFee: hasParking ? Number(parkingFee) || 0 : 0,
@@ -219,7 +232,8 @@ export const AssignTenantModal = ({
             unitId: selectedUnitId,
             monthlyRent: Number(monthlyRent) || targetUnit?.monthlyRent || 0,
             leaseStart,
-            leaseEnd,
+            leaseType,
+            leaseEnd: leaseType === 'indefinite' ? null : leaseEnd,
             hasParking,
             parkingSpot: hasParking ? parkingSpot : null,
             parkingFee: hasParking ? Number(parkingFee) || 0 : 0,
@@ -254,7 +268,8 @@ export const AssignTenantModal = ({
         unitLabel: targetUnit?.label || 'Unit',
         monthlyRent: Number(monthlyRent) || targetUnit?.monthlyRent || 0,
         leaseStart,
-        leaseEnd,
+        leaseType,
+        leaseEnd: leaseType === 'indefinite' ? null : leaseEnd,
         hasParking,
         parkingSpot: hasParking ? parkingSpot : null,
         parkingFee: hasParking ? Number(parkingFee) || 0 : 0,
@@ -301,7 +316,7 @@ export const AssignTenantModal = ({
               Assign Unit & Property
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Assign <strong className="text-slate-700 dark:text-slate-200">{tenant.name}</strong> ({tenant.email}) to a unit and configure lease duration.
+              Assign <strong className="text-slate-700 dark:text-slate-200">{tenant.name}</strong> ({tenant.email}) to a unit and configure the lease term.
             </p>
           </div>
         </div>
@@ -389,8 +404,20 @@ export const AssignTenantModal = ({
             </div>
           </div>
 
+          {/* Lease Type */}
+          <div className="space-y-2">
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Lease Type *</span>
+            <div className="grid grid-cols-2 gap-2">
+              {[['fixed_term', 'Fixed term'], ['indefinite', 'Indefinite']].map(([type, label]) => (
+                <button key={type} type="button" onClick={() => handleLeaseTypeChange(type)} aria-pressed={leaseType === type} className={`rounded-xl border px-3 py-2.5 text-xs font-semibold transition-colors ${leaseType === type ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Lease Duration Presets */}
-          <div>
+          {leaseType === 'fixed_term' && <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-indigo-500" />
@@ -421,10 +448,10 @@ export const AssignTenantModal = ({
                 </button>
               ))}
             </div>
-          </div>
+          </div>}
 
           {/* Lease Dates */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className={leaseType === 'fixed_term' ? 'grid grid-cols-2 gap-3' : ''}>
             <div>
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                 Lease Start Date *
@@ -439,8 +466,7 @@ export const AssignTenantModal = ({
                 />
               </div>
             </div>
-
-            <div>
+            {leaseType === 'fixed_term' && <div>
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                 Lease Expiration Date *
               </label>
@@ -453,8 +479,13 @@ export const AssignTenantModal = ({
                   className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
-            </div>
+            </div>}
           </div>
+
+          {leaseType === 'indefinite' && <div className="rounded-2xl border border-indigo-100 bg-indigo-50/70 p-3 text-xs dark:border-indigo-900/40 dark:bg-indigo-950/30">
+            <span className="block text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Lease Term</span>
+            <span className="mt-1 block font-semibold text-slate-900 dark:text-white">Starts {leaseStart ? new Date(`${leaseStart}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'when assigned'} · No fixed expiration date</span>
+          </div>}
 
           {/* Expiration Summary Card */}
           {expirationPreview && (

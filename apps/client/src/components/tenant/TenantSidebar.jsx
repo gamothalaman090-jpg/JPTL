@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   LayoutDashboard, CreditCard, Wrench, FileText, Megaphone,
-  Settings, LogOut, ChevronLeft, ChevronRight, Home, ShieldCheck, FileCheck
+  Settings, LogOut, ChevronLeft, ChevronRight, Home, ShieldCheck, FileCheck, FileWarning
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { key: 'maintenance', label: 'Maintenance', icon: Wrench },
   { key: 'lease', label: 'My Lease', icon: FileText },
   { key: 'documents', label: 'Documents & Verification', icon: FileCheck },
+  { key: 'notices', label: 'Notices', icon: FileWarning },
 ];
 
 const BOTTOM_ITEMS = [

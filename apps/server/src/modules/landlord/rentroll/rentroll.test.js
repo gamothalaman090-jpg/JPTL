@@ -120,7 +120,13 @@ describe('Rent Roll Module API (/api/landlord/rentroll)', () => {
     expect(res.body.data.totalExpected).toBeGreaterThanOrEqual(2400);
   });
 
-  it('PATCH /api/landlord/rentroll/:id/mark-paid - should mark invoice as paid', async () => {
+  it('requires an onsite request before manually approving a payment', async () => {
+    const submitted = await request(app)
+      .post(`/api/tenant/payments/${createdPaymentId}/pay-onsite`)
+      .set('Cookie', [`token=${tenantToken}`])
+      .send({ note: 'Will pay at the leasing office' });
+    expect(submitted.status).toBe(201);
+    expect(submitted.body.data.reviewStatus).toBe('pending_review');
     const res = await request(app)
       .patch(`/api/landlord/rentroll/${createdPaymentId}/mark-paid`)
       .set('Cookie', [`token=${landlordToken}`])
@@ -132,6 +138,7 @@ describe('Rent Roll Module API (/api/landlord/rentroll)', () => {
     expect(res.body.success).toBe(true);
     expect(res.body.data.status).toBe('paid');
     expect(res.body.data.paidAt).toBeDefined();
+    expect(res.body.data.reviewStatus).toBe('approved');
   });
 
   it('GET /api/landlord/rentroll/export - should export rentroll records', async () => {
@@ -187,4 +194,3 @@ describe('Error Handling', () => {
     expect(res.status).toBe(400);
   });
 });
-

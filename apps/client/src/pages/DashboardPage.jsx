@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Building2, UserPlus, Users, Search, Home, LogOut, ShieldCheck, ArrowUpRight,
-  Sun, Moon, Sparkles, Megaphone, Wrench, DollarSign, X, Bell, ArrowRight,
+  Sun, Moon, Megaphone, Wrench, DollarSign, X, Bell, ArrowRight,
   TrendingUp, CheckCircle2, Clock, AlertCircle, Trash2, Layers, MapPin, Key
 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
@@ -18,7 +18,7 @@ import { AssignTenantModal } from '../components/dashboard/AssignTenantModal';
 import { UnitDetailModal } from '../components/dashboard/UnitDetailModal';
 import { KpiMetricsSection } from '../components/dashboard/KpiMetricsSection';
 import { TicketsTab } from '../components/dashboard/TicketsTab';
-import { PaymentsTab } from '../components/dashboard/PaymentsTab';
+import { LandlordPaymentsPage } from '../components/dashboard/LandlordPaymentsPage';
 import { AnnouncementsTab } from '../components/dashboard/AnnouncementsTab';
 import { SectionDivider } from '../components/dashboard/SectionDivider';
 import { CommandPaletteModal } from '../components/dashboard/CommandPaletteModal';
@@ -29,12 +29,14 @@ import { RightNotificationSidebar } from '../components/dashboard/RightNotificat
 import { LandlordSettingsTab } from '../components/dashboard/LandlordSettingsTab';
 import { LandlordDocumentsTab } from '../components/dashboard/LandlordDocumentsTab';
 import { LeaseExtensionsTab } from '../components/dashboard/LeaseExtensionsTab';
+import { EvictionNoticesTab } from '../components/dashboard/EvictionNoticesTab';
+import { StaffManagementTab } from '../components/dashboard/StaffManagementTab';
 import { DeletePropertyModal } from '../components/dashboard/DeletePropertyModal';
 import { AddPropertyOrUnitModal } from '../components/dashboard/AddPropertyOrUnitModal';
 import { MobileNavBar } from '../components/common/MobileNavBar';
 import { MobileNavDrawer } from '../components/common/MobileNavDrawer';
 import { ConfirmationModal } from '../components/common/ConfirmationModal';
-import { LayoutDashboard, FileCheck, Settings, CalendarClock } from 'lucide-react';
+import { LayoutDashboard, FileCheck, Settings, CalendarClock, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { landlordApi } from '../services/api';
 import { DashboardSkeleton } from '../components/ui/SkeletonLoader';
@@ -49,6 +51,8 @@ const LANDLORD_VIEW_ROUTES = {
   documents: '/dashboard-documents',
   settings: '/dashboard-settings',
   'lease-extensions': '/dashboard-lease-extensions',
+  'eviction-notices': '/dashboard-eviction-notices',
+  staff: '/dashboard-staff',
 };
 
 function getViewFromPath(pathname) {
@@ -61,6 +65,8 @@ function getViewFromPath(pathname) {
   if (clean === '/dashboard-documents' || clean === '/dashboard/documents' || clean === '/landlord-documents' || clean === '/landlord/documents') return 'documents';
   if (clean === '/dashboard-settings' || clean === '/dashboard/settings' || clean === '/landlord-settings' || clean === '/landlord/settings') return 'settings';
   if (clean === '/dashboard-lease-extensions' || clean === '/landlord-lease-extensions') return 'lease-extensions';
+  if (clean === '/dashboard-eviction-notices' || clean === '/landlord-eviction-notices' || clean === '/dashboard/eviction-notices') return 'eviction-notices';
+  if (clean === '/dashboard-staff' || clean === '/dashboard/staff') return 'staff';
   if (clean === '/dashboard-overview' || clean === '/dashboard/overview' || clean === '/landlord-overview' || clean === '/landlord/overview' || clean === '/dashboard' || clean === '/landlord') return 'overview';
   return 'overview';
 }
@@ -729,7 +735,7 @@ export const DashboardPage = ({ currentPath = window.location.pathname, onNaviga
       setUnits((prev) =>
         prev.map((u) =>
           (u.id === newTenant.unitId || u._id === newTenant.unitId)
-            ? { ...u, status: 'occupied', tenantId: newTenant.id, tenantName: newTenant.name, tenantEmail: newTenant.email, leaseStart: newTenant.leaseStart, leaseEnd: newTenant.leaseEnd }
+            ? { ...u, status: 'occupied', tenantId: newTenant.id, tenantName: newTenant.name, tenantEmail: newTenant.email, leaseStart: newTenant.leaseStart, leaseType: newTenant.leaseType, leaseEnd: newTenant.leaseEnd }
             : u
         )
       );
@@ -751,6 +757,7 @@ export const DashboardPage = ({ currentPath = window.location.pathname, onNaviga
               tenantName: updatedTenant.name,
               tenantEmail: updatedTenant.email,
               leaseStart: updatedTenant.leaseStart,
+              leaseType: updatedTenant.leaseType,
               leaseEnd: updatedTenant.leaseEnd,
               monthlyRent: updatedTenant.monthlyRent || u.monthlyRent,
             };
@@ -1091,12 +1098,6 @@ export const DashboardPage = ({ currentPath = window.location.pathname, onNaviga
                         <Building2 className="w-4 h-4 text-indigo-500" /> + Add Property / Unit
                       </button>
                       <button
-                        onClick={() => onNavigate('/onboarding?step=2')}
-                        className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 text-xs font-semibold btn-press flex items-center gap-2"
-                      >
-                        <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Onboarding Wizard
-                      </button>
-                      <button
                         onClick={() => handleOpenAddTenant()}
                         className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold font-grotesk btn-press flex items-center gap-2 shadow-md shadow-indigo-600/20"
                       >
@@ -1330,9 +1331,6 @@ export const DashboardPage = ({ currentPath = window.location.pathname, onNaviga
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Manage tenant profiles, active leases, and pre-added occupants.</p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <button onClick={() => onNavigate('/onboarding?step=2')} className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 text-xs font-semibold btn-press flex items-center gap-2">
-                        <Sparkles className="w-3.5 h-3.5 text-indigo-500" /> Onboarding Wizard
-                      </button>
                       <button onClick={() => handleOpenAddTenant()} className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold font-grotesk btn-press flex items-center gap-2 shadow-md shadow-indigo-600/20">
                         <UserPlus className="w-4 h-4" /> + Add Tenant
                       </button>
@@ -1361,7 +1359,7 @@ export const DashboardPage = ({ currentPath = window.location.pathname, onNaviga
                       <div className="p-8 text-center text-xs text-slate-400 font-mono">No tenants match the search filter.</div>
                     ) : (
                       filteredTenants.map((t, idx) => {
-                        const duration = getLeaseDuration(t.leaseStart, t.leaseEnd);
+                        const duration = t.leaseType === 'indefinite' ? 'Indefinite' : getLeaseDuration(t.leaseStart, t.leaseEnd);
                         const expiration = getLeaseExpirationInfo(t.leaseEnd);
                         const isAssigned = Boolean(t.unitId && t.unitId !== 'pre_add_unassigned');
 
@@ -1436,7 +1434,7 @@ export const DashboardPage = ({ currentPath = window.location.pathname, onNaviga
                                     </span>
                                   </div>
                                 ) : (
-                                  <span className="text-slate-400">—</span>
+                                  <span className="text-slate-400">{t.leaseType === 'indefinite' ? 'No fixed expiration' : '—'}</span>
                                 )}
                               </div>
                             </div>
@@ -1480,7 +1478,7 @@ export const DashboardPage = ({ currentPath = window.location.pathname, onNaviga
               {/* ─── VIEW 6: RENT ROLL (full CRUD) ───── */}
               {/* ═════════════════════════════════════ */}
               {activeView === 'payments' && (
-                <PaymentsTab payments={payments} searchQuery={searchQuery} />
+                <LandlordPaymentsPage payments={payments} searchQuery={searchQuery} />
               )}
 
               {/* ─── VIEW 7: DOCUMENTS & VERIFICATION ─── */}
@@ -1507,6 +1505,10 @@ export const DashboardPage = ({ currentPath = window.location.pathname, onNaviga
               {activeView === 'lease-extensions' && (
                 <LeaseExtensionsTab />
               )}
+              {activeView === 'eviction-notices' && (
+                <EvictionNoticesTab />
+              )}
+              {activeView === 'staff' && <StaffManagementTab />}
             </>
           )}
 
@@ -1614,6 +1616,8 @@ export const DashboardPage = ({ currentPath = window.location.pathname, onNaviga
           { key: 'announcements', label: 'Announcements Broadcast', icon: Megaphone },
           { key: 'documents', label: 'Documents & Verification', icon: FileCheck, badge: documents.filter((d) => d.status === 'Pending Review').length || undefined },
           { key: 'lease-extensions', label: 'Lease Extensions', icon: CalendarClock },
+          { key: 'eviction-notices', label: 'Eviction Notices', icon: ShieldAlert },
+          { key: 'staff', label: 'Staff', icon: Users },
           { key: 'settings', label: 'Console Settings', icon: Settings },
         ]}
         activeKey={activeView}

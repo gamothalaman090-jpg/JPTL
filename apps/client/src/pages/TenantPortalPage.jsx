@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Home, Bell, Sun, Moon, LogOut, Search, Sparkles, User, ShieldCheck, 
-  ChevronDown, CreditCard, Wrench, FileText, Megaphone, ArrowRight 
+  ChevronDown, CreditCard, Wrench, FileText, Megaphone, ArrowRight, FileWarning
 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { tenantApi } from '../services/api';
 import { 
   MOCK_PROPERTIES, 
@@ -20,6 +21,7 @@ import { TenantLeaseTab } from '../components/tenant/TenantLeaseTab';
 import { TenantAnnouncementsTab } from '../components/tenant/TenantAnnouncementsTab';
 import { TenantSettingsTab } from '../components/tenant/TenantSettingsTab';
 import { TenantDocumentsTab } from '../components/tenant/TenantDocumentsTab';
+import { TenantNoticesTab } from '../components/tenant/TenantNoticesTab';
 import { PayRentModal } from '../components/tenant/PayRentModal';
 import { AdvancePaymentModal } from '../components/tenant/AdvancePaymentModal';
 import { ReportIssueModal } from '../components/tenant/ReportIssueModal';
@@ -67,6 +69,7 @@ const TENANT_TAB_ROUTES = {
   maintenance: '/tenant-maintenance',
   lease: '/tenant-lease',
   documents: '/tenant-documents',
+  notices: '/tenant-notices',
   settings: '/tenant-settings',
 };
 
@@ -77,6 +80,7 @@ function getTabFromPath(pathname) {
   if (clean === '/tenant-maintenance' || clean === '/tenant/maintenance') return 'maintenance';
   if (clean === '/tenant-lease' || clean === '/tenant/lease') return 'lease';
   if (clean === '/tenant-documents' || clean === '/tenant/documents') return 'documents';
+  if (clean === '/tenant-notices' || clean === '/tenant/notices') return 'notices';
   if (clean === '/tenant-settings' || clean === '/tenant/settings') return 'settings';
   if (clean === '/tenant-overview' || clean === '/tenant/overview' || clean === '/tenant') return 'overview';
   return 'overview';
@@ -95,6 +99,7 @@ function getCachedTenantSnapshot(userId) {
 export const TenantPortalPage = ({ currentPath = window.location.pathname, onNavigate = () => {} }) => {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
+  const toast = useToast();
   const userId = user?.id || user?._id;
   const initialCache = getCachedTenantSnapshot(userId);
 
@@ -128,10 +133,26 @@ export const TenantPortalPage = ({ currentPath = window.location.pathname, onNav
   const [payments, setPayments] = useState(() => initialCache?.payments || []);
   const [tickets, setTickets] = useState(() => initialCache?.tickets || []);
   const [announcements, setAnnouncements] = useState(() => initialCache?.announcements || []);
+  const [evictionNotices, setEvictionNotices] = useState([]);
+  const [noticesLoading, setNoticesLoading] = useState(false);
+  const [noticesError, setNoticesError] = useState('');
+
+  useEffect(() => {
+    if (activeTab !== 'notices') return undefined;
+    let active = true;
+    setNoticesLoading(true);
+    setNoticesError('');
+    tenantApi.getEvictionNotices()
+      .then((res) => { if (active) setEvictionNotices(res?.notices || res?.data?.notices || []); })
+      .catch((err) => { if (active) setNoticesError(err.message || 'Unable to load notices.'); })
+      .finally(() => { if (active) setNoticesLoading(false); });
+    return () => { active = false; };
+  }, [activeTab]);
 
   // Modals & Drawers
   const [isPayRentOpen, setIsPayRentOpen] = useState(false);
   const [isPayAdvanceOpen, setIsPayAdvanceOpen] = useState(false);
+  const [paymentToSubmit, setPaymentToSubmit] = useState(null);
   const [isReportIssueOpen, setIsReportIssueOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
@@ -179,8 +200,8 @@ export const TenantPortalPage = ({ currentPath = window.location.pathname, onNav
         // Process payments results
         const paymentsVal = batch?.payments?.data;
         if (paymentsVal) {
-          const pList = paymentsVal.payments || paymentsVal.data?.recentPayments || paymentsVal.data || (Array.isArray(paymentsVal) ? paymentsVal : []);
-          if (Array.isArray(pList) && pList.length > 0) setPayments(pList);
+          const pList = paymentsVal.data?.history || paymentsVal.history || paymentsVal.payments || paymentsVal.data?.recentPayments || (Array.isArray(paymentsVal) ? paymentsVal : []);
+          if (Array.isArray(pList)) setPayments(pList);
         }
 
         // Process lease results
@@ -238,8 +259,8 @@ export const TenantPortalPage = ({ currentPath = window.location.pathname, onNav
           }
           const paymentsVal = batch?.payments?.data;
           if (paymentsVal) {
-            const pList = paymentsVal.payments || paymentsVal.data?.recentPayments || paymentsVal.data || (Array.isArray(paymentsVal) ? paymentsVal : []);
-            if (Array.isArray(pList) && pList.length > 0) setPayments(pList);
+            const pList = paymentsVal.data?.history || paymentsVal.history || paymentsVal.payments || paymentsVal.data?.recentPayments || (Array.isArray(paymentsVal) ? paymentsVal : []);
+            if (Array.isArray(pList)) setPayments(pList);
           }
           const leaseVal = batch?.lease?.data;
           if (leaseVal?.data) {
@@ -332,25 +353,53 @@ export const TenantPortalPage = ({ currentPath = window.location.pathname, onNav
     setTickets((prev) => prev.filter((t) => t.id !== ticketId && t._id !== ticketId));
   };
 
-  const handlePaymentSuccess = async (receipt) => {
+  const handleOpenPayment = async (invoice = null) => {
     try {
-      await tenantApi.payRent({
-        amount: receipt.amount,
-        paymentMethod: receipt.method || 'card',
-        notes: receipt.period || 'Rent payment',
-      });
+      let target = invoice || payments.find((item) => ['pending', 'overdue'].includes(item.status) && item.reviewStatus !== 'pending_review');
+      if (!target) {
+        const response = await tenantApi.getOrCreateCurrentRentInvoice();
+        target = response?.data;
+        if (target) setPayments((current) => [target, ...current.filter((item) => String(item.paymentId || item._id || item.id) !== String(target._id))]);
+      }
+      if (!target) throw new Error('Could not find or create your rent invoice. Contact your landlord if you need help.');
+      if (target.reviewStatus === 'pending_review') {
+        toast.info('This invoice is already waiting for landlord review.');
+        return;
+      }
+      setPaymentToSubmit(target);
+      setIsPayRentOpen(true);
+    } catch (error) { toast.error(error.message || 'Could not start rent payment'); }
+  };
+
+  const handleAdvanceInvoiceCreated = (invoice) => {
+    if (!invoice) return;
+    const invoiceId = String(invoice.paymentId || invoice._id || invoice.id);
+    setPayments((current) => [invoice, ...current.filter((item) => String(item.paymentId || item._id || item.id) !== invoiceId)]);
+    setPaymentToSubmit(invoice);
+    setIsPayRentOpen(true);
+  };
+
+  const handleAdvanceDraftDiscarded = (paymentId) => {
+    setPayments((current) => current.filter((item) => String(item.paymentId || item._id || item.id) !== String(paymentId)));
+  };
+
+  const handleDiscardAdvanceDraft = async (invoice) => {
+    const id = invoice?.paymentId || invoice?._id || invoice?.id;
+    try {
+      await tenantApi.discardAdvanceRentDraft(id);
+      handleAdvanceDraftDiscarded(id);
+      toast.success('Unsubmitted advance payment discarded.');
+    } catch (error) { toast.error(error.message || 'Could not discard the advance draft'); }
+  };
+
+  const handlePaymentSubmitted = async () => {
+    try {
+      const response = await tenantApi.getPayments();
+      const list = response?.data?.data?.history || response?.data?.history || [];
+      if (Array.isArray(list)) setPayments(list);
     } catch (err) {
-      console.warn('Server rent payment notice:', err.message);
+      console.warn('Failed to refresh payment ledger:', err.message);
     }
-    const newPaymentRecord = {
-      id: receipt.transactionId,
-      amount: receipt.amount,
-      dueDate: '2026-09-01',
-      paidAt: receipt.paidAt,
-      status: 'paid',
-      method: receipt.method,
-    };
-    setPayments((prev) => [newPaymentRecord, ...prev]);
   };
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -484,9 +533,11 @@ export const TenantPortalPage = ({ currentPath = window.location.pathname, onNav
                   unit={currentUnit}
                   property={currentProperty}
                   landlord={landlordData}
+                  lease={leaseData}
                   tickets={tickets}
                   announcements={announcements}
-                  onPayRentClick={() => setIsPayRentOpen(true)}
+                  onPayRentClick={() => handleOpenPayment()}
+                  onPayAdvanceClick={() => setIsPayAdvanceOpen(true)}
                   onRequestRepairClick={() => setIsReportIssueOpen(true)}
                   onNavigateTab={handleTabChange}
                 />
@@ -500,8 +551,9 @@ export const TenantPortalPage = ({ currentPath = window.location.pathname, onNav
                   lease={leaseData}
                   payments={payments}
                   securityDeposit={tenantData?.securityDeposit ?? leaseData?.securityDeposit}
-                  onPayRentClick={() => setIsPayRentOpen(true)}
+                  onPayRentClick={handleOpenPayment}
                   onPayAdvanceClick={() => setIsPayAdvanceOpen(true)}
+                  onDiscardAdvanceClick={handleDiscardAdvanceDraft}
                 />
               )}
 
@@ -550,6 +602,19 @@ export const TenantPortalPage = ({ currentPath = window.location.pathname, onNav
                 />
               )}
 
+              {activeTab === 'notices' && (
+                <TenantNoticesTab
+                  notices={evictionNotices}
+                  loading={noticesLoading}
+                  error={noticesError}
+                  lease={leaseData}
+                  onEarlyTerminationRequested={async () => {
+                    const response = await tenantApi.getEvictionNotices();
+                    setEvictionNotices(response?.notices || response?.data?.notices || []);
+                  }}
+                />
+              )}
+
               {activeTab === 'settings' && (
                 <TenantSettingsTab
                   tenant={currentTenant}
@@ -574,29 +639,21 @@ export const TenantPortalPage = ({ currentPath = window.location.pathname, onNav
       {/* ─── ACTION MODALS ─── */}
       <PayRentModal
         isOpen={isPayRentOpen}
-        onClose={() => setIsPayRentOpen(false)}
+        onClose={() => { setIsPayRentOpen(false); setPaymentToSubmit(null); }}
         tenant={currentTenant}
         unit={currentUnit}
-        onPaymentSuccess={handlePaymentSuccess}
+        payment={paymentToSubmit}
+        onPaymentSubmitted={handlePaymentSubmitted}
+        onDraftDiscarded={handleAdvanceDraftDiscarded}
       />
 
       <AdvancePaymentModal
         isOpen={isPayAdvanceOpen}
         onClose={() => setIsPayAdvanceOpen(false)}
+        onInvoiceCreated={handleAdvanceInvoiceCreated}
         tenant={currentTenant}
         unit={currentUnit}
-        lease={leaseData}
         payments={payments}
-        onRequestExtension={() => handleTabChange('lease')}
-        onPaymentSuccess={async () => {
-          try {
-            const paymentsRes = await tenantApi.getPayments();
-            const pList = paymentsRes.data?.data?.payments || paymentsRes.data?.data || paymentsRes.data?.recentPayments;
-            if (Array.isArray(pList)) setPayments(pList);
-          } catch (err) {
-            console.warn('Failed to reload payments:', err.message);
-          }
-        }}
       />
 
       <ReportIssueModal
@@ -648,6 +705,7 @@ export const TenantPortalPage = ({ currentPath = window.location.pathname, onNav
           { key: 'lease', label: 'My Lease Agreement', icon: FileText },
           { key: 'announcements', label: 'Building Announcements', icon: Megaphone },
           { key: 'documents', label: 'Documents & Verification', icon: FileCheck },
+          { key: 'notices', label: 'Notices', icon: FileWarning },
           { key: 'settings', label: 'Account & Settings', icon: Settings },
         ]}
         activeKey={activeTab}

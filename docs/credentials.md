@@ -79,16 +79,21 @@ This document contains all default and seeded login credentials for local testin
 
 ## 3. Database Seeding Commands
 
-Run inside the container:
+The seeder defaults to a dry-run and does not connect to MongoDB. It is restricted
+to explicitly named non-production databases (`dev`, `test`, `demo`, or `local`).
+Do not run it against production.
+
+Dry-run:
 ```bash
-bun run seed         # Seeds all collections with demo data
-bun run seed:fresh   # Purges first, then seeds fresh
+npm run seed --prefix apps/server
 ```
 
-Or run outside the container:
+Execution is only for a non-production demo database:
 ```bash
-docker exec server bun run seed
+ALLOW_DEMO_SEED=1 npm run seed --prefix apps/server -- --execute
 ```
+
+There is no combined seed-and-purge command.
 
 To create/update the Superadmin user:
 ```bash

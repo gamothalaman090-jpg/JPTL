@@ -15,13 +15,13 @@ export const TenantReceiptModal = ({
     window.print();
   };
 
-  const amount = transaction.amount || 2400;
+  const amount = Number(transaction.amount || 0);
   const hasParking = Boolean(transaction.hasParking ?? tenant?.hasParking ?? unit?.hasParking ?? (transaction.parkingFee > 0));
   const parkingSpot = transaction.parkingSpot || tenant?.parkingSpot || unit?.parkingSpot || (hasParking ? 'Assigned Space' : null);
   const parkingFee = transaction.parkingFee !== undefined 
     ? Number(transaction.parkingFee) 
     : (hasParking ? Number(tenant?.parkingFee ?? unit?.parkingFee ?? 0) : 0);
-  const baseRent = transaction.baseRent || Math.max(0, amount - parkingFee - (transaction.utilityFee ?? 45));
+  const baseRent = transaction.baseRent ?? Math.max(0, amount - parkingFee - (transaction.utilityFee ?? 0));
   const utilitiesFee = transaction.utilityFee ?? Math.max(0, amount - baseRent - parkingFee);
 
   return (
@@ -42,7 +42,7 @@ export const TenantReceiptModal = ({
               <FileText className="w-4 h-4" />
             </div>
             <span className="text-xs font-bold font-grotesk text-slate-900 dark:text-white uppercase tracking-wider">
-              Official Tax Receipt
+              Landlord-Approved Payment Confirmation
             </span>
           </div>
 
@@ -80,18 +80,15 @@ export const TenantReceiptModal = ({
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 print:text-slate-600 font-mono">
-                Property Management & Leasing Services LLC
-              </p>
-              <p className="text-xs text-slate-400 print:text-slate-500 font-mono">
-                EIN: 84-2901452 &bull; License #PM-992014
+                Property payment record
               </p>
             </div>
 
             <div className="sm:text-right font-mono text-xs">
               <span className="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 inline-flex items-center gap-1 mb-1">
-                <CheckCircle2 className="w-3 h-3" /> Paid & Cleared
+                <CheckCircle2 className="w-3 h-3" /> Landlord approved
               </span>
-              <p className="text-slate-400 font-mono text-xs">Date: {transaction.paidAt || 'Aug 1, 2026'}</p>
+              <p className="text-slate-400 font-mono text-xs">Date: {transaction.paidAt || (transaction.createdAt ? new Date(transaction.createdAt).toLocaleString() : '—')}</p>
               <p className="text-indigo-500 font-bold text-xs">Receipt #: {transaction.id || transaction.transactionId}</p>
             </div>
           </div>
@@ -100,13 +97,13 @@ export const TenantReceiptModal = ({
           <div className="grid grid-cols-2 gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-[#080B14] border border-slate-200/80 dark:border-slate-800/60 text-xs font-mono">
             <div>
               <span className="text-slate-400 uppercase text-xs block">Resident / Billed To</span>
-              <strong className="text-slate-900 dark:text-white text-sm">{tenant?.name || 'Sophia Lin'}</strong>
-              <p className="text-slate-500">{tenant?.email || 'sophia.lin@example.com'}</p>
+              <strong className="text-slate-900 dark:text-white text-sm">{tenant?.name || 'Tenant'}</strong>
+              <p className="text-slate-500">{tenant?.email || ''}</p>
             </div>
             <div>
               <span className="text-slate-400 uppercase text-xs block">Property & Unit</span>
-              <strong className="text-slate-900 dark:text-white text-sm">{unit?.label || 'Unit 14B'}</strong>
-              <p className="text-slate-500">{property?.name || 'Aura Sky Towers'}</p>
+              <strong className="text-slate-900 dark:text-white text-sm">{unit?.label || 'Unit'}</strong>
+              <p className="text-slate-500">{property?.name || 'Property'}</p>
             </div>
           </div>
 
@@ -133,7 +130,7 @@ export const TenantReceiptModal = ({
               )}
               {utilitiesFee > 0 && (
                 <div className="p-3 flex justify-between">
-                  <span>Water & Trash Utility Service</span>
+                <span>Utilities</span>
                   <span className="font-bold text-slate-900 dark:text-white">${utilitiesFee.toFixed(2)}</span>
                 </div>
               )}
@@ -147,18 +144,18 @@ export const TenantReceiptModal = ({
           {/* Payment Method Details */}
           <div className="flex items-center justify-between text-xs font-mono p-3 rounded-xl bg-slate-50 dark:bg-[#080B14] border border-slate-200/80 dark:border-slate-800/60">
             <span className="text-slate-400">Payment Instrument:</span>
-            <span className="font-semibold text-slate-900 dark:text-white">{transaction.method || 'Visa ending in 4242'}</span>
+            <span className="font-semibold text-slate-900 dark:text-white">{transaction.method || transaction.paymentMethod || 'Landlord-approved payment'}</span>
           </div>
 
           {/* Legal Manager Signature */}
           <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs font-mono">
             <div className="flex items-center gap-2 text-slate-400 text-xs">
               <ShieldCheck className="w-4 h-4 text-emerald-500" />
-              <span>Electronically signed & verified by JPTL Property Management.</span>
+              <span>Payment approval recorded by your landlord.</span>
             </div>
             <div className="text-right">
-              <span className="text-slate-400 text-xs block">Authorized Signature</span>
-              <span className="font-bold font-grotesk text-slate-900 dark:text-white">Alexander Vance</span>
+              <span className="text-slate-400 text-xs block">Receipt reference</span>
+              <span className="font-bold font-grotesk text-slate-900 dark:text-white">{transaction.receiptNumber || transaction.id || transaction.transactionId}</span>
             </div>
           </div>
 

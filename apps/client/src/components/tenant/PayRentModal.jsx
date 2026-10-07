@@ -1,276 +1,96 @@
-import React, { useState } from 'react';
-import { X, CreditCard, DollarSign, CheckCircle2, ShieldCheck, Lock, Building, ArrowRight } from 'lucide-react';
-import { ConfirmationModal } from '../common/ConfirmationModal';
+import React, { useEffect, useState } from 'react';
+import { X, Upload, Building2, Clock3, Wallet } from 'lucide-react';
+import { tenantApi } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 
-export const PayRentModal = ({
-  isOpen,
-  onClose,
-  tenant,
-  unit,
-  onPaymentSuccess = () => {},
-}) => {
+export const PayRentModal = ({ isOpen, onClose, payment, unit, tenant, onPaymentSubmitted = () => {}, onDraftDiscarded = () => {} }) => {
   const toast = useToast();
-  const [paymentMethod, setPaymentMethod] = useState('card'); // 'card' | 'ach' | 'apple_pay'
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [receiptData, setReceiptData] = useState(null);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [options, setOptions] = useState([]);
+  const [selectedId, setSelectedId] = useState('');
+  const [receipt, setReceipt] = useState(null);
+  const [reference, setReference] = useState('');
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [channel, setChannel] = useState('qr_transfer');
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setSubmitted(false); setReceipt(null); setReference(''); setNote(''); setSelectedId('');
+    tenantApi.getPaymentOptions().then((res) => {
+      const list = Array.isArray(res?.data) ? res.data : [];
+      setOptions(list);
+      setSelectedId(list[0]?.id || '');
+      setChannel(list[0]?.optionType === 'bank_account' ? 'bank_transfer' : list[0]?.optionType === 'ewallet' ? 'ewallet_transfer' : 'qr_transfer');
+    }).catch((error) => toast.error(error.message || 'Could not load payment options'));
+  }, [isOpen]);
 
   if (!isOpen) return null;
-
-  const rentAmount = Number(unit?.monthlyRent || tenant?.monthlyRent || 2400);
-  const hasParking = Boolean(tenant?.hasParking ?? unit?.hasParking ?? false);
-  const parkingSpot = hasParking ? (tenant?.parkingSpot || unit?.parkingSpot || 'Assigned Space') : null;
-  const parkingFee = hasParking ? Number(tenant?.parkingFee ?? unit?.parkingFee ?? 0) : 0;
-  const utilityFee = Number(tenant?.utilityFee ?? unit?.utilityFee ?? 0);
-  const processingFee = paymentMethod === 'card' ? 45.00 : 0.00;
-  const totalAmount = rentAmount + parkingFee + utilityFee + processingFee;
-
-  const handlePay = (e) => {
-    e.preventDefault();
-    setShowConfirmModal(true);
-  };
-
-  const executePayment = () => {
-    setShowConfirmModal(false);
-    setIsProcessing(true);
-
-    setTimeout(() => {
-      setIsProcessing(false);
-      setIsSuccess(true);
-      const receipt = {
-        transactionId: `TXN_${Math.floor(10000000 + Math.random() * 90000000)}`,
-        amount: totalAmount,
-        baseRent: rentAmount,
-        hasParking,
-        parkingSpot,
-        parkingFee,
-        utilityFee,
-        paidAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-        method: paymentMethod === 'card' ? 'Visa ending in 4242' : 'Chase Bank ACH ending in 9102',
-        period: 'September 2026 Rent',
-      };
-      setReceiptData(receipt);
-      onPaymentSuccess(receipt);
-      toast.success(`Rent payment of $${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} confirmed! Receipt #${receipt.transactionId}`);
-    }, 1200);
-  };
-
-  const handleFinish = () => {
-    setIsSuccess(false);
-    setReceiptData(null);
+  const selected = options.find((option) => String(option.id) === String(selectedId));
+  const amount = Number(payment?.amount || 0);
+  const close = async () => {
+    if (!submitted && payment?.isAdvancePayment && payment?.status === 'draft') {
+      const id = payment.paymentId || payment.id || payment._id;
+      try {
+        await tenantApi.discardAdvanceRentDraft(id);
+        onDraftDiscarded(id);
+      } catch (error) {
+        toast.error(error.message || 'Could not discard the unsubmitted advance draft');
+      }
+    }
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-slate-950/80 backdrop-blur-md transition-opacity animate-in fade-in duration-200"
-        onClick={isProcessing ? undefined : handleFinish}
-      />
+  const submit = async (event) => {
+    event.preventDefault();
+    setBusy(true);
+    try {
+      if (channel === 'onsite') {
+        await tenantApi.submitOnsitePayment(payment.paymentId || payment.id || payment._id, { note });
+      } else {
+        if (!selected) throw new Error('Choose a landlord payment option.');
+        if (!receipt) throw new Error('Upload your transfer receipt.');
+        const form = new FormData();
+        form.append('channel', channel); form.append('optionId', selected.id); form.append('receipt', receipt);
+        form.append('transferReference', reference); form.append('note', note);
+        await tenantApi.submitPaymentEvidence(payment.paymentId || payment.id || payment._id, form);
+      }
+      setSubmitted(true);
+      onPaymentSubmitted();
+    } catch (error) { toast.error(error.message || 'Could not submit payment'); }
+    finally { setBusy(false); }
+  };
 
-      {/* Modal Card */}
-      <div className="relative w-full max-w-lg bg-white dark:bg-[#10131F] border border-slate-200 dark:border-slate-800/90 rounded-3xl p-6 sm:p-8 shadow-2xl z-10 my-8 top-shade modal-enter modal-enter-active apple-glass">
-        
-        {/* Close Button */}
-        {!isProcessing && (
-          <button
-            onClick={handleFinish}
-            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-900 text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center border border-slate-200 dark:border-slate-800 btn-press"
-            aria-label="Close dialog"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
-
-        {isSuccess && receiptData ? (
-          /* SUCCESS STATE */
-          <div className="text-center py-4 space-y-4">
-            <div className="w-14 h-14 mx-auto rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center shadow-lg shadow-emerald-500/10">
-              <CheckCircle2 className="w-8 h-8" />
-            </div>
-
-            <div>
-              <h2 className="text-2xl font-bold font-grotesk text-slate-900 dark:text-white">Payment Confirmed!</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Your rent transaction has cleared and a digital receipt was issued.</p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#080B14] border border-slate-200/80 dark:border-slate-800/60 text-xs font-mono text-left space-y-2">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Receipt Ref:</span>
-                <span className="font-bold text-indigo-500">{receiptData.transactionId}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Period:</span>
-                <span className="text-slate-900 dark:text-white">{receiptData.period}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Paid Amount:</span>
-                <span className="font-bold text-emerald-600 dark:text-emerald-400">${receiptData.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Payment Method:</span>
-                <span className="text-slate-700 dark:text-slate-300">{receiptData.method}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Timestamp:</span>
-                <span className="text-slate-400">{receiptData.paidAt}</span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleFinish}
-              className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold font-grotesk btn-press shadow-lg shadow-indigo-600/20 text-xs"
-            >
-              Done & Return to Portal
-            </button>
-          </div>
-        ) : (
-          /* PAYMENT FORM */
-          <div>
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center">
-                <CreditCard className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold font-grotesk text-slate-900 dark:text-white">Pay Monthly Rent</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{unit?.label || 'Unit 14B'} &bull; {tenant?.propertyName || 'Aura Sky Towers'}</p>
-              </div>
-            </div>
-
-            {/* Payment Method Selector */}
-            <div className="grid grid-cols-2 gap-2 mb-5">
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('card')}
-                className={`p-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 btn-press transition-all ${
-                  paymentMethod === 'card'
-                    ? 'border-indigo-500 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
-                    : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400'
-                }`}
-              >
-                <CreditCard className="w-4 h-4" />
-                <span>Credit / Debit Card</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('ach')}
-                className={`p-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 btn-press transition-all ${
-                  paymentMethod === 'ach'
-                    ? 'border-indigo-500 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
-                    : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400'
-                }`}
-              >
-                <Building className="w-4 h-4" />
-                <span>Bank ACH (0% Fee)</span>
-              </button>
-            </div>
-
-            {/* Cost Breakdown */}
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#080B14] border border-slate-200/80 dark:border-slate-800/60 space-y-2 text-xs mb-5 font-mono">
-              <div className="flex justify-between text-slate-500 dark:text-slate-400">
-                <span>Base Rent (September)</span>
-                <span className="font-semibold text-slate-900 dark:text-white">${rentAmount.toLocaleString()}</span>
-              </div>
-              {hasParking && parkingFee > 0 && (
-                <div className="flex justify-between text-slate-500 dark:text-slate-400">
-                  <span>Assigned Parking ({parkingSpot || 'Bay Slot'})</span>
-                  <span className="font-semibold text-slate-900 dark:text-white">${parkingFee.toFixed(2)}</span>
-                </div>
-              )}
-              {utilityFee > 0 && (
-                <div className="flex justify-between text-slate-500 dark:text-slate-400">
-                  <span>Water, Sewer & Trash Service</span>
-                  <span className="font-semibold text-slate-900 dark:text-white">${utilityFee.toFixed(2)}</span>
-                </div>
-              )}
-              <div className="flex justify-between text-slate-500 dark:text-slate-400">
-                <span>Payment Processing Fee</span>
-                <span className="text-slate-900 dark:text-white">${processingFee.toFixed(2)}</span>
-              </div>
-              <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex justify-between font-bold text-sm text-slate-900 dark:text-white">
-                <span>Total Amount Due</span>
-                <span className="text-emerald-600 dark:text-emerald-400">${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-              </div>
-            </div>
-
-            {/* Mock Card Inputs */}
-            {paymentMethod === 'card' && (
-              <div className="space-y-3 mb-5 text-xs">
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Card Number</label>
-                  <input
-                    type="text"
-                    defaultValue="•••• •••• •••• 4242"
-                    readOnly
-                    className="w-full bg-slate-50 dark:bg-[#080B14] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-white font-mono"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Expires</label>
-                    <input
-                      type="text"
-                      defaultValue="08/28"
-                      readOnly
-                      className="w-full bg-slate-50 dark:bg-[#080B14] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-white font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">CVC / Security</label>
-                    <input
-                      type="text"
-                      defaultValue="•••"
-                      readOnly
-                      className="w-full bg-slate-50 dark:bg-[#080B14] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-white font-mono"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Security Guarantee Pill */}
-            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-5">
-              <Lock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-              <span>256-bit encrypted bank checkout via Stripe Webhooks.</span>
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="button"
-              disabled={isProcessing}
-              onClick={handlePay}
-              className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold font-grotesk btn-press shadow-lg shadow-emerald-600/20 text-xs flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {isProcessing ? (
-                <span>Processing Secure Transaction…</span>
-              ) : (
-                <>
-                  <span>Confirm & Pay ${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
-          </div>
-        )}
-
-      </div>
-
-      {/* Payment Confirmation Modal */}
-      <ConfirmationModal
-        isOpen={showConfirmModal}
-        onClose={() => setShowConfirmModal(false)}
-        onConfirm={executePayment}
-        title="Confirm Rent Payment"
-        description={`You are authorizing an online transaction of $${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} via ${paymentMethod === 'card' ? 'Credit Card' : 'Bank ACH'}. Would you like to proceed?`}
-        confirmText={`Pay $${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
-        variant="primary"
-        icon={CreditCard}
-      />
-    </div>
-  );
+  return <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <button aria-label="Close payment dialog" className="fixed inset-0 bg-slate-950/80" onClick={close} />
+    <section role="dialog" aria-modal="true" aria-labelledby="payment-title" className="relative z-10 w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#10131F] p-6 shadow-2xl">
+      <button onClick={close} aria-label="Close" className="absolute right-4 top-4 p-2 text-slate-500"><X size={18} /></button>
+      {submitted ? <div className="py-8 text-center">
+        <Clock3 className="mx-auto mb-3 text-amber-500" size={36} />
+        <h2 id="payment-title" className="text-xl font-bold text-slate-900 dark:text-white">Submitted for landlord review</h2>
+        <p className="mt-2 text-sm text-slate-500">Your invoice remains unpaid until the landlord confirms the transfer or onsite payment.</p>
+        <button onClick={close} className="mt-6 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white">Done</button>
+      </div> : <form onSubmit={submit}>
+        <h2 id="payment-title" className="text-xl font-bold text-slate-900 dark:text-white">Submit rent payment</h2>
+        <p className="mt-1 text-sm text-slate-500">{payment?.period || 'Rent invoice'} · {unit?.label || tenant?.unitLabel || 'Unit'} · ₱{amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          {[['qr_transfer', 'QR transfer'], ['bank_transfer', 'Bank transfer'], ['ewallet_transfer', 'E-wallet (Maya / GCash)'], ['onsite', 'I paid onsite']].map(([value, label]) => <button type="button" key={value} onClick={() => { setChannel(value); const type = { qr_transfer: 'qr', bank_transfer: 'bank_account', ewallet_transfer: 'ewallet' }[value]; if (type) setSelectedId(options.find((o) => o.optionType === type)?.id || ''); }} className={`rounded-xl border p-3 text-sm font-semibold ${channel === value ? 'border-indigo-500 bg-indigo-500/10 text-indigo-600' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}>{label}</button>)}
+        </div>
+        {channel !== 'onsite' && <>
+          <label className="mt-4 block text-xs font-semibold text-slate-600 dark:text-slate-300">Landlord payment option</label>
+          <select required value={selectedId} onChange={(event) => setSelectedId(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-transparent px-3 py-2 text-sm dark:border-slate-700">
+            {options.filter((o) => o.optionType === ({ qr_transfer: 'qr', bank_transfer: 'bank_account', ewallet_transfer: 'ewallet' }[channel])).map((o) => <option key={o.id} value={o.id}>{o.displayName}{o.providerName ? ` · ${o.providerName}` : ''}</option>)}
+          </select>
+          {['qr', 'ewallet'].includes(selected?.optionType) && selected.qrImageUrl && <img src={selected.qrImageUrl} alt={`${selected.displayName} QR code`} className="mx-auto mt-4 max-h-56 rounded-xl border border-slate-200 object-contain" />}
+          {['bank_account', 'ewallet'].includes(selected?.optionType) && <div className="mt-4 rounded-xl bg-slate-50 p-4 text-sm dark:bg-slate-900">{selected.optionType === 'ewallet' ? <Wallet size={16} className="mb-2 text-indigo-500" /> : <Building2 size={16} className="mb-2 text-indigo-500" />}<p><b>{selected.accountHolder}</b></p><p>{selected.providerName} · {selected.optionType === 'ewallet' ? 'Mobile / account' : 'Account'} {selected.accountNumber}</p>{selected.branch && <p>Branch: {selected.branch}</p>}</div>}
+          {selected?.instructions && <p className="mt-3 text-sm text-slate-500">{selected.instructions}</p>}
+          <p className="mt-4 text-xs font-semibold text-slate-600 dark:text-slate-300">Complete the transfer first, then upload its receipt to submit for review. A receipt is required.</p>
+          <label className="mt-2 flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-slate-300 p-3 text-sm dark:border-slate-700"><Upload size={16} />{receipt?.name || 'Choose transfer receipt (PNG, JPG, WebP, PDF)'}<input required type="file" accept="image/png,image/jpeg,image/webp,application/pdf" className="sr-only" onChange={(event) => setReceipt(event.target.files?.[0] || null)} /></label>
+          <input value={reference} onChange={(event) => setReference(event.target.value)} maxLength={120} placeholder="Transfer reference (optional)" className="mt-3 w-full rounded-xl border border-slate-300 bg-transparent px-3 py-2 text-sm dark:border-slate-700" />
+        </>}
+        <textarea value={note} onChange={(event) => setNote(event.target.value)} maxLength={1000} placeholder={channel === 'onsite' ? 'Where and when did you pay onsite? (optional)' : 'Note for landlord (optional)'} className="mt-3 w-full rounded-xl border border-slate-300 bg-transparent px-3 py-2 text-sm dark:border-slate-700" rows={2} />
+        <button disabled={busy || (channel !== 'onsite' && !options.some((o) => o.optionType === ({ qr_transfer: 'qr', bank_transfer: 'bank_account', ewallet_transfer: 'ewallet' }[channel])))} className="mt-4 w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white disabled:opacity-50">{busy ? 'Submitting…' : channel === 'onsite' ? 'Notify landlord: I paid onsite' : 'Submit receipt for landlord review'}</button>
+      </form>}
+    </section>
+  </div>;
 };

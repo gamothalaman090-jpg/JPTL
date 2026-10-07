@@ -8,6 +8,8 @@ const router = Router();
 router.use(requireAuth, requireRole('landlord'));
 
 router.get('/', landlordDocController.getDocuments);
+router.get('/reminder-settings', landlordDocController.getReminderSettings);
+router.patch('/reminder-settings', landlordDocController.updateReminderSettings);
 router.get('/:id/file', landlordDocController.getDocumentFile);
 router.patch('/:id/verify', landlordDocController.verifyDocument);
 router.delete('/:id', landlordDocController.deleteDocument);

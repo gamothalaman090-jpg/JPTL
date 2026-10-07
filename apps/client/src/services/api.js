@@ -130,6 +130,34 @@ export const api = {
   delete: (endpoint, options) => request(endpoint, { ...options, method: 'DELETE' }),
 };
 
+const complianceStreamApi = {
+  async streamComplianceReminders({ signal, onReminder }) {
+    const token = tokenStorage.getToken();
+    const response = await fetch(`${API_BASE_URL}/notifications/stream`, {
+      headers: token ? { Authorization: `Bearer ${token}`, Accept: 'text/event-stream' } : { Accept: 'text/event-stream' },
+      credentials: 'include',
+      signal,
+    });
+    if (!response.ok || !response.body) throw new Error('Could not connect to compliance reminders.');
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (!signal?.aborted) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
+      const blocks = buffer.split('\n\n');
+      buffer = blocks.pop() || '';
+      for (const block of blocks) {
+        if (!block.includes('event: compliance-expiration-reminder')) continue;
+        const data = block.split('\n').find((line) => line.startsWith('data:'))?.slice(5).trim();
+        if (!data) continue;
+        try { onReminder?.(JSON.parse(data)); } catch { /* Ignore malformed stream events. */ }
+      }
+    }
+  },
+};
+
 /* -------------------------------------------------------------
  * Auth API
  * ------------------------------------------------------------- */
@@ -274,13 +302,29 @@ export const landlordApi = {
   deleteTicket: (id) => api.delete(`/landlord/tickets/${id}`),
 
   getRentRoll: () => api.get('/landlord/rentroll'),
+  getPaymentOptions: () => api.get('/landlord/payment-options'),
+  createPaymentOption: (formData) => api.post('/landlord/payment-options', formData),
+  updatePaymentOption: (id, formData) => api.put(`/landlord/payment-options/${id}`, formData),
+  setPaymentOptionActive: (id, isActive) => api.patch(`/landlord/payment-options/${id}/active`, { isActive }),
+  reviewPayment: (id, data) => api.patch(`/landlord/rentroll/${id}/review`, data),
+  getPaymentEvidence: async (id) => {
+    const token = tokenStorage.getToken();
+    const res = await fetch(`${API_BASE_URL}/landlord/rentroll/${id}/evidence`, { headers: token ? { Authorization: `Bearer ${token}` } : {}, credentials: 'include' });
+    if (!res.ok) throw new Error('Could not load payment receipt');
+    return res.blob();
+  },
   
   getTenants: () => api.get('/landlord/tenantdirectory'),
+  getStaff: () => api.get('/landlord/staff'),
+  inviteStaff: (data) => api.post('/landlord/staff', data),
+  deactivateStaff: (id) => api.delete(`/landlord/staff/${id}`),
   createTenant: (data) => api.post('/landlord/tenantdirectory', data),
   updateTenant: (id, data) => api.put(`/landlord/tenantdirectory/${id}`, data),
   deleteTenant: (id) => api.delete(`/landlord/tenantdirectory/${id}`),
   
   getDocuments: () => api.get('/landlord/documents'),
+  getComplianceReminderSettings: () => api.get('/landlord/documents/reminder-settings'),
+  updateComplianceReminderSettings: (noticeLeadTimeDays) => api.patch('/landlord/documents/reminder-settings', { noticeLeadTimeDays }),
   publishPolicy: (data) => api.post('/landlord/documents/policy', data),
   updateDocumentStatus: (id, status, rejectionReason) => 
     api.patch(`/landlord/documents/${id}/status`, { status, rejectionReason }),
@@ -303,6 +347,13 @@ export const landlordApi = {
   getLeaseExtensions: (status = 'all') => api.get(`/landlord/lease-extensions?status=${status}`),
   reviewLeaseExtension: (leaseId, extensionId, data) =>
     api.patch(`/landlord/lease-extensions/${leaseId}/${extensionId}`, data),
+  getManagedLeases: () => api.get('/landlord/lease/extensions'),
+  reviewEarlyLeaseEnd: (leaseId, requestId, data) => api.patch(`/landlord/lease/${leaseId}/termination-requests/${requestId}/review`, data),
+  getEvictionNotices: () => api.get('/landlord/eviction-notices'),
+  issueEvictionNotice: (data) => api.post('/landlord/eviction-notices', data),
+  cancelEvictionNotice: (noticeId, reason = '') => api.patch(`/landlord/eviction-notices/${noticeId}/cancel`, { reason }),
+  deleteCanceledEvictionNotice: (noticeId) => api.delete(`/landlord/eviction-notices/${noticeId}`),
+  evictOverride: (leaseId, reason) => api.post(`/landlord/eviction-notices/${leaseId}/override`, { reason }),
 
   getConcurrentDashboardData: () => {
     return fetchConcurrent([
@@ -324,8 +375,16 @@ export const tenantApi = {
   getDashboard: () => api.get('/tenant/dash'),
   
   getLease: () => api.get('/tenant/lease'),
+  requestEarlyLeaseEnd: (data) => api.post('/tenant/lease/end-early', data),
+  getEvictionNotices: () => api.get('/tenant/eviction-notices'),
 
   getPayments: () => api.get('/tenant/payments'),
+  getPaymentOptions: () => api.get('/tenant/payments/options'),
+  getOrCreateCurrentRentInvoice: () => api.post('/tenant/payments/current-invoice', {}),
+  createAdvanceRentInvoice: (monthsAhead) => api.post('/tenant/payments/advance-invoice', { monthsAhead }),
+  discardAdvanceRentDraft: (id) => api.delete(`/tenant/payments/${id}/advance-draft`),
+  submitPaymentEvidence: (id, formData) => api.post(`/tenant/payments/${id}/submit`, formData),
+  submitOnsitePayment: (id, data) => api.post(`/tenant/payments/${id}/pay-onsite`, data),
   payRent: (data) => api.post('/tenant/payments/pay', data),
   payInAdvance: (data) => api.post('/tenant/payments/pay-advance', data),
   getPaymentMethods: () => api.get('/tenant/payments/methods'),
@@ -399,10 +458,15 @@ export { fetchConcurrent };
  * Notification API
  * ------------------------------------------------------------- */
 export const notificationApi = {
+  ...complianceStreamApi,
   getNotifications: () => api.get('/notifications'),
   getVapidKey: () => api.get('/notifications/vapid-key'),
   markAsRead: (id) => api.patch(`/notifications/${id}/read`),
   markAllAsRead: () => api.patch('/notifications/read-all'),
   clearAll: () => api.delete('/notifications/clear-all'),
   subscribePush: (subscription) => api.post('/notifications/subscribe', { subscription }),
+};
+
+export const staffApi = {
+  getDashboard: () => api.get('/staff/dashboard'),
 };

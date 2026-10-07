@@ -110,7 +110,7 @@ async function getTenantDirectory(landlordId, query = {}, context = {}) {
     landlord: landlordId,
     status: { $in: ['active', 'renewal_pending', 'renewal_approved'] },
   })
-    .select('tenant leaseStart leaseEnd monthlyRent status')
+    .select('tenant leaseStart leaseEnd leaseType monthlyRent status')
     .lean();
 
   const leaseMap = new Map(leases.map((l) => [l.tenant.toString(), l]));
@@ -164,6 +164,7 @@ async function getTenantDirectory(landlordId, query = {}, context = {}) {
       securityDeposit: profile?.securityDeposit ?? (profile?.monthlyRent ? profile.monthlyRent * 1.5 : 0),
       leaseStart: activeLease?.leaseStart ?? profile?.leaseStart ?? unitDoc?.leaseStart ?? null,
       leaseEnd:   activeLease?.leaseEnd   ?? profile?.leaseEnd   ?? unitDoc?.leaseEnd   ?? null,
+      leaseType: activeLease?.leaseType || profile?.leaseType || unitDoc?.leaseType || (activeLease?.leaseEnd || profile?.leaseEnd || unitDoc?.leaseEnd ? 'fixed_term' : 'indefinite'),
       memberSince: u.createdAt,
     };
   });
@@ -246,6 +247,7 @@ async function getTenantDetails(landlordId, tenantId) {
     status: profile?.status || 'pre_added',
     leaseStart: profile?.leaseStart || profile?.unit?.leaseStart || null,
     leaseEnd: profile?.leaseEnd || profile?.unit?.leaseEnd || null,
+    leaseType: profile?.leaseType || profile?.unit?.leaseType || (profile?.leaseEnd || profile?.unit?.leaseEnd ? 'fixed_term' : 'indefinite'),
     monthlyRent: profile?.monthlyRent || profile?.unit?.monthlyRent || 0,
     hasParking: profile?.hasParking ?? profile?.unit?.hasParking ?? false,
     parkingSpot: profile?.parkingSpot ?? profile?.unit?.parkingSpot ?? null,
@@ -282,6 +284,7 @@ async function createTenant(landlordId, data, ipAddress = '') {
     securityDeposit,
     leaseStart,
     leaseEnd,
+    leaseType = 'fixed_term',
     tempPassword,
   } = data;
 
@@ -289,6 +292,11 @@ async function createTenant(landlordId, data, ipAddress = '') {
   if (!lastName?.trim()) throw new TenantDirectoryError('Last name is required', 400);
   if (!email?.trim()) throw new TenantDirectoryError('Email is required', 400);
   if (!EMAIL_REGEX.test(email.trim())) throw new TenantDirectoryError('Invalid email format', 400);
+  if (!['fixed_term', 'indefinite'].includes(leaseType)) throw new TenantDirectoryError('Lease type must be fixed_term or indefinite.', 400);
+  if (unitId && unitId !== 'pre_add_unassigned') {
+    if (!leaseStart) throw new TenantDirectoryError('Lease start date is required for an assigned unit.', 400);
+    if (leaseType === 'fixed_term' && (!leaseEnd || new Date(leaseEnd) <= new Date(leaseStart))) throw new TenantDirectoryError('A fixed-term lease requires an expiration date after its start date.', 400);
+  }
 
   const normalizedEmail = email.trim().toLowerCase();
   const existingUser = await User.findOne({ email: normalizedEmail });
@@ -328,7 +336,8 @@ async function createTenant(landlordId, data, ipAddress = '') {
     unit.tenant = tenantUser._id;
     unit.status = 'occupied';
     if (leaseStart) unit.leaseStart = new Date(leaseStart);
-    if (leaseEnd) unit.leaseEnd = new Date(leaseEnd);
+    unit.leaseType = leaseType;
+    unit.leaseEnd = leaseType === 'indefinite' || !leaseEnd ? null : new Date(leaseEnd);
     if (monthlyRent) unit.monthlyRent = Number(monthlyRent);
     if (hasParking !== undefined) {
       unit.hasParking = Boolean(hasParking);
@@ -356,7 +365,8 @@ async function createTenant(landlordId, data, ipAddress = '') {
     parkingFee: hasParking ? Number(parkingFee || 0) : 0,
     securityDeposit: depositAmount,
     leaseStart: leaseStart ? new Date(leaseStart) : null,
-    leaseEnd: leaseEnd ? new Date(leaseEnd) : null,
+    leaseType,
+    leaseEnd: leaseType === 'indefinite' || !leaseEnd ? null : new Date(leaseEnd),
     status: profileStatus,
   });
 
@@ -408,6 +418,7 @@ async function createTenant(landlordId, data, ipAddress = '') {
     parkingSpot: profile.parkingSpot,
     parkingFee: profile.parkingFee,
     leaseStart: profile.leaseStart,
+    leaseType: profile.leaseType || 'fixed_term',
     leaseEnd: profile.leaseEnd,
     status: profile.status,
     createdAt: tenantUser.createdAt,
@@ -437,6 +448,7 @@ async function updateTenant(landlordId, tenantId, data, ipAddress = '') {
     securityDeposit,
     leaseStart,
     leaseEnd,
+    leaseType,
     status,
   } = data;
 
@@ -474,6 +486,7 @@ async function updateTenant(landlordId, tenantId, data, ipAddress = '') {
           monthlyRent,
           leaseStart,
           leaseEnd,
+          leaseType,
           tempPassword: 'jptl2026',
         },
         ipAddress
@@ -504,6 +517,14 @@ async function updateTenant(landlordId, tenantId, data, ipAddress = '') {
   }
 
   const wasPreviouslyUnassigned = !profile.unit;
+  if (leaseType !== undefined && !['fixed_term', 'indefinite'].includes(leaseType)) throw new TenantDirectoryError('Lease type must be fixed_term or indefinite.', 400);
+  const willHaveUnit = unitId !== undefined ? Boolean(unitId && unitId !== 'pre_add_unassigned') : Boolean(profile.unit);
+  const effectiveLeaseType = leaseType || profile.leaseType || 'fixed_term';
+  const effectiveLeaseStart = leaseStart !== undefined ? leaseStart : profile.leaseStart;
+  const effectiveLeaseEnd = effectiveLeaseType === 'indefinite' ? null : leaseEnd !== undefined ? leaseEnd : profile.leaseEnd;
+  const leaseWasEdited = unitId !== undefined || leaseType !== undefined || leaseStart !== undefined || leaseEnd !== undefined;
+  if (leaseWasEdited && willHaveUnit && !effectiveLeaseStart) throw new TenantDirectoryError('Lease start date is required for an assigned unit.', 400);
+  if (leaseWasEdited && willHaveUnit && effectiveLeaseType === 'fixed_term' && (!effectiveLeaseEnd || new Date(effectiveLeaseEnd) <= new Date(effectiveLeaseStart))) throw new TenantDirectoryError('A fixed-term lease requires an expiration date after its start date.', 400);
 
   // Handle unit reassignment if unitId provided
   if (unitId !== undefined) {
@@ -516,10 +537,14 @@ async function updateTenant(landlordId, tenantId, data, ipAddress = '') {
         if (oldUnit) {
           oldUnit.tenant = null;
           oldUnit.status = 'vacant';
+          oldUnit.leaseStart = null;
+          oldUnit.leaseType = 'fixed_term';
+          oldUnit.leaseEnd = null;
           await oldUnit.save();
           await updatePropertyMetrics(oldUnit.property);
         }
       }
+      await Lease.updateMany({ tenant: effectiveTenantId, status: { $ne: 'ended' } }, { $set: { status: 'ended' } });
       profile.unit = null;
       profile.property = null;
       profile.status = status || 'pre_added';
@@ -540,6 +565,9 @@ async function updateTenant(landlordId, tenantId, data, ipAddress = '') {
         if (oldUnit) {
           oldUnit.tenant = null;
           oldUnit.status = 'vacant';
+          oldUnit.leaseStart = null;
+          oldUnit.leaseType = 'fixed_term';
+          oldUnit.leaseEnd = null;
           await oldUnit.save();
           await updatePropertyMetrics(oldUnit.property);
         }
@@ -550,7 +578,8 @@ async function updateTenant(landlordId, tenantId, data, ipAddress = '') {
       newUnit.status = 'occupied';
       if (monthlyRent !== undefined) newUnit.monthlyRent = Number(monthlyRent);
       if (leaseStart !== undefined) newUnit.leaseStart = leaseStart ? new Date(leaseStart) : null;
-      if (leaseEnd !== undefined) newUnit.leaseEnd = leaseEnd ? new Date(leaseEnd) : null;
+      if (leaseType !== undefined) newUnit.leaseType = leaseType;
+      if (leaseEnd !== undefined || leaseType === 'indefinite') newUnit.leaseEnd = leaseType === 'indefinite' || !leaseEnd ? null : new Date(leaseEnd);
       await newUnit.save();
       await updatePropertyMetrics(prop._id);
 
@@ -580,7 +609,30 @@ async function updateTenant(landlordId, tenantId, data, ipAddress = '') {
   if (parkingFee !== undefined) profile.parkingFee = hasParking ? Number(parkingFee || 0) : 0;
   if (securityDeposit !== undefined) profile.securityDeposit = Number(securityDeposit);
   if (leaseStart !== undefined) profile.leaseStart = leaseStart ? new Date(leaseStart) : null;
-  if (leaseEnd !== undefined) profile.leaseEnd = leaseEnd ? new Date(leaseEnd) : null;
+  if (leaseType !== undefined) profile.leaseType = leaseType;
+  if (leaseEnd !== undefined || leaseType === 'indefinite') profile.leaseEnd = leaseType === 'indefinite' || !leaseEnd ? null : new Date(leaseEnd);
+
+  if (profile.unit) {
+    const assignedUnit = await Unit.findById(profile.unit);
+    if (assignedUnit) {
+      assignedUnit.leaseType = profile.leaseType || 'fixed_term';
+      if (leaseStart !== undefined) assignedUnit.leaseStart = profile.leaseStart;
+      if (leaseEnd !== undefined || leaseType === 'indefinite') assignedUnit.leaseEnd = profile.leaseType === 'indefinite' ? null : profile.leaseEnd;
+      if (monthlyRent !== undefined) assignedUnit.monthlyRent = Number(monthlyRent);
+      await assignedUnit.save();
+    }
+    const activeLease = await Lease.findOne({ tenant: effectiveTenantId, status: { $ne: 'ended' } });
+    if (activeLease) {
+      activeLease.unit = profile.unit;
+      activeLease.property = profile.property;
+      activeLease.landlord = landlordId;
+      activeLease.leaseType = profile.leaseType || 'fixed_term';
+      if (leaseStart !== undefined) activeLease.leaseStart = profile.leaseStart;
+      if (leaseEnd !== undefined || leaseType === 'indefinite') activeLease.leaseEnd = activeLease.leaseType === 'indefinite' ? null : profile.leaseEnd;
+      if (monthlyRent !== undefined) activeLease.monthlyRent = Number(monthlyRent);
+      await activeLease.save();
+    }
+  }
   if (status !== undefined) profile.status = status;
 
   await profile.save();

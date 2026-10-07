@@ -4,6 +4,7 @@ import cluster from 'node:cluster';
 import os from 'node:os';
 import app from './app.js';
 import connectDB from './src/shared/config/db.js';
+import { startComplianceExpirationReminderScheduler } from './src/shared/services/complianceReminder.service.js';
 
 const PORT = process.env.PORT || 8000;
 // Clustering enabled by default unless explicitly set to false or in test mode
@@ -47,6 +48,7 @@ if (isClusterEnabled && cluster.isPrimary) {
 } else {
   // Worker processes boot Express server and establish DB connection
   connectDB().then(() => {
+    startComplianceExpirationReminderScheduler();
     app.listen(PORT, '0.0.0.0', () => {
       const mode = isClusterEnabled ? `Worker PID ${process.pid}` : `Single PID ${process.pid}`;
       console.log(`[HTTP Server] Listening on http://0.0.0.0:${PORT} (${mode}, env: ${process.env.NODE_ENV || 'development'})`);

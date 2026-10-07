@@ -5,15 +5,15 @@ import { requireAuth, requireRole } from '../../../shared/middleware/auth.middle
 const router = Router();
 
 // Restrict entire router to landlords
-router.use(requireAuth, requireRole('landlord'));
+router.use(requireAuth);
 
 // GET /api/landlord/announcements (Fetches only this landlord's notices)
-router.get('/', getMyAnnouncements);
+router.get('/', requireRole('landlord', 'staff'), getMyAnnouncements);
 
 // POST /api/landlord/announcements
-router.post('/', createAnnouncement);
+router.post('/', requireRole('landlord', 'staff'), createAnnouncement);
 
 // DELETE /api/landlord/announcements/:id
-router.delete('/:id', deleteAnnouncement);
+router.delete('/:id', requireRole('landlord'), deleteAnnouncement);
 
 export default router;

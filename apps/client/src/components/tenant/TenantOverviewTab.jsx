@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Home, CreditCard, Wrench, Megaphone, Calendar, ShieldCheck, ArrowUpRight,
+  Home, CreditCard, Wrench, Megaphone, Calendar, ShieldCheck, ArrowUpRight, CalendarPlus,
   Key, Wifi, Car, FileText, CheckCircle2, Clock, AlertTriangle, ArrowRight, UserCheck, BookOpen
 } from 'lucide-react';
 
@@ -9,9 +9,11 @@ export const TenantOverviewTab = ({
   unit,
   property,
   landlord,
+  lease,
   tickets = [],
   announcements = [],
   onPayRentClick,
+  onPayAdvanceClick,
   onRequestRepairClick,
   onNavigateTab,
 }) => {
@@ -22,6 +24,8 @@ export const TenantOverviewTab = ({
   const today = new Date();
   const leaseEndDate = unit?.leaseEnd || tenant?.leaseEnd ? new Date(unit?.leaseEnd || tenant?.leaseEnd) : null;
   const diffDays = leaseEndDate ? Math.max(0, Math.ceil((leaseEndDate - today) / (1000 * 60 * 60 * 24))) : null;
+  const resolvedLeaseType = lease?.leaseType || unit?.leaseType || tenant?.leaseType;
+  const isIndefiniteLease = resolvedLeaseType === 'indefinite' || (!resolvedLeaseType && !isPreAdded && !leaseEndDate);
 
   // Active tickets for this tenant
   const tenantTickets = tickets.filter((t) => t.unitId === unit?.id || t.tenantName === tenant?.name);
@@ -64,6 +68,7 @@ export const TenantOverviewTab = ({
                   <span className="text-emerald-600 dark:text-emerald-400 font-semibold block sm:inline">{diffDays} days remaining on lease</span>
                 </>
               )}
+              {isIndefiniteLease && <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Indefinite lease</span>}
             </p>
           )}
         </div>
@@ -87,6 +92,16 @@ export const TenantOverviewTab = ({
             >
               <CreditCard className="w-4 h-4" />
               <span>Pay Rent</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onPayAdvanceClick}
+              disabled={!lease || lease.status === 'ended'}
+              className="w-full sm:w-auto min-h-[44px] px-4 py-2.5 rounded-2xl border border-indigo-300 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-grotesk font-semibold text-xs flex items-center justify-center gap-2 btn-press disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <CalendarPlus className="w-4 h-4" />
+              <span>Pay in Advance</span>
             </button>
           </div>
         )}

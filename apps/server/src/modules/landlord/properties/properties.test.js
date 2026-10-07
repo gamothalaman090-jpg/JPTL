@@ -6,6 +6,7 @@ import app from '../../../../app.js';
 import User from '../../../shared/models/user.model.js';
 import Property from '../../../shared/models/property.model.js';
 import Unit from '../../../shared/models/unit.model.js';
+import Lease from '../../../shared/models/lease.model.js';
 
 let mongoServer;
 let landlordToken;
@@ -106,6 +107,19 @@ describe('Landlord Properties & Units Management API', () => {
     expect(res.body.data.label).toBe('Penthouse 12A');
   });
 
+  it('includes the occupant name and active lease dates in unit details', async () => {
+    const property = await Property.create({ landlord: landlordUser._id, name: 'Occupied Homes', address: '42 Market Road', city: 'Manila' });
+    const unit = await Unit.create({ property: property._id, tenant: tenantUser._id, label: 'Unit A', monthlyRent: 12000, sqft: 40, status: 'occupied', leaseStart: new Date('2026-01-01'), leaseEnd: new Date('2026-12-31') });
+    await Lease.create({ landlord: landlordUser._id, tenant: tenantUser._id, property: property._id, unit: unit._id, leaseStart: new Date('2026-02-01'), leaseEnd: new Date('2027-01-31'), monthlyRent: 12000, status: 'active' });
+
+    const response = await request(app).get('/api/landlord/properties').set('Authorization', `Bearer ${landlordToken}`);
+    expect(response.status).toBe(200);
+    const details = response.body.data.find((entry) => String(entry._id) === String(property._id)).units[0];
+    expect(details.tenantName).toBe('Sophia Lin');
+    expect(new Date(details.leaseStart).toISOString()).toContain('2026-02-01');
+    expect(new Date(details.leaseEnd).toISOString()).toContain('2027-01-31');
+  });
+
   it('DELETE /api/landlord/properties/:id - should delete property and its vacant units', async () => {
     const res = await request(app)
       .delete(`/api/landlord/properties/${createdPropertyId}`)
@@ -153,4 +167,3 @@ describe('Error Handling', () => {
     expect(res.status).toBe(400);
   });
 });
-

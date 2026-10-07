@@ -1,0 +1,104 @@
+{
+  "info": {
+    "name": "Eviction Notices and Override (Tenant & Landlord)",
+    "description": "Postman coverage for 40-day notice creation and tenant access, plus non-destructive validation of the landlord-only Evict Override endpoint.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
+    { "key": "landlord_token", "value": "", "type": "string" },
+    { "key": "tenant_token", "value": "", "type": "string" },
+    { "key": "lease_id", "value": "", "type": "string" },
+    { "key": "notice_id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01. Auth – Login as Tenant",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Tenant login succeeds', () => pm.response.to.have.status(200));",
+        "const res = pm.response.json();",
+        "const token = res.token || res.data?.token;",
+        "if (token) pm.collectionVariables.set('tenant_token', token);"
+      ] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"sophia@jptl.dev\",\n  \"password\": \"Password123!\"\n}" }, "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api", "auth", "login"] } }
+    },
+    {
+      "name": "02. Auth – Login as Landlord",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Landlord login succeeds', () => pm.response.to.have.status(200));",
+        "const res = pm.response.json();",
+        "const token = res.token || res.data?.token;",
+        "if (token) pm.collectionVariables.set('landlord_token', token);"
+      ] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"landlord@jptl.dev\",\n  \"password\": \"Password123!\"\n}" }, "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api", "auth", "login"] } }
+    },
+    {
+      "name": "03. Tenant – Get Lease ID for Notice Workflow",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Tenant lease lookup succeeds', () => pm.response.to.have.status(200));",
+        "const res = pm.response.json();",
+        "const lease = res.data || res.lease;",
+        "const id = lease?.id || lease?._id;",
+        "pm.test('An active lease ID is available', () => pm.expect(id).to.be.ok);",
+        "if (id) pm.collectionVariables.set('lease_id', id);"
+      ] } }],
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{tenant_token}}" }], "url": { "raw": "{{base_url}}/api/tenant/lease", "host": ["{{base_url}}"], "path": ["api", "tenant", "lease"] } }
+    },
+    {
+      "name": "04. Landlord – Issue 40-Day Eviction Notice",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Notice created', () => pm.response.to.have.status(201));",
+        "const res = pm.response.json();",
+        "const notice = res.notice || res.data?.notice;",
+        "pm.test('Notice period is 40 days', () => pm.expect(notice.noticePeriodDays).to.equal(40));",
+        "pm.test('Move-out deadline is 40 days after issue date', () => {",
+        "  const days = Math.round((new Date(notice.moveOutDate) - new Date(notice.issuedAt)) / 86400000);",
+        "  pm.expect(days).to.equal(40);",
+        "});",
+        "if (notice?._id || notice?.id) pm.collectionVariables.set('notice_id', notice._id || notice.id);"
+      ] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{landlord_token}}" }], "body": { "mode": "raw", "raw": "{\n  \"leaseId\": \"{{lease_id}}\",\n  \"reason\": \"Newman automated notice workflow test\"\n}" }, "url": { "raw": "{{base_url}}/api/landlord/eviction-notices", "host": ["{{base_url}}"], "path": ["api", "landlord", "eviction-notices"] } }
+    },
+    {
+      "name": "05. Tenant – View Own Eviction Notices",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Tenant notice listing succeeds', () => pm.response.to.have.status(200));",
+        "const res = pm.response.json();",
+        "pm.test('The created notice is visible to its tenant', () => {",
+        "  const notices = res.notices || res.data?.notices || [];",
+        "  pm.expect(notices.some((n) => (n._id || n.id) === pm.collectionVariables.get('notice_id'))).to.be.true;",
+        "});"
+      ] } }],
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{tenant_token}}" }], "url": { "raw": "{{base_url}}/api/tenant/eviction-notices", "host": ["{{base_url}}"], "path": ["api", "tenant", "eviction-notices"] } }
+    },
+    {
+      "name": "06. Landlord – Cancel the Active 40-Day Notice",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Notice cancellation succeeds', () => pm.response.to.have.status(200));",
+        "const res = pm.response.json();",
+        "pm.test('Notice status is canceled', () => pm.expect(res.notice.status).to.equal('canceled'));",
+        "pm.test('Cancellation timestamp is recorded', () => pm.expect(res.notice.canceledAt).to.be.ok);"
+      ] } }],
+      "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{landlord_token}}" }], "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Canceled by Newman test\"\n}" }, "url": { "raw": "{{base_url}}/api/landlord/eviction-notices/{{notice_id}}/cancel", "host": ["{{base_url}}"], "path": ["api", "landlord", "eviction-notices", "{{notice_id}}", "cancel"] } }
+    },
+    {
+      "name": "07. Landlord – Delete the Canceled Notice",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Canceled notice deletion succeeds', () => pm.response.to.have.status(200));",
+        "const res = pm.response.json();",
+        "pm.test('Notice was deleted', () => pm.expect(res.deleted).to.equal(true));"
+      ] } }],
+      "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{landlord_token}}" }], "url": { "raw": "{{base_url}}/api/landlord/eviction-notices/{{notice_id}}", "host": ["{{base_url}}"], "path": ["api", "landlord", "eviction-notices", "{{notice_id}}"] } }
+    },
+    {
+      "name": "08. Evict Override – Reject Missing Reason Without Mutating Lease",
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Missing reason is rejected', () => pm.response.to.have.status(400));"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{landlord_token}}" }], "body": { "mode": "raw", "raw": "{}" }, "url": { "raw": "{{base_url}}/api/landlord/eviction-notices/{{lease_id}}/override", "host": ["{{base_url}}"], "path": ["api", "landlord", "eviction-notices", "{{lease_id}}", "override"] } }
+    },
+    {
+      "name": "09. Access Control – Tenant Cannot Create a Landlord Notice",
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Tenant role is forbidden from landlord route', () => pm.response.to.have.status(403));"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{tenant_token}}" }], "body": { "mode": "raw", "raw": "{\n  \"leaseId\": \"{{lease_id}}\",\n  \"reason\": \"Should be denied\"\n}" }, "url": { "raw": "{{base_url}}/api/landlord/eviction-notices", "host": ["{{base_url}}"], "path": ["api", "landlord", "eviction-notices"] } }
+    }
+  ]
+}

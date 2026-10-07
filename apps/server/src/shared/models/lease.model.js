@@ -20,6 +20,16 @@ const extensionRequestSchema = new mongoose.Schema(
   { _id: true }
 );
 
+const terminationRequestSchema = new mongoose.Schema({
+  requestedMoveOutDate: { type: Date, required: true },
+  reason: { type: String, required: true, trim: true, maxlength: 2000 },
+  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  landlordNotes: { type: String, default: '', maxlength: 1000 },
+  requestedAt: { type: Date, default: Date.now },
+  reviewedAt: { type: Date, default: null },
+  reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+}, { timestamps: true });
+
 const leaseSchema = new mongoose.Schema(
   {
     tenant: {
@@ -43,7 +53,8 @@ const leaseSchema = new mongoose.Schema(
       required: true,
     },
     leaseStart: { type: Date, required: true },
-    leaseEnd: { type: Date, required: true },
+    leaseType: { type: String, enum: ['fixed_term', 'indefinite'], default: 'fixed_term' },
+    leaseEnd: { type: Date, default: null },
     monthlyRent: { type: Number, required: true },
     hasParking: { type: Boolean, default: false },
     parkingSpot: { type: String, default: null },
@@ -65,6 +76,7 @@ const leaseSchema = new mongoose.Schema(
       ],
     },
     extensionRequests: [extensionRequestSchema],
+    terminationRequests: [terminationRequestSchema],
   },
   { timestamps: true }
 );

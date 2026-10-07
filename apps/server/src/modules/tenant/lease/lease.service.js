@@ -3,6 +3,7 @@ import Unit from '../../../shared/models/unit.model.js';
 import Property from '../../../shared/models/property.model.js';
 import TenantProfile from '../../../shared/models/tenantProfile.model.js';
 import AuditLog from '../../../shared/models/auditLog.model.js';
+import { createNotification } from '../../../shared/services/notification.service.js';
 
 export class LeaseError extends Error {
   constructor(message, statusCode = 400) {
@@ -49,7 +50,8 @@ export async function getTenantLease(tenantId) {
     const landlordId = unit.property?.landlord || profile?.landlord;
     const monthlyRent = unit.monthlyRent || profile?.monthlyRent || 2000;
     const leaseStart = unit.leaseStart || new Date();
-    const leaseEnd = unit.leaseEnd || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+    const leaseType = unit.leaseType || profile?.leaseType || (unit.leaseEnd || profile?.leaseEnd ? 'fixed_term' : 'indefinite');
+    const leaseEnd = unit.leaseEnd || profile?.leaseEnd || (leaseType === 'indefinite' ? null : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000));
 
     const createdLease = await Lease.create({
       tenant: tenantId,
@@ -57,6 +59,7 @@ export async function getTenantLease(tenantId) {
       property: unit.property._id,
       unit: unit._id,
       leaseStart,
+      leaseType,
       leaseEnd,
       monthlyRent,
       securityDeposit: monthlyRent * 1.5,
@@ -70,13 +73,11 @@ export async function getTenantLease(tenantId) {
       .lean();
   }
 
-  const daysRemaining = Math.max(
-    0,
-    Math.ceil((new Date(lease.leaseEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-  );
-
-  const renewalWindowOpensAt = new Date(new Date(lease.leaseEnd).getTime() - 60 * 24 * 60 * 60 * 1000);
-  const isRenewalWindowOpen = Date.now() >= renewalWindowOpensAt.getTime();
+  const daysRemaining = lease.leaseEnd
+    ? Math.max(0, Math.ceil((new Date(lease.leaseEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : null;
+  const renewalWindowOpensAt = lease.leaseEnd ? new Date(new Date(lease.leaseEnd).getTime() - 60 * 24 * 60 * 60 * 1000) : null;
+  const isRenewalWindowOpen = renewalWindowOpensAt ? Date.now() >= renewalWindowOpensAt.getTime() : false;
 
   return {
     ...lease,
@@ -85,7 +86,7 @@ export async function getTenantLease(tenantId) {
     propertyName: lease.property?.name || 'Property N/A',
     propertyAddress: lease.property?.address || '',
     daysRemaining,
-    renewalWindowOpensAt: renewalWindowOpensAt.toISOString().split('T')[0],
+    renewalWindowOpensAt: renewalWindowOpensAt?.toISOString().split('T')[0] || null,
     isRenewalWindowOpen,
   };
 }
@@ -110,6 +111,7 @@ export async function requestLeaseExtension(tenantId, payload, ipAddress = '') {
   if (!lease) {
     throw new LeaseError('No active lease found to extend', 404);
   }
+  if (lease.leaseType === 'indefinite' || !lease.leaseEnd) throw new LeaseError('An indefinite lease does not need an extension.', 409);
 
   const startDate = proposedStartDate ? new Date(proposedStartDate) : new Date(lease.leaseEnd);
   const endDate = new Date(startDate);
@@ -145,6 +147,24 @@ export async function requestLeaseExtension(tenantId, payload, ipAddress = '') {
     extensionRequest: createdRequest,
     leaseStatus: lease.status,
   };
+}
+
+export async function requestEarlyTermination(tenantId, { requestedMoveOutDate, reason } = {}, ipAddress = '') {
+  const cleanReason = typeof reason === 'string' ? reason.trim() : '';
+  if (!cleanReason || cleanReason.length > 2000) throw new LeaseError('Please provide a reason (up to 2,000 characters).', 400);
+  const moveOutDate = new Date(requestedMoveOutDate);
+  if (!requestedMoveOutDate || Number.isNaN(moveOutDate.getTime())) throw new LeaseError('Choose a valid requested move-out date.', 400);
+  const lease = await Lease.findOne({ tenant: tenantId, status: { $in: ['active', 'renewal_pending', 'renewal_approved'] } }).populate('property', 'name').populate('unit', 'label');
+  if (!lease) throw new LeaseError('No active lease was found for your account.', 404);
+  if (moveOutDate <= new Date() || (lease.leaseEnd && moveOutDate >= new Date(lease.leaseEnd))) throw new LeaseError(lease.leaseEnd ? 'The requested date must be in the future and before the current lease end date.' : 'The requested date must be in the future.', 400);
+  if (lease.terminationRequests.some((request) => request.status === 'pending')) throw new LeaseError('You already have an early lease termination request awaiting review.', 409);
+  const request = { requestedMoveOutDate: moveOutDate, reason: cleanReason, status: 'pending', requestedAt: new Date() };
+  lease.terminationRequests.push(request);
+  await lease.save();
+  await logAction({ actorId: tenantId, action: 'EARLY_LEASE_TERMINATION_REQUESTED', entityId: lease._id, afterState: request, ipAddress });
+  await createNotification({ userId: lease.landlord, title: 'Early lease termination requested', body: `${lease.unit?.label || 'A tenant'} requested an early move-out date of ${moveOutDate.toLocaleDateString()}.`, type: 'lease', refModel: 'Lease', refId: lease._id });
+  const created = lease.terminationRequests[lease.terminationRequests.length - 1];
+  return { success: true, message: 'Your early lease termination request was sent to your landlord.', request: created, leaseId: lease._id };
 }
 
 /**
@@ -193,6 +213,7 @@ function buildLeaseDocData(lease) {
     unitBathrooms: lease.unit?.bathrooms || null,
     unitSqft: lease.unit?.sqft || null,
     leaseStart: lease.leaseStart,
+    leaseType: lease.leaseType || (lease.leaseEnd ? 'fixed_term' : 'indefinite'),
     leaseEnd: lease.leaseEnd,
     monthlyRent: lease.monthlyRent,
     securityDeposit: lease.securityDeposit,
@@ -205,4 +226,3 @@ function buildLeaseDocData(lease) {
     contractPdfUrl: lease.contractPdfUrl,
   };
 }
-

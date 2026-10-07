@@ -1,0 +1,71 @@
+{
+  "info": {
+    "name": "Non-simulated Rent Payment Review Workflow",
+    "description": "Checks tenant payment options and ledger, onsite payment submission, landlord review, and role protections. The invoice remains outstanding until approval.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
+    { "key": "tenant_token", "value": "", "type": "string" },
+    { "key": "landlord_token", "value": "", "type": "string" },
+    { "key": "payment_id", "value": "", "type": "string" },
+    { "key": "advance_draft_id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01. Tenant login",
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Tenant login succeeds', () => pm.response.to.have.status(200));", "const r = pm.response.json();", "const token = r.token || r.data?.token;", "if (token) pm.collectionVariables.set('tenant_token', token);"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"sophia@jptl.dev\",\n  \"password\": \"Password123!\"\n}" }, "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api", "auth", "login"] } }
+    },
+    {
+      "name": "02. Landlord login",
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Landlord login succeeds', () => pm.response.to.have.status(200));", "const r = pm.response.json();", "const token = r.token || r.data?.token;", "if (token) pm.collectionVariables.set('landlord_token', token);"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"landlord@jptl.dev\",\n  \"password\": \"Password123!\"\n}" }, "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api", "auth", "login"] } }
+    },
+    {
+      "name": "03. Tenant reads real payment options",
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Payment options endpoint succeeds', () => pm.response.to.have.status(200));", "pm.test('Options are returned as a list', () => pm.expect(pm.response.json().data).to.be.an('array'));" ] } }],
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{tenant_token}}" }], "url": { "raw": "{{base_url}}/api/tenant/payments/options", "host": ["{{base_url}}"], "path": ["api", "tenant", "payments", "options"] } }
+    },
+    {
+      "name": "04. Tenant reads ledger and selects unpaid invoice",
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Ledger endpoint succeeds', () => pm.response.to.have.status(200));", "const data = pm.response.json().data;", "const invoice = (data.history || []).find(p => ['pending', 'overdue'].includes(p.status) && p.reviewStatus !== 'pending_review');", "pm.test('An unpaid invoice is available', () => pm.expect(invoice?.paymentId).to.be.ok);", "if (invoice?.paymentId) pm.collectionVariables.set('payment_id', invoice.paymentId);"] } }],
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{tenant_token}}" }], "url": { "raw": "{{base_url}}/api/tenant/payments", "host": ["{{base_url}}"], "path": ["api", "tenant", "payments"] } }
+    },
+    {
+      "name": "05. Tenant requests onsite payment confirmation",
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Onsite request is accepted', () => pm.response.to.have.status(201));", "const data = pm.response.json().data;", "pm.test('Request is pending landlord review', () => { pm.expect(data.reviewStatus).to.equal('pending_review'); pm.expect(data.status).to.be.oneOf(['pending', 'overdue']); });"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{tenant_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"note\": \"Newman onsite payment flow\"\n}" }, "url": { "raw": "{{base_url}}/api/tenant/payments/{{payment_id}}/pay-onsite", "host": ["{{base_url}}"], "path": ["api", "tenant", "payments", "{{payment_id}}", "pay-onsite"] } }
+    },
+    {
+      "name": "06. Landlord approves onsite payment",
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Landlord approval succeeds', () => pm.response.to.have.status(200));", "const payment = pm.response.json().data;", "pm.test('Approval clears invoice and records receipt', () => { pm.expect(payment.status).to.equal('paid'); pm.expect(payment.reviewStatus).to.equal('approved'); });"] } }],
+      "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{landlord_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"action\": \"approve\"\n}" }, "url": { "raw": "{{base_url}}/api/landlord/rentroll/{{payment_id}}/review", "host": ["{{base_url}}"], "path": ["api", "landlord", "rentroll", "{{payment_id}}", "review"] } }
+    },
+    {
+      "name": "07. Tenant cannot approve payment",
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Tenant cannot access landlord approval route', () => pm.response.to.have.status(403));"] } }],
+      "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{tenant_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"action\": \"approve\"\n}" }, "url": { "raw": "{{base_url}}/api/landlord/rentroll/{{payment_id}}/review", "host": ["{{base_url}}"], "path": ["api", "landlord", "rentroll", "{{payment_id}}", "review"] } }
+    },
+    {
+      "name": "08. Tenant prepares an advance draft",
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Advance draft is created', () => pm.response.to.have.status(201));", "const draft = pm.response.json().data;", "pm.test('Draft is not submitted', () => { pm.expect(draft.status).to.equal('draft'); pm.expect(draft.isAdvancePayment).to.equal(true); });", "pm.collectionVariables.set('advance_draft_id', draft._id);"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{tenant_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"monthsAhead\": 2\n}" }, "url": { "raw": "{{base_url}}/api/tenant/payments/advance-invoice", "host": ["{{base_url}}"], "path": ["api", "tenant", "payments", "advance-invoice"] } }
+    },
+    {
+      "name": "09. Landlord rent roll hides unsubmitted advance draft",
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Rent roll is available', () => pm.response.to.have.status(200));", "const rows = pm.response.json().data || [];", "pm.test('Draft is not visible to landlord', () => pm.expect(rows.some(row => String(row.id) === pm.collectionVariables.get('advance_draft_id'))).to.equal(false));"] } }],
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{landlord_token}}" }], "url": { "raw": "{{base_url}}/api/landlord/rentroll", "host": ["{{base_url}}"], "path": ["api", "landlord", "rentroll"] } }
+    },
+    {
+      "name": "10. Tenant submits advance onsite payment",
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Advance onsite submission succeeds', () => pm.response.to.have.status(201));", "const submission = pm.response.json().data;", "pm.test('Draft becomes pending review', () => { pm.expect(submission.status).to.equal('pending'); pm.expect(submission.reviewStatus).to.equal('pending_review'); });"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{tenant_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"note\": \"Advance rent onsite\"\n}" }, "url": { "raw": "{{base_url}}/api/tenant/payments/{{advance_draft_id}}/pay-onsite", "host": ["{{base_url}}"], "path": ["api", "tenant", "payments", "{{advance_draft_id}}", "pay-onsite"] } }
+    },
+    {
+      "name": "11. Landlord sees advance only after submission",
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Rent roll is available', () => pm.response.to.have.status(200));", "const rows = pm.response.json().data || [];", "const advance = rows.find(row => String(row.id) === pm.collectionVariables.get('advance_draft_id'));", "pm.test('Submitted advance is visible and awaiting review', () => { pm.expect(advance).to.be.ok; pm.expect(advance.reviewStatus).to.equal('pending_review'); });"] } }],
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{landlord_token}}" }], "url": { "raw": "{{base_url}}/api/landlord/rentroll", "host": ["{{base_url}}"], "path": ["api", "landlord", "rentroll"] } }
+    }
+  ]
+}

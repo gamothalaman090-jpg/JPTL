@@ -6,6 +6,7 @@ import {
 import { MOCK_DOCUMENTS } from '../../data/mockData';
 import { DocumentInspectionModal } from './DocumentInspectionModal';
 import { PublishPolicyModal } from './PublishPolicyModal';
+import { landlordApi } from '../../services/api';
 
 export const LandlordDocumentsTab = ({
   documents: documentsProp,
@@ -32,6 +33,25 @@ export const LandlordDocumentsTab = ({
       setDocuments(documentsProp);
     }
   }, [documentsProp]);
+
+  useEffect(() => {
+    let active = true;
+    landlordApi.getComplianceReminderSettings()
+      .then((response) => {
+        if (active) setDocExpirationReminderDays(String(response.data?.noticeLeadTimeDays || 30));
+      })
+      .catch((error) => console.warn('Could not load compliance reminder settings:', error.message));
+    return () => { active = false; };
+  }, []);
+
+  const handleReminderLeadTimeChange = async (value) => {
+    setDocExpirationReminderDays(value);
+    try {
+      await landlordApi.updateComplianceReminderSettings(Number(value));
+    } catch (error) {
+      console.error('Could not save compliance reminder lead time:', error.message);
+    }
+  };
 
   // Persist local changes to sessionStorage
   const updateDocumentList = (newDocs) => {
@@ -356,7 +376,7 @@ export const LandlordDocumentsTab = ({
           </div>
           <select
             value={docExpirationReminderDays}
-            onChange={(e) => setDocExpirationReminderDays(e.target.value)}
+            onChange={(e) => handleReminderLeadTimeChange(e.target.value)}
             className="bg-white dark:bg-[#10131F] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-slate-900 dark:text-white text-xs font-mono shrink-0"
           >
             <option value="15">15 Days Before Expiry</option>

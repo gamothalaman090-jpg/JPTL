@@ -147,9 +147,11 @@ export function generateLeasePdf(data, stream) {
   sectionHeading('3. Lease Term');
 
   kvRow('Commencement Date', fmtDate(data.leaseStart));
-  kvRow('Expiration Date', fmtDate(data.leaseEnd));
+  kvRow('Expiration Date', data.leaseType === 'indefinite' ? 'No fixed expiration date' : fmtDate(data.leaseEnd));
 
-  if (data.leaseStart && data.leaseEnd) {
+  if (data.leaseType === 'indefinite') {
+    kvRow('Duration', 'Indefinite');
+  } else if (data.leaseStart && data.leaseEnd) {
     const months = Math.round(
       (new Date(data.leaseEnd) - new Date(data.leaseStart)) /
         (1000 * 60 * 60 * 24 * 30.44)

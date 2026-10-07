@@ -1,12 +1,12 @@
 /**
  * JPTL - Database Seeder
  * -----------------------
- * Usage (inside the container):
- *   bun run seed      - Seeds all collections with demo data
- *   bun run seed:fresh - Purges first, then seeds fresh
+ * Safe usage:
+ *   npm run seed                         - Dry-run (does not connect)
+ *   ALLOW_DEMO_SEED=1 npm run seed -- --execute
  *
- * Run outside container:
- *   docker exec server bun run seed
+ * Execution is intentionally restricted to a non-production database whose
+ * name includes dev, test, demo, or local. Never point this script at production.
  */
 
 import 'dotenv/config';
@@ -44,9 +44,20 @@ function addMonths(date, n) {
 // ─── Connect ─────────────────────────────────────────────────────────────────
 
 const MONGO_URI = process.env.MONGO_URI;
-if (!MONGO_URI) {
-  console.error('\x1b[31m✘  MONGO_URI is not set in .env\x1b[0m');
-  process.exit(1);
+const execute = process.argv.includes('--execute');
+const { databaseName, databaseHost } = (() => { try { const parsed = new URL(MONGO_URI); return { databaseName: parsed.pathname.replace(/^\//, '').split('/')[0], databaseHost: parsed.hostname }; } catch { return { databaseName: '', databaseHost: '' }; } })();
+const productionTarget = process.env.NODE_ENV === 'production' || /prod/i.test(databaseName) || /prod/i.test(databaseHost);
+const safeDemoDatabase = /(dev|test|demo|local)/i.test(databaseName);
+
+if (!execute) {
+  console.log('Seeder dry-run only. No database connection was opened and no data was written.');
+  console.log('Planned scope: demo landlord landlord@jptl.dev and associated demo records.');
+  console.log('To seed a non-production demo database, set ALLOW_DEMO_SEED=1 and pass --execute.');
+  process.exit(0);
+}
+if (!MONGO_URI) throw new Error('MONGO_URI is required when --execute is specified.');
+if (productionTarget || !safeDemoDatabase || process.env.ALLOW_DEMO_SEED !== '1') {
+  throw new Error('Seeder execution blocked. It requires ALLOW_DEMO_SEED=1 and an explicitly named dev/test/demo/local database; production targets are never allowed.');
 }
 
 console.log('\n\x1b[1m\x1b[34m══════════════════════════════════════\x1b[0m');

@@ -1,4 +1,23 @@
 import * as landlordDocService from './documents.service.js';
+import { getComplianceReminderSettings, updateComplianceReminderSettings } from '../../../shared/services/complianceReminder.service.js';
+
+export async function getReminderSettings(req, res) {
+  try {
+    const settings = await getComplianceReminderSettings(req.user._id || req.user.id);
+    return res.status(200).json({ success: true, data: settings });
+  } catch (err) {
+    return res.status(err.statusCode || 500).json({ success: false, message: err.message });
+  }
+}
+
+export async function updateReminderSettings(req, res) {
+  try {
+    const settings = await updateComplianceReminderSettings(req.user._id || req.user.id, req.body.noticeLeadTimeDays);
+    return res.status(200).json({ success: true, data: settings });
+  } catch (err) {
+    return res.status(err.statusCode || 500).json({ success: false, message: err.message });
+  }
+}
 
 export async function getDocuments(req, res) {
   try {
@@ -49,4 +68,3 @@ export async function getDocumentFile(req, res) {
     return res.status(statusCode).json({ success: false, message: err.message });
   }
 }
-

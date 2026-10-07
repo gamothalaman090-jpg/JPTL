@@ -4,7 +4,7 @@ import crypto from 'crypto';
 
 const { Schema } = mongoose;
 
-const USER_ROLES = ['tenant', 'landlord', 'superadmin'];
+const USER_ROLES = ['tenant', 'landlord', 'staff', 'superadmin'];
 
 const userSchema = new Schema(
   {
@@ -16,6 +16,7 @@ const userSchema = new Schema(
     password: { type: String, required: true, select: false },
     role: { type: String, enum: USER_ROLES, default: 'landlord' },
     plan: { type: String, enum: ['starter', 'pro', 'enterprise'], default: 'starter' },
+    documentExpirationReminderDays: { type: Number, enum: [15, 30, 60], default: 30 },
     onboardingCompleted: { type: Boolean, default: false },
     landlord: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     status: { type: String, enum: ['active', 'suspended'], default: 'active' },

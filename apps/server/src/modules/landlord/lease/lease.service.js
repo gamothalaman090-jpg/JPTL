@@ -2,6 +2,8 @@ import Lease from '../../../shared/models/lease.model.js';
 import Unit from '../../../shared/models/unit.model.js';
 import Property from '../../../shared/models/property.model.js';
 import AuditLog from '../../../shared/models/auditLog.model.js';
+import TenantProfile from '../../../shared/models/tenantProfile.model.js';
+import { createNotification } from '../../../shared/services/notification.service.js';
 
 export class LandlordLeaseError extends Error {
   constructor(message, statusCode = 400) {
@@ -119,4 +121,29 @@ export async function reviewLeaseExtension(landlordId, leaseId, requestId, { sta
     message: `Lease extension request ${status} successfully.`,
     lease: { ...lease.toObject(), id: lease._id },
   };
+}
+
+export async function reviewEarlyTermination(landlordId, leaseId, requestId, { status, landlordNotes = '' } = {}, ipAddress = '') {
+  if (!['approved', 'rejected'].includes(status)) throw new LandlordLeaseError('Status must be approved or rejected.', 400);
+  const lease = await Lease.findOne({ _id: leaseId, landlord: landlordId }).populate('property', 'landlord name').populate('unit', 'label');
+  if (!lease) throw new LandlordLeaseError('Lease not found or access denied.', 404);
+  const request = lease.terminationRequests.id(requestId);
+  if (!request) throw new LandlordLeaseError('Early termination request not found.', 404);
+  if (request.status !== 'pending') throw new LandlordLeaseError('This request has already been reviewed.', 409);
+  if (typeof landlordNotes !== 'string' || landlordNotes.trim().length > 1000) throw new LandlordLeaseError('Landlord note must be 1,000 characters or fewer.', 400);
+  request.status = status;
+  request.landlordNotes = landlordNotes.trim();
+  request.reviewedAt = new Date();
+  request.reviewedBy = landlordId;
+  if (status === 'approved') {
+    lease.leaseEnd = request.requestedMoveOutDate;
+    lease.leaseType = 'fixed_term';
+    lease.status = 'active';
+    await Unit.findByIdAndUpdate(lease.unit?._id || lease.unit, { $set: { leaseType: 'fixed_term', leaseEnd: request.requestedMoveOutDate } });
+    await TenantProfile.findOneAndUpdate({ user: lease.tenant }, { $set: { leaseType: 'fixed_term', leaseEnd: request.requestedMoveOutDate } });
+  }
+  await lease.save();
+  await logAction({ actorId: landlordId, action: status === 'approved' ? 'EARLY_LEASE_TERMINATION_APPROVED' : 'EARLY_LEASE_TERMINATION_REJECTED', entityId: lease._id, afterState: { requestId, status, requestedMoveOutDate: request.requestedMoveOutDate, landlordNotes: request.landlordNotes }, ipAddress });
+  await createNotification({ userId: lease.tenant, title: status === 'approved' ? 'Early lease end approved' : 'Early lease end request declined', body: status === 'approved' ? `Your landlord approved an early lease end date of ${new Date(request.requestedMoveOutDate).toLocaleDateString()}.` : `Your early lease termination request was declined.${request.landlordNotes ? ` Note: ${request.landlordNotes}` : ''}`, type: 'lease', refModel: 'Lease', refId: lease._id });
+  return { success: true, message: `Early termination request ${status}.`, lease: { ...lease.toObject(), id: lease._id } };
 }

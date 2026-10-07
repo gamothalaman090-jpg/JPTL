@@ -103,6 +103,21 @@ describe('Landlord Resident Compliance Vault API (/api/landlord/documents)', () 
     expect(res.body.metrics).toBeDefined();
   });
 
+  it('persists the landlord compliance reminder lead time', async () => {
+    const update = await request(app)
+      .patch('/api/landlord/documents/reminder-settings')
+      .set('Cookie', [`token=${landlordToken}`])
+      .send({ noticeLeadTimeDays: 60 });
+    expect(update.status).toBe(200);
+    expect(update.body.data.noticeLeadTimeDays).toBe(60);
+
+    const read = await request(app)
+      .get('/api/landlord/documents/reminder-settings')
+      .set('Cookie', [`token=${landlordToken}`]);
+    expect(read.status).toBe(200);
+    expect(read.body.data.noticeLeadTimeDays).toBe(60);
+  });
+
   it('PATCH /api/landlord/documents/:id/verify - should verify document status', async () => {
     const res = await request(app)
       .patch(`/api/landlord/documents/${sampleDoc._id}/verify`)
@@ -156,4 +171,3 @@ describe('Error Handling', () => {
     expect(res.status).toBe(400);
   });
 });
-

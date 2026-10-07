@@ -14,6 +14,7 @@ const documentSchema = new mongoose.Schema(
     },
     name: { type: String, required: true },
     type: { type: String, required: true }, // e.g., 'Lease Agreement', 'Government ID'
+    expirationDate: { type: Date, default: null },
     category: {
       type: String,
       enum: ['lease', 'upload', 'receipt'],

@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   LayoutDashboard, Building2, Users, Wrench, DollarSign,
-  Settings, LogOut, ChevronLeft, ChevronRight, Bell, Megaphone, CalendarDays, CalendarClock, Home, FileCheck
+  Settings, LogOut, ChevronLeft, ChevronRight, Bell, Megaphone, CalendarDays, CalendarClock, Home, FileCheck, ShieldAlert
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -13,6 +13,8 @@ const NAV_ITEMS = [
   { key: 'tenants', label: 'Tenants Directory', icon: Users },
   { key: 'documents', label: 'Documents & Verification', icon: FileCheck },
   { key: 'lease-extensions', label: 'Lease Extensions', icon: CalendarClock },
+  { key: 'eviction-notices', label: 'Eviction Notices', icon: ShieldAlert },
+  { key: 'staff', label: 'Staff', icon: Users },
 ];
 
 const BOTTOM_ITEMS = [
