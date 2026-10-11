@@ -1,4 +1,4 @@
-# JPTL Monorepoasd
+# JPTL Monorepo
 
 > A full-stack monorepo featuring property and lease management modules, optional microservices, Playwright end-to-end testing, and multi-environment deployment configs (Vercel & Docker).
 
