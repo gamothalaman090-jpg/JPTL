@@ -5,7 +5,7 @@
 ---
 
 ## 🛠️ Repository Structure
-check it out you
+
 ```text
 JPTL/
 ├── .github/              # GitHub Actions & CI/CD workflows
